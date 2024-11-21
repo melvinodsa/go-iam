@@ -1,0 +1,20 @@
+meta {
+  name: Fetch All Projects
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/projects/v1
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Default Project",
+    "tags": [],
+    "description": "Default project to start with",
+    "created_by": "system"
+  }
+}

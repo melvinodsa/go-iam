@@ -1,0 +1,20 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/projects/v1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Default Project",
+    "tags": [],
+    "description": "Default project to start with",
+    "created_by": "system"
+  }
+}

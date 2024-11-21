@@ -1,0 +1,21 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/projects/v1/cff1622b-99ef-45b7-b4b2-253ad91c766a
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Default Project",
+    "tags": ["google"],
+    "description": "Default project to start with",
+    "created_by": "system",
+    "updated_by": "system"
+  }
+}

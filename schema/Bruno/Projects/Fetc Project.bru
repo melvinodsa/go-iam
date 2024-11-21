@@ -1,0 +1,20 @@
+meta {
+  name: Fetc Project
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/projects/v1/cff1622b-99ef-45b7-b4b2-253ad91c766a
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Default Project",
+    "tags": [],
+    "description": "Default project to start with",
+    "created_by": "system"
+  }
+}
