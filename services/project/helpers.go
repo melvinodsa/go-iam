@@ -1,4 +1,4 @@
-package projects
+package project
 
 import (
 	"github.com/melvinodsa/go-iam/api-server/db/models"

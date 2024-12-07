@@ -1,4 +1,4 @@
-package projects
+package project
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/api-server/providers"
 	"github.com/melvinodsa/go-iam/api-server/sdk"
-	"github.com/melvinodsa/go-iam/api-server/services/projects"
+	"github.com/melvinodsa/go-iam/api-server/services/project"
 )
 
 func Create(c *fiber.Ctx) error {
@@ -42,7 +42,7 @@ func Create(c *fiber.Ctx) error {
 	})
 }
 
-// Get workspace
+// Get project
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get project request")
 	id := c.Params("id")
@@ -58,7 +58,7 @@ func Get(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to get project. %w", err).Error()
-		if errors.Is(err, projects.ErrProjectNotFound) {
+		if errors.Is(err, project.ErrProjectNotFound) {
 			status = http.StatusBadRequest
 			message = "project not found"
 		}
@@ -100,7 +100,7 @@ func FetchAll(c *fiber.Ctx) error {
 	})
 }
 
-// Update workspace
+// Update project
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update project request")
 	id := c.Params("id")
@@ -126,7 +126,7 @@ func Update(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to update project. %w", err).Error()
-		if errors.Is(err, projects.ErrProjectNotFound) {
+		if errors.Is(err, project.ErrProjectNotFound) {
 			status = http.StatusBadRequest
 			message = "project not found"
 		}

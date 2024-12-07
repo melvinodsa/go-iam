@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/melvinodsa/go-iam/api-server/routes/projects"
+	"github.com/melvinodsa/go-iam/api-server/routes/project"
 )
 
 func RegisterRoutes(app *fiber.App) {
-	projects.RegisterRoutes(app.Group("/projects"))
+	project.RegisterRoutes(app.Group("/project"))
 }

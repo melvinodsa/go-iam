@@ -1,7 +1,8 @@
-package projects
+package project
 
 import (
 	"context"
+
 	"github.com/melvinodsa/go-iam/api-server/sdk"
 )
 

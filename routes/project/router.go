@@ -1,4 +1,4 @@
-package projects
+package project
 
 import "github.com/gofiber/fiber/v2"
 
