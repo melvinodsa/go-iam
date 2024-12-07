@@ -1,0 +1,22 @@
+meta {
+  name: Create Client
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/client/v1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "My Backend App Client",
+    "description": "Backend api sevrer client with auth",
+    "tags": ["golang"],
+    "redirect_urls": [],
+    "scopes": ["email", "name"],
+    "created_by": "Melvin"
+  }
+}
