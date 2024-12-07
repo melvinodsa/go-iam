@@ -3,8 +3,8 @@ package providers
 import (
 	"fmt"
 
-	"github.com/melvinodsa/go-iam/api-server/config"
-	"github.com/melvinodsa/go-iam/api-server/db"
+	"github.com/melvinodsa/go-iam/config"
+	"github.com/melvinodsa/go-iam/db"
 )
 
 func NewDBConnection(cnf config.AppConfig) (db.DB, error) {

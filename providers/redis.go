@@ -1,7 +1,7 @@
 package providers
 
 import (
-	"github.com/melvinodsa/go-iam/api-server/config"
+	"github.com/melvinodsa/go-iam/config"
 	"github.com/redis/go-redis/v9"
 )
 

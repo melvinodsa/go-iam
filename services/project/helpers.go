@@ -1,8 +1,8 @@
 package project
 
 import (
-	"github.com/melvinodsa/go-iam/api-server/db/models"
-	"github.com/melvinodsa/go-iam/api-server/sdk"
+	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/sdk"
 )
 
 func fromSdkToModel(project sdk.Project) models.Project {

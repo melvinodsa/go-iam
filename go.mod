@@ -1,4 +1,4 @@
-module github.com/melvinodsa/go-iam/api-server
+module github.com/melvinodsa/go-iam
 
 go 1.23
 

@@ -5,9 +5,9 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
-	"github.com/melvinodsa/go-iam/api-server/config"
-	"github.com/melvinodsa/go-iam/api-server/providers"
-	"github.com/melvinodsa/go-iam/api-server/routes"
+	"github.com/melvinodsa/go-iam/config"
+	"github.com/melvinodsa/go-iam/providers"
+	"github.com/melvinodsa/go-iam/routes"
 )
 
 func main() {

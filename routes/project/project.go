@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/melvinodsa/go-iam/api-server/providers"
-	"github.com/melvinodsa/go-iam/api-server/sdk"
-	"github.com/melvinodsa/go-iam/api-server/services/project"
+	"github.com/melvinodsa/go-iam/providers"
+	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/services/project"
 )
 
 func Create(c *fiber.Ctx) error {

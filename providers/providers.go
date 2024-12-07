@@ -2,8 +2,8 @@ package providers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/melvinodsa/go-iam/api-server/config"
-	"github.com/melvinodsa/go-iam/api-server/db"
+	"github.com/melvinodsa/go-iam/config"
+	"github.com/melvinodsa/go-iam/db"
 )
 
 type Provider struct {

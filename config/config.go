@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/joho/godotenv"
-	"github.com/melvinodsa/go-iam/api-server/sdk"
+	"github.com/melvinodsa/go-iam/sdk"
 )
 
 type AppConfig struct {

@@ -1,6 +1,6 @@
 package config
 
-import "github.com/melvinodsa/go-iam/api-server/sdk"
+import "github.com/melvinodsa/go-iam/sdk"
 
 type Redis struct {
 	Host     string          `json:"host"`

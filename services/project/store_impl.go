@@ -8,9 +8,9 @@ import (
 
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
-	"github.com/melvinodsa/go-iam/api-server/db"
-	"github.com/melvinodsa/go-iam/api-server/db/models"
-	"github.com/melvinodsa/go-iam/api-server/sdk"
+	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )

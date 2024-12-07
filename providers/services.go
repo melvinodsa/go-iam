@@ -1,8 +1,8 @@
 package providers
 
 import (
-	"github.com/melvinodsa/go-iam/api-server/db"
-	"github.com/melvinodsa/go-iam/api-server/services/project"
+	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/services/project"
 )
 
 type Service struct {

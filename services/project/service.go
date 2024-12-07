@@ -3,7 +3,7 @@ package project
 import (
 	"context"
 
-	"github.com/melvinodsa/go-iam/api-server/sdk"
+	"github.com/melvinodsa/go-iam/sdk"
 )
 
 type Service interface {
