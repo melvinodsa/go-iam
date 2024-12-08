@@ -1,0 +1,24 @@
+meta {
+  name: Create Auth Provider
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/authprovider/v1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "My Backend App",
+    "provider": "GOOGLE",
+    "params": [
+      {"label": "Client ID", "value": "no-re", "key": "@GOOGLE/CLIENT_ID", "is_secret": false},
+      {"label": "Client Secret", "value": "no-re", "key": "@GOOGLE/CLIENT_SECRET", "is_secret": true},
+      {"label": "Redirect URL", "value": "no-re", "key": "@GOOGLE/REDIRECT_URL", "is_secret": false},
+      {"label": "Scopes", "value": "no-re", "key": "@GOOGLE/SCOPES", "is_secret": false}
+    ]
+  }
+}

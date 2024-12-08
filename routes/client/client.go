@@ -47,7 +47,7 @@ func Get(c *fiber.Ctx) error {
 	ds, err := pr.S.Clients.Get(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, client.ErrClientNotFound) {
-			sdk.ClientBadRequest("Client not found", c)
+			return sdk.ClientBadRequest("Client not found", c)
 		}
 		message := fmt.Errorf("failed to get client. %w", err).Error()
 		log.Error("failed to get client", "error", message)
@@ -69,7 +69,7 @@ func FetchAll(c *fiber.Ctx) error {
 	if err != nil {
 		message := fmt.Errorf("failed to get clients. %w", err).Error()
 		log.Error("failed to get clients", "error", err)
-		return sdk.ClientInternalServerError(message, c)
+		return sdk.ClientsInternalServerError(message, c)
 	}
 
 	log.Debug("clients fetched successfully")
@@ -100,7 +100,7 @@ func Update(c *fiber.Ctx) error {
 	err := pr.S.Clients.Update(c.Context(), payload)
 	if err != nil {
 		if errors.Is(err, client.ErrClientNotFound) {
-			sdk.ClientBadRequest("Client not found", c)
+			return sdk.ClientBadRequest("Client not found", c)
 		}
 		message := fmt.Errorf("failed to update client. %w", err).Error()
 		log.Error("failed to update client", "error", err)

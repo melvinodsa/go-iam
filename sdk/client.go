@@ -48,3 +48,14 @@ type ClientsResponse struct {
 	Message string   `json:"message"`
 	Data    []Client `json:"data,omitempty"`
 }
+
+func NewErrorClientsResponse(msg string, status int, c *fiber.Ctx) error {
+	return c.Status(http.StatusBadRequest).JSON(ClientsResponse{
+		Success: false,
+		Message: msg,
+	})
+}
+
+func ClientsInternalServerError(msg string, c *fiber.Ctx) error {
+	return NewErrorClientsResponse(msg, http.StatusInternalServerError, c)
+}

@@ -1,9 +1,12 @@
 package providers
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/services/encrypt"
 )
 
 type Provider struct {
@@ -19,7 +22,12 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	}
 	c := NewCache(cnf)
 
-	svcs := NewServices(d, c)
+	enc, err := encrypt.NewService(cnf.Encrypter.Key())
+	if err != nil {
+		return nil, fmt.Errorf("error creating encrypter: %w", err)
+	}
+
+	svcs := NewServices(d, c, enc)
 
 	return &Provider{
 		S: svcs,
