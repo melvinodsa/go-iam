@@ -8,18 +8,19 @@ import (
 )
 
 type Client struct {
-	Id           string     `json:"id"`
-	Name         string     `json:"name"`
-	Description  string     `json:"description"`
-	Secret       string     `json:"secret"`
-	Tags         []string   `json:"tags"`
-	RedirectURLs []string   `json:"redirect_urls"`
-	Scopes       []string   `json:"scopes"`
-	Enabled      bool       `json:"enabled"`
-	CreatedAt    *time.Time `json:"created_at"`
-	CreatedBy    string     `json:"created_by"`
-	UpdatedAt    *time.Time `json:"updated_at"`
-	UpdatedBy    string     `json:"updated_by"`
+	Id                    string     `json:"id"`
+	Name                  string     `json:"name"`
+	Description           string     `json:"description"`
+	Secret                string     `json:"secret"`
+	Tags                  []string   `json:"tags"`
+	RedirectURLs          []string   `json:"redirect_urls"`
+	Scopes                []string   `json:"scopes"`
+	DefaultAuthProviderId string     `json:"default_auth_provider_id"`
+	Enabled               bool       `json:"enabled"`
+	CreatedAt             *time.Time `json:"created_at"`
+	CreatedBy             string     `json:"created_by"`
+	UpdatedAt             *time.Time `json:"updated_at"`
+	UpdatedBy             string     `json:"updated_by"`
 }
 
 type ClientResponse struct {

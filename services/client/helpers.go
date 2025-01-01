@@ -19,35 +19,37 @@ func fromModelListToSdk(clients []models.Client) []sdk.Client {
 
 func fromModelToSdk(client *models.Client) *sdk.Client {
 	return &sdk.Client{
-		Id:           client.Id,
-		Name:         client.Name,
-		Description:  client.Description,
-		Secret:       client.Secret,
-		Tags:         client.Tags,
-		RedirectURLs: client.RedirectURLs,
-		Scopes:       client.Scopes,
-		Enabled:      client.Enabled,
-		CreatedAt:    client.CreatedAt,
-		CreatedBy:    client.CreatedBy,
-		UpdatedAt:    client.UpdatedAt,
-		UpdatedBy:    client.UpdatedBy,
+		Id:                    client.Id,
+		Name:                  client.Name,
+		Description:           client.Description,
+		Secret:                client.Secret,
+		Tags:                  client.Tags,
+		RedirectURLs:          client.RedirectURLs,
+		DefaultAuthProviderId: client.DefaultAuthProviderId,
+		Scopes:                client.Scopes,
+		Enabled:               client.Enabled,
+		CreatedAt:             client.CreatedAt,
+		CreatedBy:             client.CreatedBy,
+		UpdatedAt:             client.UpdatedAt,
+		UpdatedBy:             client.UpdatedBy,
 	}
 }
 
 func fromSdkToModel(client sdk.Client) models.Client {
 	return models.Client{
-		Id:           client.Id,
-		Name:         client.Name,
-		Description:  client.Description,
-		Secret:       client.Secret,
-		Tags:         client.Tags,
-		RedirectURLs: client.RedirectURLs,
-		Scopes:       client.Scopes,
-		Enabled:      client.Enabled,
-		CreatedAt:    client.CreatedAt,
-		CreatedBy:    client.CreatedBy,
-		UpdatedAt:    client.UpdatedAt,
-		UpdatedBy:    client.UpdatedBy,
+		Id:                    client.Id,
+		Name:                  client.Name,
+		Description:           client.Description,
+		Secret:                client.Secret,
+		Tags:                  client.Tags,
+		RedirectURLs:          client.RedirectURLs,
+		DefaultAuthProviderId: client.DefaultAuthProviderId,
+		Scopes:                client.Scopes,
+		Enabled:               client.Enabled,
+		CreatedAt:             client.CreatedAt,
+		CreatedBy:             client.CreatedBy,
+		UpdatedAt:             client.UpdatedAt,
+		UpdatedBy:             client.UpdatedBy,
 	}
 }
 

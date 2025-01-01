@@ -13,6 +13,9 @@ type AuthMetadataType interface {
 
 type AuthIdentity struct {
 	Type     AuthIdentityType `json:"type"`
-	Value    string           `json:"value"`
 	Metadata AuthMetadataType `json:"metadata"`
+}
+
+func (a AuthIdentity) UpdateUserDetails(user *User) {
+	a.Metadata.UpdateUserDetails(user)
 }

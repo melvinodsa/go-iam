@@ -2,8 +2,10 @@ package authprovider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/services/authprovider/google"
 )
 
 type service struct {
@@ -27,4 +29,13 @@ func (s service) Create(ctx context.Context, provider *sdk.AuthProvider) error {
 }
 func (s service) Update(ctx context.Context, provider *sdk.AuthProvider) error {
 	return s.s.Update(ctx, provider)
+}
+
+func (s service) GetProvider(v sdk.AuthProvider) (sdk.ServiceProvider, error) {
+	switch v.Provider {
+	case sdk.AuthProviderTypeGoogle:
+		return google.NewAuthProvider(v), nil
+	default:
+		return nil, fmt.Errorf("unknown auth provider: %s", v.Provider)
+	}
 }

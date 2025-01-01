@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -8,6 +9,10 @@ import (
 )
 
 type AuthProviderType string
+
+const (
+	AuthProviderTypeGoogle AuthProviderType = "GOOGLE"
+)
 
 type AuthProvider struct {
 	Id        string              `json:"id"`
@@ -20,6 +25,15 @@ type AuthProvider struct {
 	UpdatedAt *time.Time          `json:"updated_at"`
 	CreatedBy string              `json:"created_by"`
 	UpdatedBy string              `json:"updated_by"`
+}
+
+func (a AuthProvider) GetParam(key string) string {
+	for _, p := range a.Params {
+		if p.Key == key {
+			return p.Value
+		}
+	}
+	return ""
 }
 
 type AuthProviderParam struct {
@@ -69,7 +83,7 @@ func AuthProvidersInternalServerError(msg string, c *fiber.Ctx) error {
 
 type ServiceProvider interface {
 	GetAuthCodeUrl(state string) string
-	VerifyCode(state string, code string) (*AuthToken, error)
+	VerifyCode(ctx context.Context, code string) (*AuthToken, error)
 	RefreshToken(refreshToken string) (*AuthToken, error)
-	GetIdentity(token string) (*AuthIdentity, error)
+	GetIdentity(token string) ([]AuthIdentity, error)
 }

@@ -2,20 +2,17 @@ package providers
 
 import (
 	"github.com/melvinodsa/go-iam/config"
+	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/redis/go-redis/v9"
 )
 
-type Cache struct {
-	Redis *redis.Client
-}
-
-func NewCache(cnf config.AppConfig) *Cache {
+func NewCache(cnf config.AppConfig) *cache.Service {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cnf.Redis.Host,
 		Password: string(cnf.Redis.Password), // no password set
 		DB:       0,                          // use default DB
 	})
-	return &Cache{
+	return &cache.Service{
 		Redis: client,
 	}
 }

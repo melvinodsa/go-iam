@@ -19,6 +19,7 @@ type AppConfig struct {
 	DB         DB
 	Encrypter  Encrypter
 	Redis      Redis
+	Jwt        Jwt
 }
 
 func NewAppConfig() *AppConfig {
@@ -163,4 +164,13 @@ func (a *AppConfig) LoadRedisConfig() {
 		//goland:noinspection GoRedundantConversion
 		a.Redis.Password = sdk.MaskedBytes([]byte(password))
 	}
+}
+
+func (a *AppConfig) LoadJwtConfig() {
+	// load from env variables
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("JWT_SECRET is required")
+	}
+	a.Jwt.secret = sdk.MaskedBytes(secret)
 }
