@@ -22,9 +22,9 @@ func NewServices(db db.DB, cache *cache.Service, enc encrypt.Service, jwtSvc jwt
 	pstr := project.NewStore(db)
 	psvc := project.NewService(pstr)
 	cstr := client.NewStore(db)
-	csvc := client.NewService(cstr)
+	csvc := client.NewService(cstr, psvc)
 	apStr := authprovider.NewStore(enc, db)
-	apSvc := authprovider.NewService(apStr)
+	apSvc := authprovider.NewService(apStr, psvc)
 	authSvc := auth.NewService(apSvc, csvc, *cache, jwtSvc)
 	return &Service{Projects: psvc, Clients: csvc, AuthProviders: apSvc, Auth: authSvc}
 }

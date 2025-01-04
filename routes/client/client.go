@@ -44,7 +44,7 @@ func Get(c *fiber.Ctx) error {
 		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
 	}
 	pr := providers.GetProviders(c)
-	ds, err := pr.S.Clients.Get(c.Context(), id)
+	ds, err := pr.S.Clients.Get(c.Context(), id, false)
 	if err != nil {
 		if errors.Is(err, client.ErrClientNotFound) {
 			return sdk.ClientBadRequest("Client not found", c)
@@ -65,7 +65,7 @@ func Get(c *fiber.Ctx) error {
 func FetchAll(c *fiber.Ctx) error {
 	log.Debug("received get clients request")
 	pr := providers.GetProviders(c)
-	ds, err := pr.S.Clients.GetAll(c.Context())
+	ds, err := pr.S.Clients.GetAll(c.Context(), sdk.ClientQueryParams{})
 	if err != nil {
 		message := fmt.Errorf("failed to get clients. %w", err).Error()
 		log.Error("failed to get clients", "error", err)

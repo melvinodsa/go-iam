@@ -23,10 +23,14 @@ func NewStore(db db.DB) Store {
 	return store{db: db}
 }
 
-func (s store) GetAll(ctx context.Context) ([]sdk.Client, error) {
+func (s store) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
 	md := models.GetClientModel()
 	var clients []models.Client
-	cursor, err := s.db.Find(ctx, md, bson.D{{}})
+	filter := bson.D{}
+	if len(queryParams.ProjectIds) > 0 {
+		filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: queryParams.ProjectIds}}})
+	}
+	cursor, err := s.db.Find(ctx, md, filter)
 	if err != nil {
 		return nil, fmt.Errorf("error finding all clients: %w", err)
 	}

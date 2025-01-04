@@ -20,6 +20,7 @@ type AuthProvider struct {
 	Icon      string              `json:"icon"`
 	Provider  AuthProviderType    `json:"provider"`
 	Params    []AuthProviderParam `json:"params"`
+	ProjectId string              `json:"project_id"`
 	Enabled   bool                `json:"enabled"`
 	CreatedAt *time.Time          `json:"created_at"`
 	UpdatedAt *time.Time          `json:"updated_at"`
@@ -86,4 +87,8 @@ type ServiceProvider interface {
 	VerifyCode(ctx context.Context, code string) (*AuthToken, error)
 	RefreshToken(refreshToken string) (*AuthToken, error)
 	GetIdentity(token string) ([]AuthIdentity, error)
+}
+
+type AuthProviderQueryParams struct {
+	ProjectIds []string `json:"project_id"`
 }

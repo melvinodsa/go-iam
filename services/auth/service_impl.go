@@ -40,14 +40,14 @@ func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, stat
 	 * Then we will call the GetLoginUrl method on the auth provider
 	 */
 	if len(authProviderId) == 0 {
-		client, err := s.clientSvc.Get(ctx, clientId)
+		client, err := s.clientSvc.Get(ctx, clientId, true)
 		if err != nil {
 			return "", fmt.Errorf("error fetching client details %w", err)
 		}
 		authProviderId = client.DefaultAuthProviderId
 	}
 
-	p, err := s.authP.Get(ctx, authProviderId)
+	p, err := s.authP.Get(ctx, authProviderId, true)
 	if err != nil {
 		return "", fmt.Errorf("error fetching auth provider details %w", err)
 	}
@@ -137,7 +137,7 @@ func (s service) getToken(ctx context.Context, authProviderId, code string) (*sd
 	 * get the service provider
 	 * call the verify code on the service provider
 	 */
-	p, err := s.authP.Get(ctx, authProviderId)
+	p, err := s.authP.Get(ctx, authProviderId, true)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching auth provider details %w", err)
 	}
@@ -263,7 +263,7 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 	 * get the service provider
 	 * get the callback url
 	 */
-	cl, err := s.clientSvc.Get(ctx, clientId)
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
 	if err != nil {
 		return "", fmt.Errorf("error fetching client details %w", err)
 	}
