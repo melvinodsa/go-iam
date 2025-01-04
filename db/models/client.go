@@ -10,6 +10,7 @@ type Client struct {
 	Tags                  []string   `bson:"tags"`
 	RedirectURLs          []string   `bson:"redirect_urls"`
 	DefaultAuthProviderId string     `bson:"default_auth_provider_id"`
+	ProjectId             string     `bson:"project_id"`
 	Scopes                []string   `bson:"scopes"`
 	Enabled               bool       `bson:"enabled"`
 	CreatedAt             *time.Time `bson:"created_at"`
@@ -24,6 +25,7 @@ type ClientModel struct {
 	NameKey        string
 	TagsKey        string
 	DescriptionKey string
+	ProjectIdKey   string
 }
 
 func (c ClientModel) Name() string {
@@ -36,5 +38,6 @@ func GetClientModel() ClientModel {
 		NameKey:        "name",
 		TagsKey:        "tags",
 		DescriptionKey: "description",
+		ProjectIdKey:   "project_id",
 	}
 }

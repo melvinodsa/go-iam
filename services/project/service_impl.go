@@ -19,6 +19,9 @@ func (s service) GetAll(ctx context.Context) ([]sdk.Project, error) {
 }
 
 func (s service) Get(ctx context.Context, id string) (*sdk.Project, error) {
+	if len(id) == 0 {
+		return nil, ErrProjectNotFound
+	}
 	return s.s.Get(ctx, id)
 }
 

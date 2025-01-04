@@ -10,6 +10,7 @@ type AuthProvider struct {
 	Icon      string              `bson:"icon"`
 	Provider  AuthProviderType    `bson:"provider"`
 	Params    []AuthProviderParam `bson:"params"`
+	ProjectId string              `bson:"project_id"`
 	Enabled   bool                `bson:"enabled"`
 	CreatedAt *time.Time          `bson:"created_at"`
 	UpdatedAt *time.Time          `bson:"updated_at"`
@@ -29,6 +30,7 @@ type AuthProviderModel struct {
 	IdKey        string
 	ProviderKey  string
 	IsEnabledKey string
+	ProjectIdKey string
 }
 
 func (a AuthProviderModel) Name() string {
@@ -40,5 +42,6 @@ func GetAuthProviderModel() AuthProviderModel {
 		IdKey:        "id",
 		ProviderKey:  "provider",
 		IsEnabledKey: "is_enabled",
+		ProjectIdKey: "project_id",
 	}
 }

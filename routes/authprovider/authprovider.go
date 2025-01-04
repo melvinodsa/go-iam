@@ -43,7 +43,7 @@ func Get(c *fiber.Ctx) error {
 		return sdk.AuthProviderBadRequest("Invalid request. Authprovider id is required", c)
 	}
 	pr := providers.GetProviders(c)
-	ds, err := pr.S.AuthProviders.Get(c.Context(), id)
+	ds, err := pr.S.AuthProviders.Get(c.Context(), id, false)
 	if err != nil {
 		if errors.Is(err, authprovider.ErrAuthProviderNotFound) {
 			return sdk.AuthProviderBadRequest("Auth Provider not found", c)
@@ -64,7 +64,7 @@ func Get(c *fiber.Ctx) error {
 func FetchAll(c *fiber.Ctx) error {
 	log.Debug("received get authproviders request")
 	pr := providers.GetProviders(c)
-	ds, err := pr.S.AuthProviders.GetAll(c.Context())
+	ds, err := pr.S.AuthProviders.GetAll(c.Context(), sdk.AuthProviderQueryParams{})
 	if err != nil {
 		message := fmt.Errorf("failed to get authproviders. %w", err).Error()
 		log.Errorw("failed to get authproviders", "error", message)

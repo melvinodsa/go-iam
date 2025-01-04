@@ -15,6 +15,7 @@ type Client struct {
 	Tags                  []string   `json:"tags"`
 	RedirectURLs          []string   `json:"redirect_urls"`
 	Scopes                []string   `json:"scopes"`
+	ProjectId             string     `json:"project_id"`
 	DefaultAuthProviderId string     `json:"default_auth_provider_id"`
 	Enabled               bool       `json:"enabled"`
 	CreatedAt             *time.Time `json:"created_at"`
@@ -59,4 +60,8 @@ func NewErrorClientsResponse(msg string, status int, c *fiber.Ctx) error {
 
 func ClientsInternalServerError(msg string, c *fiber.Ctx) error {
 	return NewErrorClientsResponse(msg, http.StatusInternalServerError, c)
+}
+
+type ClientQueryParams struct {
+	ProjectIds []string `json:"project_id"`
 }
