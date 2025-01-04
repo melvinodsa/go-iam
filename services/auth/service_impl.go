@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/client"
+	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
 )
 
@@ -22,14 +24,16 @@ type service struct {
 	clientSvc client.Service
 	cacheSvc  cache.Service
 	jwtSvc    jwt.Service
+	encSvc    encrypt.Service
 }
 
-func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service) Service {
+func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service) Service {
 	return &service{
 		authP:     authP,
 		clientSvc: clientSvc,
 		cacheSvc:  cacheSvc,
 		jwtSvc:    jwtSvc,
+		encSvc:    encSvc,
 	}
 }
 
@@ -89,6 +93,11 @@ func (s service) Redirect(ctx context.Context, code, state string) (*sdk.AuthRed
 	redirectUrl, err = s.getRedirectUrl(ctx, clientId, redirectUrl, authCode, oState)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the callback url %w", err)
+	}
+
+	err = s.invalidateState(ctx, state)
+	if err != nil {
+		log.Errorf("error invalidating state %s", err)
 	}
 
 	return &sdk.AuthRedirectResponse{RedirectUrl: redirectUrl}, nil
@@ -163,8 +172,12 @@ func (s service) cacheAccessToken(ctx context.Context, token sdk.AuthToken) (str
 	if err != nil {
 		return "", fmt.Errorf("error encoding the token %w", err)
 	}
+	auEnc, err := s.encSvc.Encrypt(b.String())
+	if err != nil {
+		return "", fmt.Errorf("error encrypting the access token %w", err)
+	}
 	accessToken := uuid.New().String()
-	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("access-token-%s", accessToken), b.String(), time.Hour*24)
+	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("access-token-%s", accessToken), auEnc, time.Hour*24)
 	if res.Err() != nil {
 		return "", fmt.Errorf("error saving the access token %w", res.Err())
 	}
@@ -182,8 +195,12 @@ func (s service) cacheAuthToken(ctx context.Context, token sdk.AuthToken) (strin
 	if err != nil {
 		return "", fmt.Errorf("error encoding the token %w", err)
 	}
+	auEnc, err := s.encSvc.Encrypt(b.String())
+	if err != nil {
+		return "", fmt.Errorf("error encrypting the access token %w", err)
+	}
 	authCode := uuid.New().String()
-	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("auth-code-%s", authCode), b.String(), time.Minute)
+	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("auth-code-%s", authCode), auEnc, time.Minute)
 	if res.Err() != nil {
 		return "", fmt.Errorf("error saving the auth code %w", res.Err())
 	}
@@ -198,8 +215,12 @@ func (s service) getAuthTokenFromCache(ctx context.Context, authCode string) (*s
 	if res.Err() != nil {
 		return nil, fmt.Errorf("error fetching the value from cache %w", res.Err())
 	}
+	auDec, err := s.encSvc.Decrypt(res.Val())
+	if err != nil {
+		return nil, fmt.Errorf("error decrypting the access token %w", err)
+	}
 	result := sdk.AuthToken{}
-	err := json.NewDecoder(strings.NewReader(res.Val())).Decode(&result)
+	err = json.NewDecoder(strings.NewReader(auDec)).Decode(&result)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding the token %w", err)
 	}
@@ -224,8 +245,12 @@ func (s service) cacheState(ctx context.Context, state, clientId, providerId, re
 	 * save the state in cache
 	 */
 	newState := fmt.Sprintf("%s:%s:%s:%s", state, clientId, providerId, url.QueryEscape(redirectUrl))
+	st, err := s.encSvc.Encrypt(newState)
+	if err != nil {
+		return "", fmt.Errorf("error encrypting the state %w", err)
+	}
 	stateId := uuid.New().String()
-	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("state-%s", stateId), newState, time.Minute*5)
+	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("state-%s", stateId), st, time.Minute*5)
 	if res.Err() != nil {
 		return "", fmt.Errorf("error saving the state %w", res.Err())
 	}
@@ -240,7 +265,10 @@ func (s service) getCacheState(ctx context.Context, stateId string) (string, str
 	if res.Err() != nil {
 		return "", "", "", "", fmt.Errorf("error fetching the state from cache %w", res.Err())
 	}
-	state := res.Val()
+	state, err := s.encSvc.Decrypt(res.Val())
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("error decrypting the state %w", err)
+	}
 	stateParts := strings.Split(state, ":")
 	if len(stateParts) != 4 {
 		return "", "", "", "", fmt.Errorf("invalid state. expected to have 4 parts but got %d", len(stateParts))
@@ -254,6 +282,17 @@ func (s service) getCacheState(ctx context.Context, stateId string) (string, str
 		return "", "", "", "", fmt.Errorf("error decoding the redirect url %w", err)
 	}
 	return clientId, oState, authProviderId, urlDecoded, nil
+}
+
+func (s service) invalidateState(ctx context.Context, stateId string) error {
+	/*
+	 * delete the value from cache
+	 */
+	res := s.cacheSvc.Redis.Del(ctx, fmt.Sprintf("state-%s", stateId))
+	if res.Err() != nil {
+		return fmt.Errorf("error deleting the value from cache %w", res.Err())
+	}
+	return nil
 }
 
 func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, authCode, state string) (string, error) {
