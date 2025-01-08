@@ -5,6 +5,7 @@ import (
 	"github.com/melvinodsa/go-iam/routes/auth"
 	"github.com/melvinodsa/go-iam/routes/authprovider"
 	"github.com/melvinodsa/go-iam/routes/client"
+	"github.com/melvinodsa/go-iam/routes/me"
 	"github.com/melvinodsa/go-iam/routes/project"
 )
 
@@ -13,4 +14,5 @@ func RegisterRoutes(app *fiber.App) {
 	client.RegisterRoutes(app.Group("/client"))
 	authprovider.RegisterRoutes(app.Group("/authprovider"))
 	auth.RegisterRoutes(app.Group("/auth"))
+	me.RegisterRoutes(app.Group("/me"))
 }

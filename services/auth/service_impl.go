@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
+	"github.com/melvinodsa/go-iam/services/user"
 )
 
 type service struct {
@@ -25,15 +27,17 @@ type service struct {
 	cacheSvc  cache.Service
 	jwtSvc    jwt.Service
 	encSvc    encrypt.Service
+	usrSvc    user.Service
 }
 
-func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service) Service {
+func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service, usrSvc user.Service) Service {
 	return &service{
 		authP:     authP,
 		clientSvc: clientSvc,
 		cacheSvc:  cacheSvc,
 		jwtSvc:    jwtSvc,
 		encSvc:    encSvc,
+		usrSvc:    usrSvc,
 	}
 }
 
@@ -115,7 +119,7 @@ func (s service) ClientCallback(ctx context.Context, code string) (*sdk.AuthVeri
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
 	}
 
-	accessTokenId, err := s.cacheAccessToken(ctx, *token)
+	accessTokenId, err := s.cacheAccessToken(ctx, *token, "")
 	if err != nil {
 		return nil, fmt.Errorf("error caching the access token %w", err)
 	}
@@ -136,7 +140,114 @@ func (s service) ClientCallback(ctx context.Context, code string) (*sdk.AuthVeri
 }
 
 func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User, error) {
-	return nil, nil
+	/*
+	 * get id from jwt access token
+	 * get the access token from cache
+	 * get the user details from the access token
+	 */
+	claims, err := s.jwtSvc.ValidateToken(accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error validating the access token %w", err)
+	}
+	accessTokenId, ok := claims["id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("error getting the access token id from claims")
+	}
+	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
+	if err != nil {
+		return nil, fmt.Errorf("error getting the token from cache %w", err)
+	}
+	identity, err := s.getAuthProivderIdentity(ctx, *token, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
+	}
+	usr, err := s.getOrCreateUser(ctx, *identity)
+	if err != nil {
+		return nil, fmt.Errorf("error getting or creating the user %w", err)
+	}
+
+	return usr, nil
+}
+
+func (s service) getOrCreateUser(ctx context.Context, usr sdk.User) (*sdk.User, error) {
+	/*
+	 * get the user from the user service
+	 * if user not found, create the user
+	 */
+	var u *sdk.User
+	var err error
+	if len(usr.Email) > 0 {
+		u, err = s.usrSvc.GetByEmail(ctx, usr.Email, usr.ProjectId)
+	} else if len(usr.Phone) > 0 {
+		u, err = s.usrSvc.GetByPhone(ctx, usr.Phone, usr.ProjectId)
+	} else {
+		return nil, fmt.Errorf("email or phone is required")
+	}
+	if err != nil && errors.Is(err, user.ErrorUserNotFound) {
+		// we need to create the user
+		err = s.usrSvc.Create(ctx, &usr)
+		if err != nil {
+			return nil, fmt.Errorf("error creating the user %w", err)
+		}
+		u = &usr
+	}
+	if !u.Enabled {
+		return nil, errors.New("user is disabled")
+	}
+
+	if u.Expiry != nil && u.Expiry.Before(time.Now()) {
+		return nil, errors.New("user expired")
+	}
+
+	return u, nil
+}
+
+func (s service) getAuthProivderIdentity(ctx context.Context, token sdk.AuthToken, accessToken string) (*sdk.User, error) {
+	/*
+	 * get the service provider
+	 * call the get identity method on the service provider
+	 */
+	p, err := s.authP.Get(ctx, token.AuthProviderID, true)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching auth provider details %w", err)
+	}
+	sp, err := s.authP.GetProvider(*p)
+	if err != nil {
+		return nil, fmt.Errorf("error getting service provider %w", err)
+	}
+
+	// if the token is expired, we need to refresh the token
+	if token.ExpiresAt.Before(time.Now()) {
+		newToken, err := s.refreshAuthToken(ctx, accessToken, token, sp)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing the token %w", err)
+		}
+		token = *newToken
+	}
+
+	identity, err := sp.GetIdentity(token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error getting the identity from service provider %w", err)
+	}
+	user := sdk.User{ProjectId: p.ProjectId}
+	for _, id := range identity {
+		id.UpdateUserDetails(&user)
+	}
+	return &user, nil
+
+}
+
+func (s service) refreshAuthToken(ctx context.Context, accessToken string, token sdk.AuthToken, sp sdk.ServiceProvider) (*sdk.AuthToken, error) {
+	tk, err := sp.RefreshToken(token.RefreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("error refreshing the token with servivce provider%w", err)
+	}
+	// cache the service provider token
+	_, err = s.cacheAccessToken(ctx, token, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error caching the access token %w", err)
+	}
+	return tk, nil
 }
 
 func (s service) getToken(ctx context.Context, authProviderId, code string) (*sdk.AuthToken, error) {
@@ -159,10 +270,11 @@ func (s service) getToken(ctx context.Context, authProviderId, code string) (*sd
 	if err != nil {
 		return nil, fmt.Errorf("error verifying the code %w", err)
 	}
+	token.AuthProviderID = authProviderId
 	return token, nil
 }
 
-func (s service) cacheAccessToken(ctx context.Context, token sdk.AuthToken) (string, error) {
+func (s service) cacheAccessToken(ctx context.Context, token sdk.AuthToken, accessToken string) (string, error) {
 	/*
 	 * generate a new access token id
 	 * save the token in cache
@@ -176,12 +288,34 @@ func (s service) cacheAccessToken(ctx context.Context, token sdk.AuthToken) (str
 	if err != nil {
 		return "", fmt.Errorf("error encrypting the access token %w", err)
 	}
-	accessToken := uuid.New().String()
+	if len(accessToken) == 0 {
+		accessToken = uuid.New().String()
+	}
 	res := s.cacheSvc.Redis.Set(ctx, fmt.Sprintf("access-token-%s", accessToken), auEnc, time.Hour*24)
 	if res.Err() != nil {
 		return "", fmt.Errorf("error saving the access token %w", res.Err())
 	}
 	return accessToken, nil
+}
+
+func (s service) getAccessTokenFromCache(ctx context.Context, accessToken string) (*sdk.AuthToken, error) {
+	/*
+	 * get the value from cache
+	 */
+	res := s.cacheSvc.Redis.Get(ctx, fmt.Sprintf("access-token-%s", accessToken))
+	if res.Err() != nil {
+		return nil, fmt.Errorf("error fetching the value from cache %w", res.Err())
+	}
+	auDec, err := s.encSvc.Decrypt(res.Val())
+	if err != nil {
+		return nil, fmt.Errorf("error decrypting the access token %w", err)
+	}
+	result := sdk.AuthToken{}
+	err = json.NewDecoder(strings.NewReader(auDec)).Decode(&result)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding the token %w", err)
+	}
+	return &result, nil
 }
 
 func (s service) cacheAuthToken(ctx context.Context, token sdk.AuthToken) (string, error) {
