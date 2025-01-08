@@ -7,7 +7,8 @@ type User struct {
 	ProjectId string     `bson:"project_id"`
 	Name      string     `bson:"name"`
 	Email     string     `bson:"email"`
-	IsEnabled bool       `bson:"is_enabled"`
+	Phone     string     `bson:"phone"`
+	Enabled   bool       `bson:"enabled"`
 	Expiry    *time.Time `bson:"expiry"`
 	CreatedAt *time.Time `bson:"created_at"`
 	CreatedBy string     `bson:"created_by"`
@@ -18,8 +19,11 @@ type User struct {
 type UserModel struct {
 	iam
 	IdKey        string
+	NameKey      string
 	EmailKey     string
+	PhoneKey     string
 	IsEnabledKey string
+	ProjectIDKey string
 	ExpiryKey    string
 }
 
@@ -30,8 +34,11 @@ func (u UserModel) Name() string {
 func GetUserModel() UserModel {
 	return UserModel{
 		IdKey:        "id",
+		NameKey:      "name",
 		EmailKey:     "email",
+		PhoneKey:     "phone",
 		IsEnabledKey: "is_enabled",
+		ProjectIDKey: "project_id",
 		ExpiryKey:    "expiry",
 	}
 }

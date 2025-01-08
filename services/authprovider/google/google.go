@@ -32,7 +32,7 @@ func NewAuthProvider(p sdk.AuthProvider) sdk.ServiceProvider {
 }
 
 func (g authProvider) GetAuthCodeUrl(state string) string {
-	return g.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	return g.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 func (g authProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	token, err := g.cnf.Exchange(ctx, code)
