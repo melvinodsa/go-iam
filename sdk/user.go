@@ -1,6 +1,11 @@
 package sdk
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrUserNotFound = errors.New("user not found")
 
 type User struct {
 	Id        string     `json:"id"`
@@ -25,4 +30,10 @@ type UserResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Data    *User  `json:"data,omitempty"`
+}
+
+type UserListResponse struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Data    *[]User `json:"data,omitempty"`
 }
