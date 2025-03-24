@@ -1,0 +1,21 @@
+meta {
+  name: Update Resource
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/resource/v1/fae3b39b-d3fd-4fa3-8843-75ff42d02d06
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "My Backenda App Client",
+    "description": "Backend api sevrer client with auth",
+    "key": "459e29b3-fbcb-4a68-8358-564c46b1acd1",
+    "enabled": true
+  }
+}
+

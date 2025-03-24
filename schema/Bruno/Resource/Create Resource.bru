@@ -1,0 +1,20 @@
+meta {
+  name: Create Resource
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/resource/v1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "My Backenda App Client",
+    "description": "Backend api sevrer client with auth",
+    "key": "459e29b3-fbcb-4a68-8358-564c46b1acd1",
+    "enabled": true
+  }
+}
