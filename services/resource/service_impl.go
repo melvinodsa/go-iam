@@ -32,3 +32,7 @@ func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
 func (s service) Update(ctx context.Context, resource *sdk.Resource) error {
 	return s.s.Update(ctx, resource)
 }
+
+func (s service) Delete(ctx context.Context, id string) error {
+	return s.s.Delete(ctx, id)
+}

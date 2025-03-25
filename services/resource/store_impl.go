@@ -71,9 +71,9 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 
 	return &sdk.ResourceList{
 		Resources: fromModelListToSdk(resources),
-		Total:    total,
-		Skip:     query.Skip,
-		Limit:    query.Limit,
+		Total:     total,
+		Skip:      query.Skip,
+		Limit:     query.Limit,
 	}, nil
 }
 
@@ -124,6 +124,15 @@ func (s store) Update(ctx context.Context, resource *sdk.Resource) error {
 		return fmt.Errorf("error updating resource: %w", err)
 	}
 
+	return nil
+}
+
+func (s store) Delete(ctx context.Context, id string) error {
+	md := models.GetResourceModel()
+	_, err := s.db.DeleteOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}})
+	if err != nil {
+		return fmt.Errorf("error deleting resource: %w", err)
+	}
 	return nil
 }
 

@@ -45,7 +45,6 @@ func Create(c *fiber.Ctx) error {
 	})
 }
 
-// Get retrieves a specific resource by ID
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get resource request")
 	id := c.Params("id")
@@ -168,5 +167,39 @@ func Update(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Resource updated successfully",
 		Data:    payload,
+	})
+}
+
+func Delete(c *fiber.Ctx) error {
+	log.Debug("received delete resource request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid delete resource request. resource id not found")
+		return c.Status(http.StatusBadRequest).JSON(sdk.ResourceResponse{
+			Success: false,
+			Message: "Invalid request. Resource id is required",
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	err := pr.S.Resources.Delete(c.Context(), id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		message := fmt.Errorf("failed to delete resource. %w", err).Error()
+		if errors.Is(err, resource.ErrResourceNotFound) {
+			status = http.StatusNotFound
+			message = "resource not found"
+		}
+		log.Error("failed to delete resource", "error", err)
+		return c.Status(status).JSON(sdk.ResourceResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("resource deleted successfully")
+	return c.Status(http.StatusOK).JSON(sdk.ResourceResponse{
+		Success: true,
+		Message: "Resource deleted successfully",
 	})
 }
