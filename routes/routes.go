@@ -22,5 +22,6 @@ func RegisterRoutes(app *fiber.App, prv *providers.Provider) {
 	user.RegisterRoutes(app.Group("/user"))
 	resource.RegisterRoutes(app.Group("/resource"))
 	app.Use(prv.M.ResourceMapper())
+	app.Use(prv.M.RoleMapper())
 	role.RegisterRoutes(app.Group("/role"))
 }

@@ -1,12 +1,12 @@
 package models
 
 type ResourceMap struct {
-	ResourcecId string   `bson:"resource_id"`
-	RoleId      []string `bson:"role_id"`
+	ResourceId string   `bson:"resource_id"`
+	RoleId     []string `bson:"role_id"`
 }
 
 func (u ResourceMapModel) Name() string {
-	return "resouceMap"
+	return "resourceMap"
 }
 
 type ResourceMapModel struct {
@@ -15,7 +15,7 @@ type ResourceMapModel struct {
 	RoleIdKey     []string
 }
 
-func GetRoleMap() ResourceMapModel {
+func GetResourceMap() ResourceMapModel {
 	return ResourceMapModel{
 		ResourceIdKey: "resource_id",
 		RoleIdKey:     []string{"role_id"},
