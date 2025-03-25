@@ -1,0 +1,15 @@
+meta {
+  name: Fetch All Resource
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/resource/v1/search?name=orange
+  body: none
+  auth: none
+}
+
+params:query {
+  name: orange
+}
