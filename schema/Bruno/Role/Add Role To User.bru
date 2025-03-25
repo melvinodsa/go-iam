@@ -1,0 +1,16 @@
+meta {
+  name: Add Role To User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/role/v1/:userid/:roleid
+  body: json
+  auth: none
+}
+
+params:path {
+  roleid: 3458295e-a18d-49db-b661-feb6ca9d814a
+  userid: c7cef1b7-b683-4ac6-8293-a7874c3c29b5
+}

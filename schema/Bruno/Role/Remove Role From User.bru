@@ -1,0 +1,16 @@
+meta {
+  name: Remove Role From User
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/role/v1/:userid/:roleid
+  body: json
+  auth: none
+}
+
+params:path {
+  roleid: 828a8f61-0d48-4370-ae9c-0ad7b193cfea
+  userid: 5f0b0299-c864-4219-9b21-8469e328fce4
+}

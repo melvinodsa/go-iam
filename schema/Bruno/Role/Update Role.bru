@@ -1,0 +1,28 @@
+meta {
+  name: Update Role
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/role/v1/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 8c0f8672-48f4-425b-b7d7-5fbfda55d570
+}
+
+body:json {
+  {
+    "name": "My Backend App Cli",
+    "project_id": "ce5bc158-dd51-40e0-aa63-92d0b14da69f",
+    "resources": [
+    ],
+    "created_at": "2025-03-24T12:00:00Z",
+    "created_by": "saltybear",
+    "updated_at": "2025-03-24T12:00:00Z",
+    "updated_by": "saltybear"
+  }
+}

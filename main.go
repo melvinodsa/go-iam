@@ -15,8 +15,6 @@ func main() {
 
 	cnf := setupServer(app)
 
-	routes.RegisterRoutes(app)
-
 	for _, route := range app.GetRoutes() {
 		if route.Method == "OPTIONS" || route.Method == "HEAD" || route.Method == "TRACE" || route.Method == "CONNECT" {
 			continue
@@ -52,6 +50,7 @@ func setupServer(app *fiber.App) *config.AppConfig {
 		AllowOrigins: "http://localhost:5173",
 	}))
 	app.Use(prv.M.Projects)
+	routes.RegisterRoutes(app, prv)
 
 	return cnf
 }

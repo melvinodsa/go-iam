@@ -10,6 +10,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/jwt"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/services/resource"
+	"github.com/melvinodsa/go-iam/services/role"
 	"github.com/melvinodsa/go-iam/services/user"
 )
 
@@ -20,6 +21,7 @@ type Service struct {
 	Auth          auth.Service
 	Resources     resource.Service
 	User          user.Service
+	Role          role.Service
 }
 
 func NewServices(db db.DB, cache *cache.Service, enc encrypt.Service, jwtSvc jwt.Service) *Service {
@@ -31,11 +33,12 @@ func NewServices(db db.DB, cache *cache.Service, enc encrypt.Service, jwtSvc jwt
 	userSvc := user.NewService(userStr)
 	rstr := resource.NewStore(db)
 	rsvc := resource.NewService(rstr)
-
+	roleStr := role.NewStore(db)
+	roleSvc := role.NewService(roleStr)
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)
 	ustr := user.NewStore(db)
 	usvc := user.NewService(ustr)
 	authSvc := auth.NewService(apSvc, csvc, *cache, jwtSvc, enc, usvc)
-	return &Service{Projects: psvc, Clients: csvc, AuthProviders: apSvc, Auth: authSvc, User: userSvc, Resources: rsvc}
+	return &Service{Projects: psvc, Clients: csvc, AuthProviders: apSvc, Auth: authSvc, User: userSvc, Resources: rsvc, Role: roleSvc}
 }

@@ -45,7 +45,7 @@ func fromSdkResourceListToModel(resources []sdk.Resources) []models.Resources {
 		result = append(result, models.Resources{
 			Id:     res.Id,
 			Name:   res.Name,
-			Scopes: fromSdkScopeListToModel(res.Scopes),
+			Scopes: res.Scopes,
 		})
 	}
 	return result
@@ -57,24 +57,8 @@ func fromModelResourceListToSdk(resources []models.Resources) []sdk.Resources {
 		result = append(result, sdk.Resources{
 			Id:     res.Id,
 			Name:   res.Name,
-			Scopes: fromModelScopeListToSdk(res.Scopes),
+			Scopes: res.Scopes,
 		})
-	}
-	return result
-}
-
-func fromSdkScopeListToModel(scopes []sdk.Scope) []models.Scope {
-	result := []models.Scope{}
-	for _, scope := range scopes {
-		result = append(result, models.Scope{Name: scope.Name})
-	}
-	return result
-}
-
-func fromModelScopeListToSdk(scopes []models.Scope) []sdk.Scope {
-	result := []sdk.Scope{}
-	for _, scope := range scopes {
-		result = append(result, sdk.Scope{Name: scope.Name})
 	}
 	return result
 }

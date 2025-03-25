@@ -32,13 +32,9 @@ func (u RoleModel) Name() string {
 }
 
 type Resources struct {
-	Id     string  `json:"id"`
-	Name   string  `json:"name"`
-	Scopes []Scope `json:"scopes"`
-}
-
-type Scope struct {
-	Name string `json:"name"`
+	Id     string   `json:"id"`
+	Name   string   `json:"name"`
+	Scopes []string `json:"scopes"`
 }
 
 func GetRoleModel() RoleModel {

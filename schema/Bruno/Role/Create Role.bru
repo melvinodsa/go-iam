@@ -1,0 +1,35 @@
+meta {
+  name: Create Role
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/role/v1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": "generated-role-id",
+    "name": "ORNAGE",
+    "project_id": "ce5bc158-dd51-40e0-aa63-92d0b14da69f",
+    "resources": [
+      {
+        "id": "fae3b39b-d3fd-4fa3-8843-75ff42d02d06",
+        "name": "My Resource",
+        "scopes": ["GET","POST"]
+      },
+      {
+        "id": "fae3b39b-d3fd-4fa3-8843-75ff42d02d06",
+        "name": "My Resource",
+        "scopes": ["GET","POST"]
+      }
+    ],
+    "created_at": "2025-03-24T12:00:00Z",
+    "created_by": "saltybear",
+    "updated_at": "2025-03-24T12:00:00Z",
+    "updated_by": "saltybear"
+  }
+}

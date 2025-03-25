@@ -8,17 +8,30 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type User struct {
-	Id        string     `json:"id"`
-	ProjectId string     `json:"project_id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Phone     string     `json:"phone"`
-	Enabled   bool       `json:"enabled"`
-	Expiry    *time.Time `json:"expiry"`
-	CreatedAt *time.Time `json:"created_at"`
-	CreatedBy string     `json:"created_by"`
-	UpdatedAt *time.Time `json:"updated_at"`
-	UpdatedBy string     `json:"updated_by"`
+	Id        string         `json:"id"`
+	ProjectId string         `json:"project_id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Phone     string         `json:"phone"`
+	Enabled   bool           `json:"enabled"`
+	Expiry    *time.Time     `json:"expiry"`
+	Roles     []UserRole     `json:"roles"`
+	Resource  []UserResource `json:"resource"`
+	CreatedAt *time.Time     `json:"created_at"`
+	CreatedBy string         `json:"created_by"`
+	UpdatedAt *time.Time     `json:"updated_at"`
+	UpdatedBy string         `json:"updated_by"`
+}
+
+type UserRole struct {
+	Name string `json:"name"`
+	Id   string `json:"id"`
+}
+
+type UserResource struct {
+	Key   string   `json:"key"`
+	Name  string   `json:"name"`
+	Scope []string `json:"scope"`
 }
 
 type UserQuery struct {
