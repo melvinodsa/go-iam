@@ -19,9 +19,6 @@ func (s service) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Reso
 }
 
 func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
-	if len(id) == 0 {
-		return nil, ErrResourceNotFound
-	}
 	return s.s.Get(ctx, id)
 }
 
