@@ -100,6 +100,7 @@ func Update(c *fiber.Ctx) error {
 			Message: fmt.Errorf("invalid request. %w", err).Error(),
 		})
 	}
+	fmt.Println("Id", id)
 
 	payload.Id = id
 	pr := providers.GetProviders(c)

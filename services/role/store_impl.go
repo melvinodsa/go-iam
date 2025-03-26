@@ -36,34 +36,7 @@ func (s *store) Create(ctx context.Context, role *sdk.Role) error {
 	if err != nil {
 		return fmt.Errorf("error creating role: %w", err)
 	}
-
-	for _, res := range role.Resources {
-		resMd := models.GetResourceMap()
-		var resourceMap models.ResourceMap
-		err = s.db.FindOne(ctx, resMd, bson.M{"resource_id": res.Id}).Decode(&resourceMap)
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				// resource does not exist in resourceMap collection, create it
-				_, err = s.db.InsertOne(ctx, resMd, models.ResourceMap{
-					ResourceId: res.Id,
-					RoleId:     []string{role.Id},
-				})
-				if err != nil {
-					return fmt.Errorf("error creating resource map: %w", err)
-				}
-			} else {
-				return fmt.Errorf("error finding resource map: %w", err)
-			}
-		} else {
-			// resource exists in resourceMap collection, update it
-			roleIds := append(resourceMap.RoleId, role.Id)
-			_, err = s.db.UpdateOne(ctx, resMd, bson.M{"resource_id": res.Id}, bson.M{"$set": bson.M{"role_id": roleIds}})
-			if err != nil {
-				return fmt.Errorf("error updating resource map: %w", err)
-			}
-		}
-	}
-
+	s.addToResourceMap(ctx, role.Id, role.Resources)
 	return nil
 }
 
@@ -74,48 +47,44 @@ func (s *store) Update(ctx context.Context, role *sdk.Role) error {
 		return errors.New("role not found")
 	}
 
-	var users []models.User
-	Md := models.GetUserModel()
-	cursor, err := s.db.Find(ctx, Md, bson.D{})
-	if err != nil {
-		return fmt.Errorf("error finding users with role: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &users); err != nil {
-		return fmt.Errorf("error decoding users with role: %w", err)
+	// Get roleMap from context
+	roleMap, ok := ctx.Value("roleMap").(map[string][]string)
+	if !ok {
+		return errors.New("roleMap missing in context")
 	}
 
-	// filter the users with the role id in the roles array
-	var usersWithRole []models.User
-	for _, user := range users {
-		for _, r := range user.Roles {
-			if r.Id == role.Id {
-				usersWithRole = append(usersWithRole, user)
-				s.RemoveRoleFromUser(ctx, user.Id, role.Id)
-				break
-			}
+	// Remove role from all assigned users
+	for _, user := range roleMap[role.Id] {
+		if err := s.RemoveRoleFromUser(ctx, user, role.Id); err != nil {
+			return fmt.Errorf("error removing role from user %s: %w", user, err)
 		}
 	}
 
-	o, err := s.GetById(ctx, role.Id)
+	// Fetch existing role data
+	existingRole, err := s.GetById(ctx, role.Id)
 	if err != nil {
 		return fmt.Errorf("error finding role: %w", err)
 	}
-	role.CreatedAt = o.CreatedAt
+	role.CreatedAt = existingRole.CreatedAt
+
+	// Convert role to DB model and update in database
 	d := fromSdkToModel(*role)
 	md := models.GetRoleModel()
-	_, err = s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: role.Id}}, bson.D{{Key: "$set", Value: d}})
+	_, err = s.db.UpdateOne(ctx, md, bson.M{md.IdKey: role.Id}, bson.M{"$set": d})
 	if err != nil {
 		return fmt.Errorf("error updating role: %w", err)
 	}
 
-	// add the role to the users
-	for _, user := range usersWithRole {
-		err := s.AddRoleToUser(ctx, user.Id, role.Id)
-		if err != nil {
-			return fmt.Errorf("error adding role to user %s: %w", user.Id, err)
+	// Reassign role to users
+	for _, userId := range roleMap[role.Id] {
+		if err := s.AddRoleToUser(ctx, userId, role.Id); err != nil {
+			return fmt.Errorf("error adding role to user %s: %w", userId, err)
 		}
+	}
+
+	// Update the resource map
+	if err := s.addToResourceMap(ctx, role.Id, role.Resources); err != nil {
+		return fmt.Errorf("error updating resource map: %w", err)
 	}
 
 	return nil
@@ -167,103 +136,56 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, er
 	return fromModelListToSdk(roles), nil
 }
 
-// function to add a role to a user
-
 func (s *store) AddRoleToUser(ctx context.Context, userId string, roleId string) error {
-	md := models.GetUserModel()
+
+	// get the user
+	userMd := models.GetUserModel()
 	var user models.User
-	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: userId}}).Decode(&user)
-	if err != nil {
+	if err := s.db.FindOne(ctx, userMd, bson.D{{Key: userMd.IdKey, Value: userId}}).Decode(&user); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return errors.New("user not found")
 		}
 		return fmt.Errorf("error finding user: %w", err)
 	}
+
+	// get the role
 	roleMd := models.GetRoleModel()
 	var role models.Role
-	err = s.db.FindOne(ctx, roleMd, bson.D{{Key: roleMd.IdKey, Value: roleId}}).Decode(&role)
-	if err != nil {
+	if err := s.db.FindOne(ctx, roleMd, bson.D{{Key: roleMd.IdKey, Value: roleId}}).Decode(&role); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return errors.New("role not found")
 		}
 		return fmt.Errorf("error finding role: %w", err)
 	}
-	if user.Roles == nil {
-		user.Roles = []models.UserRoles{}
-	}
 
-	// check if the role is already assigned to the user
+	// check if the user already has the role
 	for _, r := range user.Roles {
 		if r.Id == roleId {
 			return errors.New("role already assigned to user")
 		}
 	}
 
-	user.Roles = append(user.Roles, models.UserRoles{
-		Id:   role.Id,
-		Name: role.Name,
-	})
-	_, err = s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: userId}}, bson.D{{Key: "$set", Value: user}})
-	if err != nil {
-		return fmt.Errorf("error adding role to user: %w", err)
+	// add the role to the user
+	user.Roles = append(user.Roles, models.UserRoles{Id: role.Id, Name: role.Name})
+
+	// ensure unique resources when adding to the user
+	resourceSet := make(map[string]struct{}, len(user.Resource))
+	for _, res := range user.Resource {
+		resourceSet[res.Key] = struct{}{}
 	}
 
-	// add resources corresponding to the role to the user
-	if user.Resource == nil {
-		user.Resource = []models.UserResource{}
-	}
 	for _, res := range role.Resources {
-		// get the resource model using the role.resource id
-		resMd := models.GetResourceModel()
-		var resource models.Resource
-		err = s.db.FindOne(ctx, resMd, bson.D{{Key: resMd.IdKey, Value: res.Id}}).Decode(&resource)
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				return errors.New("resource not found")
-			}
-			return fmt.Errorf("error finding resource: %w", err)
+		if _, exists := resourceSet[res.Key]; !exists {
+			user.Resource = append(user.Resource, models.UserResource{Key: res.Key, Name: res.Name})
+			resourceSet[res.Key] = struct{}{}
 		}
-		user.Resource = append(user.Resource, models.UserResource{
-			RoleID: role.Id,
-			Key:    resource.Key,
-			Name:   resource.Name,
-			Scope:  res.Scopes,
-		})
 	}
-	_, err = s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: userId}}, bson.D{{Key: "$set", Value: user}})
-	if err != nil {
+
+	if _, err := s.db.UpdateOne(ctx, userMd, bson.D{{Key: userMd.IdKey, Value: userId}}, bson.D{{Key: "$set", Value: user}}); err != nil {
 		return fmt.Errorf("error adding resource to user: %w", err)
 	}
 
-	// add the role_id to user_id in the roleMap collection
-	roleMapMd := models.GetRoleMap()
-	fmt.Println("roleid", roleId)
-	// check if the roleMap already exists
-	var roleMap models.RoleMap
-	err = s.db.FindOne(ctx, roleMapMd, bson.M{"role_id": roleId}).Decode(&roleMap)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			// roleMap does not exist, create it
-			roleMap = models.RoleMap{
-				RoleId: roleId,
-				UserId: []string{userId},
-			}
-			_, err = s.db.InsertOne(ctx, roleMapMd, roleMap)
-			if err != nil {
-				return fmt.Errorf("error creating roleMap: %w", err)
-			}
-		} else {
-			return fmt.Errorf("error finding roleMap: %w", err)
-		}
-	} else {
-		// roleMap exists, update it
-		roleMap.UserId = append(roleMap.UserId, userId)
-		_, err = s.db.UpdateOne(ctx, roleMapMd, bson.M{"role_id": roleId}, bson.M{"$set": bson.M{"user_id": roleMap.UserId}})
-		if err != nil {
-			return fmt.Errorf("error updating roleMap: %w", err)
-		}
-	}
-	// return the user with the updated roles and resources
+	s.addToRoleMap(ctx, roleId, userId)
 	return nil
 }
 
@@ -278,26 +200,36 @@ func (s *store) RemoveRoleFromUser(ctx context.Context, userId string, roleId st
 		return fmt.Errorf("error finding user: %w", err)
 	}
 
-	// Find the index of the role to remove
-	roleIndex := -1
-	for i, r := range user.Roles {
-		if r.Id == roleId {
-			roleIndex = i
-			break
+	// Remove role from user roles
+	s.removeFromRoleMap(ctx, roleId, userId)
+
+	// Remove the role from the user's role list
+	filteredRoles := []models.UserRoles{}
+	for _, r := range user.Roles {
+		if r.Id != roleId { // Keep only roles that are NOT being removed
+			filteredRoles = append(filteredRoles, r)
 		}
 	}
+	user.Roles = filteredRoles
 
-	if roleIndex == -1 {
-		return errors.New("role not assigned to user")
+	// Remove the associated resources with the roleId
+	resourceMap, ok := ctx.Value("resourceMap").(map[string][]string)
+	if !ok {
+		return errors.New("resourceMap missing in context")
 	}
 
-	// Remove the role from the user's Roles
-	user.Roles = append(user.Roles[:roleIndex], user.Roles[roleIndex+1:]...)
-
-	// Remove the resources associated with the role
 	var updatedResources []models.UserResource
 	for _, resource := range user.Resource {
-		if resource.RoleID != roleId {
+		// Filter roles that are NOT the one being removed
+		remainingRoles := []string{}
+		for _, r := range resourceMap[resource.Key] {
+			if r != roleId {
+				remainingRoles = append(remainingRoles, r)
+			}
+		}
+
+		// If at least one role remains for the resource, keep it
+		if len(remainingRoles) > 0 {
 			updatedResources = append(updatedResources, resource)
 		}
 	}
@@ -309,6 +241,5 @@ func (s *store) RemoveRoleFromUser(ctx context.Context, userId string, roleId st
 		return fmt.Errorf("error removing role from user: %w", err)
 	}
 
-	// Return nil to indicate success
 	return nil
 }

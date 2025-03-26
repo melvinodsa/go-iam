@@ -12,12 +12,12 @@ func (u RoleMapModel) Name() string {
 type RoleMapModel struct {
 	iam
 	RoleIdKey string
-	UserIdKey []string
+	UserIdKey string
 }
 
 func GetRoleMap() RoleMapModel {
 	return RoleMapModel{
 		RoleIdKey: "role_id",
-		UserIdKey: []string{"user_id"},
+		UserIdKey: "user_id",
 	}
 }

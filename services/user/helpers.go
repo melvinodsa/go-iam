@@ -67,9 +67,8 @@ func fromSdkUserResourceListToModel(resources []sdk.UserResource) []models.UserR
 	var userResources []models.UserResource
 	for _, res := range resources {
 		userResources = append(userResources, models.UserResource{
-			Key:   res.Key,
-			Name:  res.Name,
-			Scope: res.Scope,
+			Key:  res.Key,
+			Name: res.Name,
 		})
 	}
 	return userResources
@@ -79,9 +78,8 @@ func fromModelUserResourceListToSdk(resources []models.UserResource) []sdk.UserR
 	var userResources []sdk.UserResource
 	for _, res := range resources {
 		userResources = append(userResources, sdk.UserResource{
-			Key:   res.Key,
-			Name:  res.Name,
-			Scope: res.Scope,
+			Key:  res.Key,
+			Name: res.Name,
 		})
 	}
 	return userResources

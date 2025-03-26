@@ -12,12 +12,12 @@ func (u ResourceMapModel) Name() string {
 type ResourceMapModel struct {
 	iam
 	ResourceIdKey string
-	RoleIdKey     []string
+	RoleIdKey     string
 }
 
 func GetResourceMap() ResourceMapModel {
 	return ResourceMapModel{
 		ResourceIdKey: "resource_id",
-		RoleIdKey:     []string{"role_id"},
+		RoleIdKey:     "role_id",
 	}
 }

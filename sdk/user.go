@@ -29,9 +29,8 @@ type UserRole struct {
 }
 
 type UserResource struct {
-	Key   string   `json:"key"`
-	Name  string   `json:"name"`
-	Scope []string `json:"scope"`
+	Key  string `json:"key"`
+	Name string `json:"name"`
 }
 
 type UserQuery struct {
