@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -75,7 +74,6 @@ func (m *Middlewares) RoleMapper() fiber.Handler {
 			roleMap[role.RoleId] = role.UserId
 		}
 		c.Context().SetUserValue(RoleMapContextKey, roleMap)
-		fmt.Println(roleMap)
 		return c.Next()
 	}
 }

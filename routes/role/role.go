@@ -13,7 +13,6 @@ import (
 
 // Create handles the creation of a new role
 func Create(c *fiber.Ctx) error {
-	fmt.Println("Create role")
 	log.Debug("received create role request")
 	payload := new(sdk.Role)
 	if err := c.BodyParser(payload); err != nil {
@@ -100,7 +99,6 @@ func Update(c *fiber.Ctx) error {
 			Message: fmt.Errorf("invalid request. %w", err).Error(),
 		})
 	}
-	fmt.Println("Id", id)
 
 	payload.Id = id
 	pr := providers.GetProviders(c)

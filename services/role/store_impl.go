@@ -67,6 +67,32 @@ func (s *store) Update(ctx context.Context, role *sdk.Role) error {
 	}
 	role.CreatedAt = existingRole.CreatedAt
 
+	// Determine resources to remove
+	existingResources := make(map[sdk.Resources]bool)
+	for _, res := range existingRole.Resources {
+		existingResources[res] = true
+	}
+
+	updatedResources := make(map[sdk.Resources]bool)
+	for _, res := range role.Resources {
+		updatedResources[res] = true
+	}
+	// Find resources to remove (present in existing but not in updated)
+	var resourcesToRemove []sdk.Resources
+	for res := range existingResources {
+
+		if !updatedResources[res] {
+			resourcesToRemove = append(resourcesToRemove, res)
+		}
+	}
+
+	// Remove outdated resources
+	if len(resourcesToRemove) > 0 {
+		if err := s.removeFromResourceMap(ctx, role.Id, resourcesToRemove); err != nil {
+			return fmt.Errorf("error removing old resources from resource map: %w", err)
+		}
+	}
+
 	// Convert role to DB model and update in database
 	d := fromSdkToModel(*role)
 	md := models.GetRoleModel()
@@ -82,7 +108,7 @@ func (s *store) Update(ctx context.Context, role *sdk.Role) error {
 		}
 	}
 
-	// Update the resource map
+	// Update the resource map (add new resources)
 	if err := s.addToResourceMap(ctx, role.Id, role.Resources); err != nil {
 		return fmt.Errorf("error updating resource map: %w", err)
 	}
