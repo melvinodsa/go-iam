@@ -85,7 +85,7 @@ func GetAll(c *fiber.Ctx) error {
 		SearchQuery: c.Query("search_query"),
 	}
 	pr := providers.GetProviders(c)
-	ds, err := pr.S.User.GetAll(c.Context(), query)
+	_, err := pr.S.User.GetAll(c.Context(), query)
 	if err != nil {
 		message := fmt.Sprintf("failed to get users. %v", err)
 		log.Error("failed to get users", "error", err)
@@ -99,7 +99,6 @@ func GetAll(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(sdk.UserListResponse{
 		Success: true,
 		Message: "Users fetched successfully",
-		Data:    &ds,
 	})
 }
 

@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
-	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type store struct {
@@ -26,106 +25,69 @@ func NewStore(db db.DB) Store {
 	}
 }
 
+// Create adds a new role to the database
 func (s *store) Create(ctx context.Context, role *sdk.Role) error {
-	id := uuid.New().String()
-	role.Id = id
-	t := time.Now()
-	role.CreatedAt = &t
+	if role == nil {
+		return errors.New("role cannot be nil")
+	}
+
+	role.Id = uuid.New().String()
+	now := time.Now()
+	role.CreatedAt = &now
+	role.UpdatedAt = &now
+
 	d := fromSdkToModel(*role)
 	md := models.GetRoleModel()
+
 	_, err := s.db.InsertOne(ctx, md, d)
 	if err != nil {
-		return fmt.Errorf("error creating role: %w", err)
+		return fmt.Errorf("failed to create role: %w", err)
 	}
-	s.addToResourceMap(ctx, role.Id, role.Resources)
 	return nil
 }
 
+// Update only handles database update, removes complex logic
 func (s *store) Update(ctx context.Context, role *sdk.Role) error {
+	if role == nil || role.Id == "" {
+		return errors.New("role ID is required")
+	}
+
 	now := time.Now()
 	role.UpdatedAt = &now
-	if role.Id == "" {
-		return errors.New("role not found")
-	}
 
-	// Get roleMap from context
-	roleMap, ok := ctx.Value(config.RoleMapContextKey).(map[string][]string)
-	if !ok {
-		return errors.New("roleMap missing in context")
-	}
-
-	// Remove role from all assigned users
-	for _, user := range roleMap[role.Id] {
-		if err := s.RemoveRoleFromUser(ctx, user, role.Id); err != nil {
-			return fmt.Errorf("error removing role from user %s: %w", user, err)
-		}
-	}
-
-	// Fetch existing role data
-	existingRole, err := s.GetById(ctx, role.Id)
-	if err != nil {
-		return fmt.Errorf("error finding role: %w", err)
-	}
-	role.CreatedAt = existingRole.CreatedAt
-
-	// Determine resources to remove
-	existingResources := make(map[sdk.Resources]bool)
-	for _, res := range existingRole.Resources {
-		existingResources[res] = true
-	}
-
-	updatedResources := make(map[sdk.Resources]bool)
-	for _, res := range role.Resources {
-		updatedResources[res] = true
-	}
-	// Find resources to remove (present in existing but not in updated)
-	var resourcesToRemove []sdk.Resources
-	for res := range existingResources {
-
-		if !updatedResources[res] {
-			resourcesToRemove = append(resourcesToRemove, res)
-		}
-	}
-
-	// Remove outdated resources
-	if len(resourcesToRemove) > 0 {
-		if err := s.removeFromResourceMap(ctx, role.Id, resourcesToRemove); err != nil {
-			return fmt.Errorf("error removing old resources from resource map: %w", err)
-		}
-	}
-
-	// Convert role to DB model and update in database
 	d := fromSdkToModel(*role)
 	md := models.GetRoleModel()
-	_, err = s.db.UpdateOne(ctx, md, bson.M{md.IdKey: role.Id}, bson.M{"$set": d})
+	result, err := s.db.UpdateOne(
+		ctx,
+		md,
+		bson.D{{Key: md.IdKey, Value: role.Id}},
+		bson.D{{Key: "$set", Value: d}},
+	)
 	if err != nil {
-		return fmt.Errorf("error updating role: %w", err)
+		return fmt.Errorf("failed to update role: %w", err)
 	}
 
-	// Reassign role to users
-	for _, userId := range roleMap[role.Id] {
-		if err := s.AddRoleToUser(ctx, userId, role.Id); err != nil {
-			return fmt.Errorf("error adding role to user %s: %w", userId, err)
-		}
-	}
-
-	// Update the resource map (add new resources)
-	if err := s.addToResourceMap(ctx, role.Id, role.Resources); err != nil {
-		return fmt.Errorf("error updating resource map: %w", err)
+	if result.ModifiedCount == 0 {
+		return errors.New("role not found")
 	}
 
 	return nil
 }
 
 func (s *store) GetById(ctx context.Context, id string) (*sdk.Role, error) {
+	if id == "" {
+		return nil, errors.New("role ID cannot be empty")
+	}
+
 	md := models.GetRoleModel()
 	var role models.Role
+
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}).Decode(&role)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, errors.New("role not found")
+			return nil, fmt.Errorf("role with ID %s not found", id)
 		}
-		return nil, fmt.Errorf("error finding role: %w", err)
+		return nil, fmt.Errorf("failed to find role: %w", err)
 	}
 	return fromModelToSdk(&role), nil
 }
@@ -133,8 +95,8 @@ func (s *store) GetById(ctx context.Context, id string) (*sdk.Role, error) {
 func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, error) {
 	md := models.GetRoleModel()
 	var roles []models.Role
-	filter := bson.D{}
 
+	filter := bson.D{}
 	if query.ProjectId != "" {
 		filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: query.ProjectId})
 	}
@@ -148,125 +110,63 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, er
 
 	cursor, err := s.db.Find(ctx, md, filter)
 	if err != nil {
-		return nil, fmt.Errorf("error finding roles: %w", err)
+		return nil, fmt.Errorf("failed to fetch roles: %w", err)
 	}
-	defer func() {
-		if err := cursor.Close(ctx); err != nil {
-			log.Errorw("error closing cursor after reading roles", "error", err)
-		}
-	}()
+	defer cursor.Close(ctx)
 
-	err = cursor.All(ctx, &roles)
-	if err != nil {
-		return nil, fmt.Errorf("error reading roles: %w", err)
+	if err := cursor.All(ctx, &roles); err != nil {
+		return nil, fmt.Errorf("failed to read roles: %w", err)
 	}
+
 	return fromModelListToSdk(roles), nil
 }
 
-func (s *store) AddRoleToUser(ctx context.Context, userId string, roleId string) error {
+// Simplified database operations for AddRoleToUser and RemoveRoleFromUser
+func (s *store) AddRoleToUser(ctx context.Context, userId, roleId string) error {
+	if userId == "" || roleId == "" {
+		return errors.New("user ID and role ID are required")
+	}
 
-	// get the user
 	userMd := models.GetUserModel()
-	var user models.User
-	if err := s.db.FindOne(ctx, userMd, bson.D{{Key: userMd.IdKey, Value: userId}}).Decode(&user); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errors.New("user not found")
-		}
-		return fmt.Errorf("error finding user: %w", err)
+	update := bson.M{
+		"$set": bson.M{
+			fmt.Sprintf("roles.%s", roleId): true,
+		},
 	}
 
-	// get the role
-	roleMd := models.GetRoleModel()
-	var role models.Role
-	if err := s.db.FindOne(ctx, roleMd, bson.D{{Key: roleMd.IdKey, Value: roleId}}).Decode(&role); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errors.New("role not found")
-		}
-		return fmt.Errorf("error finding role: %w", err)
+	_, err := s.db.UpdateOne(
+		ctx,
+		userMd,
+		bson.D{{Key: userMd.IdKey, Value: userId}},
+		update,
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to add role to user: %w", err)
 	}
-
-	// check if the user already has the role
-	for _, r := range user.Roles {
-		if r.Id == roleId {
-			return errors.New("role already assigned to user")
-		}
-	}
-
-	// add the role to the user
-	user.Roles = append(user.Roles, models.UserRoles{Id: role.Id, Name: role.Name})
-
-	// ensure unique resources when adding to the user
-	resourceSet := make(map[string]struct{}, len(user.Resource))
-	for _, res := range user.Resource {
-		resourceSet[res.Key] = struct{}{}
-	}
-
-	for _, res := range role.Resources {
-		if _, exists := resourceSet[res.Key]; !exists {
-			user.Resource = append(user.Resource, models.UserResource{Key: res.Key, Name: res.Name})
-			resourceSet[res.Key] = struct{}{}
-		}
-	}
-
-	if _, err := s.db.UpdateOne(ctx, userMd, bson.D{{Key: userMd.IdKey, Value: userId}}, bson.D{{Key: "$set", Value: user}}); err != nil {
-		return fmt.Errorf("error adding resource to user: %w", err)
-	}
-
-	s.addToRoleMap(ctx, roleId, userId)
 	return nil
 }
 
-func (s *store) RemoveRoleFromUser(ctx context.Context, userId string, roleId string) error {
-	md := models.GetUserModel()
-	var user models.User
-	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: userId}}).Decode(&user)
+func (s *store) RemoveRoleFromUser(ctx context.Context, userId, roleId string) error {
+	if userId == "" || roleId == "" {
+		return errors.New("user ID and role ID are required")
+	}
+
+	userMd := models.GetUserModel()
+	update := bson.M{
+		"$unset": bson.M{
+			fmt.Sprintf("roles.%s", roleId): "",
+		},
+	}
+
+	_, err := s.db.UpdateOne(
+		ctx,
+		userMd,
+		bson.D{{Key: userMd.IdKey, Value: userId}},
+		update,
+	)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return errors.New("user not found")
-		}
-		return fmt.Errorf("error finding user: %w", err)
+		return fmt.Errorf("failed to remove role from user: %w", err)
 	}
-
-	// Remove role from user roles
-	s.removeFromRoleMap(ctx, roleId, userId)
-
-	// Remove the role from the user's role list
-	filteredRoles := []models.UserRoles{}
-	for _, r := range user.Roles {
-		if r.Id != roleId { // Keep only roles that are NOT being removed
-			filteredRoles = append(filteredRoles, r)
-		}
-	}
-	user.Roles = filteredRoles
-
-	// Remove the associated resources with the roleId
-	resourceMap, ok := ctx.Value(config.ResourceMapContextKey).(map[string][]string)
-	if !ok {
-		return errors.New("resourceMap missing in context")
-	}
-
-	var updatedResources []models.UserResource
-	for _, resource := range user.Resource {
-		// Filter roles that are NOT the one being removed
-		remainingRoles := []string{}
-		for _, r := range resourceMap[resource.Key] {
-			if r != roleId {
-				remainingRoles = append(remainingRoles, r)
-			}
-		}
-
-		// If at least one role remains for the resource, keep it
-		if len(remainingRoles) > 0 {
-			updatedResources = append(updatedResources, resource)
-		}
-	}
-	user.Resource = updatedResources
-
-	// Update the user document in the database
-	_, err = s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: userId}}, bson.D{{Key: "$set", Value: user}})
-	if err != nil {
-		return fmt.Errorf("error removing role from user: %w", err)
-	}
-
 	return nil
 }

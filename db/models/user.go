@@ -3,29 +3,30 @@ package models
 import "time"
 
 type User struct {
-	Id        string         `bson:"id"`
-	ProjectId string         `bson:"project_id"`
-	Name      string         `bson:"name"`
-	Email     string         `bson:"email"`
-	Phone     string         `bson:"phone"`
-	Enabled   bool           `bson:"enabled"`
-	Expiry    *time.Time     `bson:"expiry"`
-	Roles     []UserRoles    `bson:"roles"`
-	Resource  []UserResource `bson:"resource"`
-	CreatedAt *time.Time     `bson:"created_at"`
-	CreatedBy string         `bson:"created_by"`
-	UpdatedAt *time.Time     `bson:"updated_at"`
-	UpdatedBy string         `bson:"updated_by"`
+	Id        string                  `bson:"id"`
+	ProjectId string                  `bson:"project_id"`
+	Name      string                  `bson:"name"`
+	Email     string                  `bson:"email"`
+	Phone     string                  `bson:"phone"`
+	Enabled   bool                    `bson:"enabled"`
+	Expiry    *time.Time              `bson:"expiry"`
+	Roles     map[string]UserRoles    `bson:"roles"`
+	Resource  map[string]UserResource `bson:"resource"`
+	CreatedAt *time.Time              `bson:"created_at"`
+	CreatedBy string                  `bson:"created_by"`
+	UpdatedAt *time.Time              `bson:"updated_at"`
+	UpdatedBy string                  `bson:"updated_by"`
 }
 
 type UserResource struct {
+	Id   string `bson:"id"`
 	Key  string `bson:"key"`
 	Name string `bson:"name"`
 }
 
 type UserRoles struct {
-	Name string `bson:"name"`
 	Id   string `bson:"id"`
+	Name string `bson:"name"`
 }
 
 type UserModel struct {
@@ -34,6 +35,7 @@ type UserModel struct {
 	NameKey       string
 	EmailKey      string
 	PhoneKey      string
+	EnabledKey    string
 	RolesIdKey    string
 	ResourceIdKey string
 	IsEnabledKey  string
@@ -51,8 +53,9 @@ func GetUserModel() UserModel {
 		NameKey:       "name",
 		EmailKey:      "email",
 		PhoneKey:      "phone",
+		EnabledKey:    "enabled",
 		RolesIdKey:    "roles",
-		ResourceIdKey: "resources",
+		ResourceIdKey: "resource",
 		IsEnabledKey:  "is_enabled",
 		ProjectIDKey:  "project_id",
 		ExpiryKey:     "expiry",
