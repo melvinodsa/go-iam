@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
+	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
@@ -48,7 +49,7 @@ func (s *store) Update(ctx context.Context, role *sdk.Role) error {
 	}
 
 	// Get roleMap from context
-	roleMap, ok := ctx.Value("roleMap").(map[string][]string)
+	roleMap, ok := ctx.Value(config.RoleMapContextKey).(map[string][]string)
 	if !ok {
 		return errors.New("roleMap missing in context")
 	}
@@ -239,7 +240,7 @@ func (s *store) RemoveRoleFromUser(ctx context.Context, userId string, roleId st
 	user.Roles = filteredRoles
 
 	// Remove the associated resources with the roleId
-	resourceMap, ok := ctx.Value("resourceMap").(map[string][]string)
+	resourceMap, ok := ctx.Value(config.ResourceMapContextKey).(map[string][]string)
 	if !ok {
 		return errors.New("resourceMap missing in context")
 	}

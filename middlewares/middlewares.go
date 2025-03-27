@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/services/project"
@@ -23,8 +24,8 @@ func NewMiddlewares(projectSvc project.Service, db db.DB) *Middlewares {
 	}
 }
 
-var ResourceMapContextKey = "resourceMap"
-var RoleMapContextKey = "roleMap"
+// var ResourceMapContextKey = "resourceMap"
+// var RoleMapContextKey = "roleMap"
 
 func (m *Middlewares) ResourceMapper() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -48,7 +49,7 @@ func (m *Middlewares) ResourceMapper() fiber.Handler {
 			}
 			resourceMap[res.ResourceId] = res.RoleId
 		}
-		c.Context().SetUserValue(ResourceMapContextKey, resourceMap)
+		c.Context().SetUserValue(config.ResourceMapContextKey, resourceMap)
 		return c.Next()
 	}
 }
@@ -73,7 +74,7 @@ func (m *Middlewares) RoleMapper() fiber.Handler {
 			}
 			roleMap[role.RoleId] = role.UserId
 		}
-		c.Context().SetUserValue(RoleMapContextKey, roleMap)
+		c.Context().SetUserValue(config.RoleMapContextKey, roleMap)
 		return c.Next()
 	}
 }
