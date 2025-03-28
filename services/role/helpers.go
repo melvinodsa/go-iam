@@ -179,3 +179,117 @@ func (s *store) removeFromResourceMap(ctx context.Context, userId string, resour
 	}
 	return nil
 }
+
+func (s *service) updateUserRoleAndResources(ctx context.Context, user *models.User) error {
+	updatedRoles := make(map[string]models.UserRoles)
+	resourceSet := make(map[string]models.UserResource)
+
+	for roleId := range user.Roles {
+		updatedRole, err := s.GetById(ctx, roleId)
+		if err != nil {
+			return fmt.Errorf("failed to fetch role %s: %w", roleId, err)
+		}
+
+		updatedRoles[roleId] = models.UserRoles{
+			Id:   updatedRole.Id,
+			Name: updatedRole.Name,
+		}
+
+		for _, res := range updatedRole.Resources {
+			resourceSet[res.Key] = models.UserResource{
+				Id:   res.Id,
+				Key:  res.Key,
+				Name: res.Name,
+			}
+		}
+	}
+
+	// Persist changes to the database
+	userMd := models.GetUserModel()
+	update := bson.D{
+		{Key: "$set", Value: bson.M{
+			"roles":    updatedRoles,
+			"resource": resourceSet,
+		}},
+	}
+
+	_, err := s.store.(*store).db.UpdateOne(
+		ctx,
+		userMd,
+		bson.D{{Key: userMd.IdKey, Value: user.Id}},
+		update,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *service) refreshUsersWithRole(ctx context.Context, role *sdk.Role) error {
+	userMd := models.GetUserModel()
+
+	// Find users with this role
+	users, err := s.store.(*store).db.Find(
+		ctx,
+		userMd,
+		bson.D{{Key: "roles." + role.Id, Value: bson.D{{Key: "$exists", Value: true}}}},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to fetch users with role: %w", err)
+	}
+	defer users.Close(ctx)
+
+	// Batch update users
+	for users.Next(ctx) {
+		var user models.User
+		if err := users.Decode(&user); err != nil {
+			return fmt.Errorf("failed to decode user: %w", err)
+		}
+
+		if err := s.updateUserRoleAndResources(ctx, &user); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *service) calculateResourceUsage(userRoles map[string]models.UserRoles, roleToSkip string) map[string]int {
+	resourceUsage := make(map[string]int)
+
+	for roleId := range userRoles {
+		if roleId == roleToSkip {
+			continue
+		}
+
+		role, err := s.GetById(context.Background(), roleId)
+		if err != nil {
+			// Log the error or handle it appropriately
+			continue
+		}
+
+		for _, res := range role.Resources {
+			resourceUsage[res.Key]++
+		}
+	}
+
+	return resourceUsage
+}
+
+// cleanupUnusedResources removes resources that are no longer used by any role
+func (s *service) cleanupUnusedResources(
+	currentResources map[string]models.UserResource,
+	resourceUsage map[string]int,
+) map[string]models.UserResource {
+	cleanedResources := make(map[string]models.UserResource)
+
+	for key, resource := range currentResources {
+		// Keep the resource if it's used in other roles
+		if resourceUsage[key] > 0 {
+			cleanedResources[key] = resource
+		}
+	}
+
+	return cleanedResources
+}
