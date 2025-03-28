@@ -129,7 +129,8 @@ func (s store) Update(ctx context.Context, resource *sdk.Resource) error {
 
 func (s store) Delete(ctx context.Context, id string) error {
 	md := models.GetResourceModel()
-	_, err := s.db.DeleteOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}})
+	//mark it isenabled false
+	_, err := s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}, bson.D{{Key: "$set", Value: bson.D{{Key: md.EnabledKey, Value: false}}}})
 	if err != nil {
 		return fmt.Errorf("error deleting resource: %w", err)
 	}
