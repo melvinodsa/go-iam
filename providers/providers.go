@@ -34,7 +34,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
 	svcs := NewServices(d, c, enc, jwtSvc)
-	mid := middlewares.NewMiddlewares(svcs.Projects)
+	mid := middlewares.NewMiddlewares(svcs.Projects, d)
 
 	return &Provider{
 		S: svcs,

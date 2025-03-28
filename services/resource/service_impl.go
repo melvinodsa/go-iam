@@ -19,9 +19,6 @@ func (s service) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Reso
 }
 
 func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
-	if len(id) == 0 {
-		return nil, ErrResourceNotFound
-	}
 	return s.s.Get(ctx, id)
 }
 
@@ -31,4 +28,8 @@ func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
 
 func (s service) Update(ctx context.Context, resource *sdk.Resource) error {
 	return s.s.Update(ctx, resource)
+}
+
+func (s service) Delete(ctx context.Context, id string) error {
+	return s.s.Delete(ctx, id)
 }

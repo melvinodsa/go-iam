@@ -71,9 +71,9 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 
 	return &sdk.ResourceList{
 		Resources: fromModelListToSdk(resources),
-		Total:    total,
-		Skip:     query.Skip,
-		Limit:    query.Limit,
+		Total:     total,
+		Skip:      query.Skip,
+		Limit:     query.Limit,
 	}, nil
 }
 
@@ -127,41 +127,12 @@ func (s store) Update(ctx context.Context, resource *sdk.Resource) error {
 	return nil
 }
 
-func fromModelToSdk(m *models.Resource) *sdk.Resource {
-	return &sdk.Resource{
-		ID:          m.ID,
-		Name:        m.Name,
-		Description: m.Description,
-		Key:         m.Key,
-		Enabled:     m.Enabled,
-		CreatedAt:   m.CreatedAt,
-		CreatedBy:   m.CreatedBy,
-		UpdatedAt:   m.UpdatedAt,
-		UpdatedBy:   m.UpdatedBy,
-		DeletedAt:   m.DeletedAt,
+func (s store) Delete(ctx context.Context, id string) error {
+	md := models.GetResourceModel()
+	//mark it isenabled false
+	_, err := s.db.UpdateOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}, bson.D{{Key: "$set", Value: bson.D{{Key: md.EnabledKey, Value: false}}}})
+	if err != nil {
+		return fmt.Errorf("error deleting resource: %w", err)
 	}
-}
-
-func fromModelListToSdk(models []models.Resource) []sdk.Resource {
-	resources := make([]sdk.Resource, len(models))
-	for i, m := range models {
-		r := fromModelToSdk(&m)
-		resources[i] = *r
-	}
-	return resources
-}
-
-func fromSdkToModel(s sdk.Resource) *models.Resource {
-	return &models.Resource{
-		ID:          s.ID,
-		Name:        s.Name,
-		Description: s.Description,
-		Key:         s.Key,
-		Enabled:     s.Enabled,
-		CreatedAt:   s.CreatedAt,
-		CreatedBy:   s.CreatedBy,
-		UpdatedAt:   s.UpdatedAt,
-		UpdatedBy:   s.UpdatedBy,
-		DeletedAt:   s.DeletedAt,
-	}
+	return nil
 }

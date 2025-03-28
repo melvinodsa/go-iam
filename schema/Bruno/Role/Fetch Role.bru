@@ -1,0 +1,15 @@
+meta {
+  name: Fetch Role
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/role/v1/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 235179c0-16e5-4eab-9c78-018e86a5ce2e
+}

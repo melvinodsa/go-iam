@@ -11,4 +11,5 @@ type Service interface {
 	Get(ctx context.Context, id string) (*sdk.Resource, error)
 	Create(ctx context.Context, resource *sdk.Resource) error
 	Update(ctx context.Context, resource *sdk.Resource) error
+	Delete(ctx context.Context, id string) error
 }

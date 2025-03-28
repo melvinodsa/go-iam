@@ -112,7 +112,7 @@ func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) ([]sdk.User, er
 		filter = append(filter, bson.E{Key: md.ProjectIDKey, Value: query.ProjectId})
 	}
 	if query.SearchQuery != "" {
-		//  search by name or email or phone with caser insensitive
+		//  search by name, email, or phone (case-insensitive)
 		filter = append(filter, bson.E{
 			Key: "$or", Value: bson.A{
 				bson.D{{Key: md.NameKey, Value: bson.D{{Key: "$regex", Value: query.SearchQuery}, {Key: "$options", Value: "i"}}}},

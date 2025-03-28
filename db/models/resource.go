@@ -30,7 +30,6 @@ func (r ResourceModel) Name() string {
 
 func GetResourceModel() ResourceModel {
 	return ResourceModel{
-		IdKey:          "id",
 		NameKey:        "name",
 		DescriptionKey: "description",
 		KeyKey:         "key",
