@@ -121,7 +121,6 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, er
 	return fromModelListToSdk(roles), nil
 }
 
-// Simplified database operations for AddRoleToUser and RemoveRoleFromUser
 func (s *store) AddRoleToUser(ctx context.Context, userId, roleId string) error {
 	if userId == "" || roleId == "" {
 		return errors.New("user ID and role ID are required")

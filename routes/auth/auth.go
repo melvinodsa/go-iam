@@ -19,9 +19,13 @@ func Login(c *fiber.Ctx) error {
 		log.Errorw("failed to create authprovider", "error", message)
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
-	log.Debug("generated login url successfully")
-
-	return c.Redirect(url, http.StatusTemporaryRedirect)
+	return c.Status(http.StatusOK).JSON(sdk.AuthLoginResponse{
+		Success: true,
+		Message: "Login URL generated successfully",
+		Data: sdk.AuthLoginDataResponse{
+			LoginUrl: url,
+		},
+	})
 }
 
 func Redirect(c *fiber.Ctx) error {
@@ -37,7 +41,9 @@ func Redirect(c *fiber.Ctx) error {
 	}
 	log.Debug("redirected successfully")
 
-	return c.Redirect(resp.RedirectUrl, http.StatusTemporaryRedirect)
+	return c.Status(http.StatusOK).JSON(sdk.AuthRedirectResponse{
+		RedirectUrl: resp.RedirectUrl,
+	})
 }
 
 func Verify(c *fiber.Ctx) error {

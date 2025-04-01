@@ -1,0 +1,16 @@
+meta {
+  name: Create Auth Provider
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/auth/v1/login?client_id=1dd27078-0e74-48ef-ae6f-181b855c3c74&state=123
+  body: json
+  auth: none
+}
+
+params:query {
+  client_id: 1dd27078-0e74-48ef-ae6f-181b855c3c74
+  state: 123
+}
