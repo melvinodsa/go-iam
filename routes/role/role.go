@@ -91,6 +91,9 @@ func Update(c *fiber.Ctx) error {
 		})
 	}
 
+	// print request body
+	fmt.Println(string(c.Body()))
+
 	payload := new(sdk.Role)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update role request", "error", err)

@@ -11,8 +11,6 @@ import (
 )
 
 func Me(c *fiber.Ctx) error {
-	// log.Debug("received me request")
-
 	// get access token from auth bearer token
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
@@ -42,7 +40,6 @@ func Me(c *fiber.Ctx) error {
 		})
 	}
 	log.Debug("user fetched successfully")
-
 	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
 		Success: true,
 		Message: "User fetched successfully",
