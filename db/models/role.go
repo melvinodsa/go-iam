@@ -5,14 +5,14 @@ import (
 )
 
 type Role struct {
-	Id        string               `json:"id"`
-	ProjectId string               `json:"project_id"`
-	Name      string               `json:"name"`
-	Resources map[string]Resources `json:"resources"`
-	CreatedAt time.Time            `json:"created_at"`
-	CreatedBy string               `json:"created_by"`
-	UpdatedAt time.Time            `json:"updated_at"`
-	UpdatedBy string               `json:"updated_by"`
+	Id        string               `bson:"id"`
+	ProjectId string               `bson:"project_id"`
+	Name      string               `bson:"name"`
+	Resources map[string]Resources `bson:"resources"`
+	CreatedAt time.Time            `bson:"created_at"`
+	CreatedBy string               `bson:"created_by"`
+	UpdatedAt time.Time            `bson:"updated_at"`
+	UpdatedBy string               `bson:"updated_by"`
 }
 
 type RoleModel struct {
@@ -32,9 +32,9 @@ func (u RoleModel) Name() string {
 }
 
 type Resources struct {
-	Id   string `json:"id"`
-	Key  string `json:"key"`
-	Name string `json:"name"`
+	Id   string `bson:"id"`
+	Key  string `bson:"key"`
+	Name string `bson:"name"`
 }
 
 func GetRoleModel() RoleModel {
