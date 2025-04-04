@@ -12,7 +12,6 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type store struct {
@@ -118,52 +117,37 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, er
 	return fromModelListToSdk(roles), nil
 }
 
-// Simplified database operations for AddRoleToUser and RemoveRoleFromUser
-func (s *store) AddRoleToUser(ctx context.Context, userId, roleId string) error {
-	if userId == "" || roleId == "" {
-		return errors.New("user ID and role ID are required")
-	}
-
+func (s *store) AddRoleToUser(ctx context.Context, user *models.User) error {
 	userMd := models.GetUserModel()
 	update := bson.M{
 		"$set": bson.M{
-			fmt.Sprintf("roles.%s", roleId): true,
+			"roles":     user.Roles,
+			"resources": user.Resources,
+			"policies":  user.Policies,
 		},
 	}
-
-	_, err := s.db.UpdateOne(
-		ctx,
-		userMd,
-		bson.D{{Key: userMd.IdKey, Value: userId}},
-		update,
-		options.Update().SetUpsert(true),
-	)
+	_, err := s.db.UpdateOne(ctx, userMd, bson.M{userMd.IdKey: user.Id}, update)
 	if err != nil {
-		return fmt.Errorf("failed to add role to user: %w", err)
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 	return nil
 }
 
-func (s *store) RemoveRoleFromUser(ctx context.Context, userId, roleId string) error {
-	if userId == "" || roleId == "" {
-		return errors.New("user ID and role ID are required")
-	}
-
+func (s *store) RemoveRoleFromUser(ctx context.Context, user *models.User) error {
 	userMd := models.GetUserModel()
+	fmt.Println("Removing role from user:", user.Id)
+	fmt.Println("roles:", user.Roles)
+	fmt.Println("resources:", user.Resources)
 	update := bson.M{
-		"$unset": bson.M{
-			fmt.Sprintf("roles.%s", roleId): "",
+		"$set": bson.M{
+			"roles":     user.Roles,
+			"resources": user.Resources,
+			"policies":  user.Policies,
 		},
 	}
-
-	_, err := s.db.UpdateOne(
-		ctx,
-		userMd,
-		bson.D{{Key: userMd.IdKey, Value: userId}},
-		update,
-	)
+	_, err := s.db.UpdateOne(ctx, userMd, bson.M{userMd.IdKey: user.Id}, update)
 	if err != nil {
-		return fmt.Errorf("failed to remove role from user: %w", err)
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 	return nil
 }

@@ -11,7 +11,8 @@ type User struct {
 	Enabled   bool                    `bson:"enabled"`
 	Expiry    *time.Time              `bson:"expiry"`
 	Roles     map[string]UserRoles    `bson:"roles"`
-	Resource  map[string]UserResource `bson:"resource"`
+	Resources map[string]UserResource `bson:"resources"`
+	Policies  map[string]string       `bson:"policies"`
 	CreatedAt *time.Time              `bson:"created_at"`
 	CreatedBy string                  `bson:"created_by"`
 	UpdatedAt *time.Time              `bson:"updated_at"`

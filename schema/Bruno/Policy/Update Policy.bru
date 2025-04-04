@@ -1,0 +1,28 @@
+meta {
+  name: Update Project
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/policy/v1/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: fb21ced0-a63c-49b0-b73c-782057d86224
+}
+
+body:json {
+  {
+    "name": "Default Policy",
+    "Resources": ["123123123","12312313"],
+    "Roles": {
+      "asdsad" : "asds"
+      },
+  
+    "description": "Default policy to start with",
+    "created_by": "system"
+  }
+}
