@@ -31,7 +31,9 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 	// Step 1: Get all users with this role
 	userMd := models.GetUserModel()
 	var users []models.User
-	cursor, err := s.store.(*store).db.Find(ctx, userMd, bson.M{"roles.id": role.Id})
+	cursor, err := s.store.(*store).db.Find(ctx, userMd, bson.M{
+		fmt.Sprintf("roles.%s", role.Id): bson.M{"$exists": true},
+	})
 	if err != nil {
 		return err
 	}
@@ -41,7 +43,7 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 	}
 
 	// Step 2: Collect all unique role IDs across these users
-	roleIds := map[string]struct{}{role.Id: {}} // include the updated role
+	roleIds := map[string]struct{}{role.Id: {}}
 	for _, user := range users {
 		for rid := range user.Roles {
 			roleIds[rid] = struct{}{}
@@ -53,15 +55,14 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		roleIdList = append(roleIdList, id)
 	}
 
-	// Step 3: Fetch all roles in one call
-	// allRoles, err := s.store.GetRolesByIds(ctx, roleIds)
-	// if err != nil {
-	// 	return err
-	// }
-
-	allRoles := make([]sdk.Role, 0, len(roleIdList))
+	// Step 3: Fetch all roles in one call (including updated role)
+	var allRoles []sdk.Role
 	cursor, err = s.store.(*store).db.Find(ctx, models.GetRoleModel(), bson.M{"id": bson.M{"$in": roleIdList}})
 	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+	if err := cursor.All(ctx, &allRoles); err != nil {
 		return err
 	}
 
@@ -73,8 +74,6 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 
 	// Step 4: Fetch all policies for these role IDs
 	policyMd := models.GetPolicyModel()
-
-	// Build $or query: roles.<roleId>: { $exists: true }
 	orQuery := make([]bson.M, 0, len(roleIdList))
 	for _, id := range roleIdList {
 		orQuery = append(orQuery, bson.M{"roles." + id: bson.M{"$exists": true}})
@@ -86,12 +85,11 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		return err
 	}
 	defer cursor.Close(ctx)
-
 	if err := cursor.All(ctx, &allPolicies); err != nil {
 		return err
 	}
 
-	// Map role -> policy list
+	// Build role -> policies mapping
 	roleToPolicies := map[string][]sdk.Policy{}
 	for _, policy := range allPolicies {
 		for rid := range policy.Roles {
@@ -99,7 +97,7 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		}
 	}
 
-	// Step 5: Build policy ID -> Name map for the updated role
+	// Step 5: Get updated policies for the current role
 	newPoliciesMap := map[string]string{}
 	for _, p := range roleToPolicies[role.Id] {
 		newPoliciesMap[p.Id] = p.Name
@@ -107,49 +105,58 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 
 	// Step 6: Sync users
 	for _, user := range users {
+		// Skip if user doesn't have the updated role (extra safety)
 		if _, ok := user.Roles[role.Id]; !ok {
 			continue
 		}
 
-		// ✅ Update role metadata
+		// ✅ Update role name
 		user.Roles[role.Id] = models.UserRoles{
 			Id:   role.Id,
 			Name: role.Name,
 		}
 
-		// ✅ Resources: build all resources from other roles (excluding current)
-		resourcesFromOtherRoles := map[string]bool{}
+		// ✅ Update Resources
+		userRes := user.Resources
+
+		// Step 1: Gather resources from other roles (excluding this one)
+		resourcesFromOtherRoles := make(map[string]struct{})
 		for rid := range user.Roles {
 			if rid == role.Id {
 				continue
 			}
 			if otherRes, ok := roleResourcesMap[rid]; ok {
 				for k := range otherRes {
-					resourcesFromOtherRoles[k] = true
+					resourcesFromOtherRoles[k] = struct{}{}
 				}
 			}
 		}
 
-		// Remove orphaned resources
-		for key := range user.Resources {
+		// Step 2: Remove orphaned resources (not in updated role, not in others)
+		for key := range userRes {
 			_, inUpdated := role.Resources[key]
 			_, inOther := resourcesFromOtherRoles[key]
 			if !inUpdated && !inOther {
-				delete(user.Resources, key)
+				delete(userRes, key)
 			}
 		}
 
-		// Add/update new resources from updated role
+		// Step 3: Add/update resources from updated role
 		for key, res := range role.Resources {
-			user.Resources[key] = models.UserResource{
+			userRes[key] = models.UserResource{
 				Id:   res.Id,
 				Key:  res.Key,
 				Name: res.Name,
 			}
 		}
 
-		// ✅ Policies: build from other roles
-		policiesFromOtherRoles := map[string]string{}
+		user.Resources = userRes
+
+		// ✅ Update Policies
+		userPol := user.Policies
+
+		// Step 1: Gather policies from other roles
+		policiesFromOtherRoles := make(map[string]string)
 		for rid := range user.Roles {
 			if rid == role.Id {
 				continue
@@ -159,20 +166,23 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 			}
 		}
 
-		// Remove orphaned policies
-		for polId := range user.Policies {
+		// Step 2: Remove orphaned policies
+		for polId := range userPol {
 			_, inUpdated := newPoliciesMap[polId]
 			_, inOther := policiesFromOtherRoles[polId]
 			if !inUpdated && !inOther {
-				delete(user.Policies, polId)
+				delete(userPol, polId)
 			}
 		}
 
-		// Add/update new policies from updated role
+		// Step 3: Add/update from updated role
 		for polId, name := range newPoliciesMap {
-			user.Policies[polId] = name
+			userPol[polId] = name
 		}
 
+		user.Policies = userPol
+
+		// ✅ Save user
 		if err := s.store.AddRoleToUser(ctx, &user); err != nil {
 			return err
 		}
