@@ -28,12 +28,12 @@ func (s *service) Create(ctx context.Context, role *sdk.Role) error {
 }
 
 func (s *service) Update(ctx context.Context, role *sdk.Role) error {
-	// Step 1: Get all users with this role
 	userMd := models.GetUserModel()
+	s.store.Update(ctx, role)
+
+	// Step 1: Get all users with this role
 	var users []models.User
-	cursor, err := s.store.(*store).db.Find(ctx, userMd, bson.M{
-		fmt.Sprintf("roles.%s", role.Id): bson.M{"$exists": true},
-	})
+	cursor, err := s.store.(*store).db.Find(ctx, userMd, bson.M{fmt.Sprintf("roles.%s", role.Id): bson.M{"$exists": true}})
 	if err != nil {
 		return err
 	}
@@ -49,13 +49,12 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 			roleIds[rid] = struct{}{}
 		}
 	}
-
 	roleIdList := make([]string, 0, len(roleIds))
 	for id := range roleIds {
 		roleIdList = append(roleIdList, id)
 	}
 
-	// Step 3: Fetch all roles in one call (including updated role)
+	// Step 3: Fetch all roles
 	var allRoles []sdk.Role
 	cursor, err = s.store.(*store).db.Find(ctx, models.GetRoleModel(), bson.M{"id": bson.M{"$in": roleIdList}})
 	if err != nil {
@@ -66,13 +65,13 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		return err
 	}
 
-	// Build role-to-resources map
+	// Build roleResourcesMap
 	roleResourcesMap := map[string]map[string]sdk.Resources{}
 	for _, r := range allRoles {
 		roleResourcesMap[r.Id] = r.Resources
 	}
 
-	// Step 4: Fetch all policies for these role IDs
+	// Step 4: Fetch all policies
 	policyMd := models.GetPolicyModel()
 	orQuery := make([]bson.M, 0, len(roleIdList))
 	for _, id := range roleIdList {
@@ -89,7 +88,7 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		return err
 	}
 
-	// Build role -> policies mapping
+	// Map role -> policies
 	roleToPolicies := map[string][]sdk.Policy{}
 	for _, policy := range allPolicies {
 		for rid := range policy.Roles {
@@ -97,99 +96,73 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 		}
 	}
 
-	// Step 5: Get updated policies for the current role
+	// Build new policies map
 	newPoliciesMap := map[string]string{}
 	for _, p := range roleToPolicies[role.Id] {
 		newPoliciesMap[p.Id] = p.Name
 	}
 
-	// Step 6: Sync users
+	// Step 5: Prepare BulkWrite models
+	writeModels := make([]mongo.WriteModel, 0, len(users))
 	for _, user := range users {
-		// Skip if user doesn't have the updated role (extra safety)
 		if _, ok := user.Roles[role.Id]; !ok {
 			continue
 		}
 
-		// ✅ Update role name
+		// Update role metadata
 		user.Roles[role.Id] = models.UserRoles{
 			Id:   role.Id,
 			Name: role.Name,
 		}
 
-		// ✅ Update Resources
-		userRes := user.Resources
-
-		// Step 1: Gather resources from other roles (excluding this one)
-		resourcesFromOtherRoles := make(map[string]struct{})
+		// Rebuild resources
+		combinedResources := map[string]models.UserResource{}
 		for rid := range user.Roles {
-			if rid == role.Id {
+			resMap, ok := roleResourcesMap[rid]
+			if !ok {
 				continue
 			}
-			if otherRes, ok := roleResourcesMap[rid]; ok {
-				for k := range otherRes {
-					resourcesFromOtherRoles[k] = struct{}{}
+			for key, res := range resMap {
+				combinedResources[key] = models.UserResource{
+					Id:   res.Id,
+					Key:  res.Key,
+					Name: res.Name,
 				}
 			}
 		}
+		user.Resources = combinedResources
 
-		// Step 2: Remove orphaned resources (not in updated role, not in others)
-		for key := range userRes {
-			_, inUpdated := role.Resources[key]
-			_, inOther := resourcesFromOtherRoles[key]
-			if !inUpdated && !inOther {
-				delete(userRes, key)
-			}
-		}
-
-		// Step 3: Add/update resources from updated role
-		for key, res := range role.Resources {
-			userRes[key] = models.UserResource{
-				Id:   res.Id,
-				Key:  res.Key,
-				Name: res.Name,
-			}
-		}
-
-		user.Resources = userRes
-
-		// ✅ Update Policies
-		userPol := user.Policies
-
-		// Step 1: Gather policies from other roles
-		policiesFromOtherRoles := make(map[string]string)
+		// Rebuild policies
+		combinedPolicies := map[string]string{}
 		for rid := range user.Roles {
-			if rid == role.Id {
-				continue
-			}
-			for _, p := range roleToPolicies[rid] {
-				policiesFromOtherRoles[p.Id] = p.Name
+			for _, pol := range roleToPolicies[rid] {
+				combinedPolicies[pol.Id] = pol.Name
 			}
 		}
+		user.Policies = combinedPolicies
 
-		// Step 2: Remove orphaned policies
-		for polId := range userPol {
-			_, inUpdated := newPoliciesMap[polId]
-			_, inOther := policiesFromOtherRoles[polId]
-			if !inUpdated && !inOther {
-				delete(userPol, polId)
-			}
+		// Prepare update operation
+		filter := bson.M{"id": user.Id}
+		update := bson.M{
+			"$set": bson.M{
+				"roles":     user.Roles,
+				"resources": user.Resources,
+				"policies":  user.Policies,
+			},
 		}
+		writeModels = append(writeModels, mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(update))
+	}
 
-		// Step 3: Add/update from updated role
-		for polId, name := range newPoliciesMap {
-			userPol[polId] = name
-		}
-
-		user.Policies = userPol
-
-		// ✅ Save user
-		if err := s.store.AddRoleToUser(ctx, &user); err != nil {
+	// Step 6: Execute BulkWrite
+	if len(writeModels) > 0 {
+		_, err = s.store.(*store).db.BulkWrite(ctx, userMd, writeModels)
+		if err != nil {
 			return err
 		}
 	}
 
-	// Step 7: Update the role
-	return s.store.Update(ctx, role)
+	// Step 7: Update role itself
+	return nil
 }
 
 func (s *service) GetById(ctx context.Context, id string) (*sdk.Role, error) {
