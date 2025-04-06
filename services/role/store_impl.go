@@ -151,3 +151,30 @@ func (s *store) RemoveRoleFromUser(ctx context.Context, user *models.User) error
 	}
 	return nil
 }
+
+func (s *store) GetPoliciesByRoleIds(ctx context.Context, roleIds map[string]struct{}) ([]sdk.Policy, error) {
+	policyMd := models.GetPolicyModel()
+
+	roleIdList := make([]string, 0, len(roleIds))
+	for id := range roleIds {
+		roleIdList = append(roleIdList, id)
+	}
+
+	// Construct the $or query to match any policy that has a role key present
+	orQuery := make([]bson.M, 0, len(roleIdList))
+	for _, id := range roleIdList {
+		orQuery = append(orQuery, bson.M{"roles." + id: bson.M{"$exists": true}})
+	}
+
+	var policies []sdk.Policy
+	cursor, err := s.db.Find(ctx, policyMd, bson.M{"$or": orQuery})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &policies); err != nil {
+		return nil, err
+	}
+	return policies, nil
+}
