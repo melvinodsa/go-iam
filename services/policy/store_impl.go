@@ -44,14 +44,29 @@ func (s store) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("policy ID cannot be empty")
 	}
-	md := models.GetPolicyModel()
-	result, err := s.db.DeleteOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}})
+
+	// Remove the policy key from all users
+	userModel := models.GetUserModel()
+	update := bson.M{
+		"$unset": bson.M{
+			fmt.Sprintf("policies.%s", id): "",
+		},
+	}
+	_, err := s.db.UpdateMany(ctx, userModel, bson.M{}, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove policy from users: %w", err)
+	}
+
+	// Delete the policy from the policies collection
+	policyModel := models.GetPolicyModel()
+	result, err := s.db.DeleteOne(ctx, policyModel, bson.D{{Key: policyModel.IdKey, Value: id}})
 	if err != nil {
 		return fmt.Errorf("failed to delete policy: %w", err)
 	}
 	if result.DeletedCount == 0 {
 		return errors.New("policy not found")
 	}
+
 	return nil
 }
 
