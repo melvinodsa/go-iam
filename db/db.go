@@ -42,10 +42,6 @@ type MongoConnection struct {
 	client *mongo.Client
 }
 
-func (m *MongoConnection) Client() {
-	panic("unimplemented")
-}
-
 type dbCtxKey struct{}
 
 func (m MongoConnection) SetDbInContext(ctx context.Context) context.Context {
