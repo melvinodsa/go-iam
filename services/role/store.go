@@ -3,6 +3,7 @@ package role
 import (
 	"context"
 
+	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
@@ -11,6 +12,6 @@ type Store interface {
 	Update(ctx context.Context, role *sdk.Role) error
 	GetById(ctx context.Context, id string) (*sdk.Role, error)
 	GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, error)
-	AddRoleToUser(ctx context.Context, userId, roleId string) error
-	RemoveRoleFromUser(ctx context.Context, userId, roleId string) error
+	AddRoleToUser(ctx context.Context, user *models.User) error
+	RemoveRoleFromUser(ctx context.Context, user *models.User) error
 }

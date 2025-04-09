@@ -29,6 +29,8 @@ type DbQuerier interface {
 	DeleteOne(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error)
 	Aggregate(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.AggregateOptions) (*mongo.Cursor, error)
 	CountDocuments(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.CountOptions) (int64, error)
+	BulkWrite(ctx context.Context, col DbCollection, models []mongo.WriteModel, opts ...*options.BulkWriteOptions) (*mongo.BulkWriteResult, error)
+	UpdateMany(ctx context.Context, col DbCollection, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 }
 
 type DbClient interface {
@@ -96,4 +98,12 @@ func (m *MongoConnection) DeleteOne(ctx context.Context, col DbCollection, filte
 
 func (m *MongoConnection) CountDocuments(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.CountOptions) (int64, error) {
 	return m.client.Database(col.DbName()).Collection(col.Name()).CountDocuments(ctx, filter, opts...)
+}
+
+func (m *MongoConnection) BulkWrite(ctx context.Context, col DbCollection, models []mongo.WriteModel, opts ...*options.BulkWriteOptions) (*mongo.BulkWriteResult, error) {
+	return m.client.Database(col.DbName()).Collection(col.Name()).BulkWrite(ctx, models, opts...)
+}
+
+func (m *MongoConnection) UpdateMany(ctx context.Context, col DbCollection, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	return m.client.Database(col.DbName()).Collection(col.Name()).UpdateMany(ctx, filter, update, opts...)
 }

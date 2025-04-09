@@ -114,6 +114,9 @@ func (s service) ClientCallback(ctx context.Context, code string) (*sdk.AuthVeri
 	 * invalidate the code from cache
 	 * return the access token
 	 */
+
+	// get the auth token from cache
+
 	token, err := s.getAuthTokenFromCache(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
@@ -411,6 +414,7 @@ func (s service) getCacheState(ctx context.Context, stateId string) (string, str
 	oState := stateParts[0]
 	authProviderId := stateParts[2]
 	redirectUrl := stateParts[3]
+
 	urlDecoded, err := url.QueryUnescape(redirectUrl)
 	if err != nil {
 		return "", "", "", "", fmt.Errorf("error decoding the redirect url %w", err)

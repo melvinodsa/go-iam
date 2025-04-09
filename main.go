@@ -46,9 +46,8 @@ func setupServer(app *fiber.App) *config.AppConfig {
 	}
 	app.Use((*cnf).Handle)
 	app.Use((*prv).Handle)
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:5173",
-	}))
+	app.Use(cors.New())
+
 	app.Use(prv.M.Projects)
 	routes.RegisterRoutes(app, prv)
 

@@ -14,13 +14,24 @@ func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
 	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
+	// get postback value from parameter,my postback value is boolean value
+	postBack := c.Query("postback", "false")
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to create authprovider", "error", message)
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
-	log.Debug("generated login url successfully")
 
+	// return the login url in json format if postback is true
+	if postBack == "true" {
+		return c.Status(http.StatusOK).JSON(sdk.AuthLoginResponse{
+			Success: true,
+			Message: "Login URL generated successfully",
+			Data: sdk.AuthLoginDataResponse{
+				LoginUrl: url,
+			},
+		})
+	}
 	return c.Redirect(url, http.StatusTemporaryRedirect)
 }
 
@@ -29,6 +40,7 @@ func Redirect(c *fiber.Ctx) error {
 	pr := providers.GetProviders(c)
 	code := c.Query("code")
 	state := c.Query("state")
+	postback := c.Query("postback", "false")
 	resp, err := pr.S.Auth.Redirect(c.Context(), code, state)
 	if err != nil {
 		message := fmt.Errorf("failed to redirect. %w", err).Error()
@@ -36,7 +48,11 @@ func Redirect(c *fiber.Ctx) error {
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
 	log.Debug("redirected successfully")
-
+	if postback == "true" {
+		return c.Status(http.StatusOK).JSON(sdk.AuthRedirectResponse{
+			RedirectUrl: resp.RedirectUrl,
+		})
+	}
 	return c.Redirect(resp.RedirectUrl, http.StatusTemporaryRedirect)
 }
 
