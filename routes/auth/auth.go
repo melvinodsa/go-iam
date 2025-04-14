@@ -13,16 +13,15 @@ import (
 func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
-	// get postback value from parameter,my postback value is boolean value
-	postBack := c.Query("postback", "false")
+
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("redis", "false"))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to create authprovider", "error", message)
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
 
-	// return the login url in json format if postback is true
+	postBack := c.Query("postback", "false")
 	if postBack == "true" {
 		return c.Status(http.StatusOK).JSON(sdk.AuthLoginResponse{
 			Success: true,
@@ -41,7 +40,8 @@ func Redirect(c *fiber.Ctx) error {
 	code := c.Query("code")
 	state := c.Query("state")
 	postback := c.Query("postback", "false")
-	resp, err := pr.S.Auth.Redirect(c.Context(), code, state)
+	redis := c.Query("redis", "false")
+	resp, err := pr.S.Auth.Redirect(c.Context(), code, state, redis)
 	if err != nil {
 		message := fmt.Errorf("failed to redirect. %w", err).Error()
 		log.Errorw("failed to redirect", "error", message)
@@ -60,10 +60,10 @@ func Verify(c *fiber.Ctx) error {
 	log.Debug("received callback request")
 	pr := providers.GetProviders(c)
 	code := c.Query("code")
-	resp, err := pr.S.Auth.ClientCallback(c.Context(), code)
+	redis := "false"
+	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, redis)
 	if err != nil {
 		message := fmt.Errorf("failed to get callback. %w", err).Error()
-		log.Errorw("failed to get callback", "error", message)
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
 	log.Debug("code verification was successful")

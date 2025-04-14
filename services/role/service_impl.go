@@ -298,8 +298,6 @@ func (s *service) RemoveRoleFromUser(ctx context.Context, userId, roleId string)
 	// update user roles
 	delete(user.Roles, roleId)
 
-	fmt.Println("Removing role from user:", user)
-
 	// Remove policies only if no other roles require them
 	for _, policy := range policies {
 		policyStillNeeded := false
