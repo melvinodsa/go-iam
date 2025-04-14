@@ -135,9 +135,6 @@ func (s *store) AddRoleToUser(ctx context.Context, user *models.User) error {
 
 func (s *store) RemoveRoleFromUser(ctx context.Context, user *models.User) error {
 	userMd := models.GetUserModel()
-	fmt.Println("Removing role from user:", user.Id)
-	fmt.Println("roles:", user.Roles)
-	fmt.Println("resources:", user.Resources)
 	update := bson.M{
 		"$set": bson.M{
 			"roles":     user.Roles,
