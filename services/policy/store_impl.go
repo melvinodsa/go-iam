@@ -364,3 +364,31 @@ func (s store) AddResourceToRole(ctx context.Context, roleID, resourceID, Name s
 	}
 	return nil
 }
+
+func (s store) SyncResourcesByPolicyId(ctx context.Context, policies map[string]string, resourceId string, name string) error {
+	if len(policies) == 0 {
+		return errors.New("policies cannot be empty")
+	}
+
+	// Convert policies into string array
+	policyIDs := make([]string, 0, len(policies))
+	for id := range policies {
+		policyIDs = append(policyIDs, id)
+	}
+
+	// Get all the roles having these policies
+	roles, err := s.GetRolesByPolicyId(ctx, policyIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get roles by policy IDs: %w", err)
+	}
+
+	// Add the resource to all the roles
+	for _, role := range roles {
+		err = s.AddResourceToRole(ctx, role, resourceId, name)
+		if err != nil {
+			return fmt.Errorf("failed to add resource to role %s: %w", role, err)
+		}
+	}
+
+	return nil
+}

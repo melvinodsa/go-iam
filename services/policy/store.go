@@ -15,4 +15,5 @@ type Store interface {
 	GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Policy, error)
 	GetRolesByPolicyId(ctx context.Context, policies []string) ([]string, error)
 	AddResourceToRole(ctx context.Context, roleId string, resourceId string, name string) error
+	SyncResourcesByPolicyId(ctx context.Context, policies map[string]string, resourceId string, name string) error
 }
