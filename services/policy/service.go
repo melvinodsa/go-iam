@@ -13,4 +13,5 @@ type Service interface {
 	Update(ctx context.Context, policy *sdk.Policy) error
 	Delete(ctx context.Context, id string) error
 	GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Policy, error)
+	SyncResourcesbyPolicyId(ctx context.Context, policyId map[string]string, ResourceId string, name string) error
 }
