@@ -43,7 +43,7 @@ func NewServices(db db.DB, cache *cache.Service, enc encrypt.Service, jwtSvc jwt
 	ustr := user.NewStore(db)
 	usvc := user.NewService(ustr)
 	authSvc := auth.NewService(apSvc, csvc, *cache, jwtSvc, enc, usvc)
-	polstr := policy.NewStore(db)
+	polstr := policy.NewStore(db, rstr)
 	polSvc := policy.NewService(polstr)
 	roleStr := role.NewStore(db)
 	roleSvc := role.NewService(roleStr, polSvc)

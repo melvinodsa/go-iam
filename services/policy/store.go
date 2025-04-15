@@ -13,4 +13,6 @@ type Store interface {
 	Update(ctx context.Context, policy *sdk.Policy) error
 	Delete(ctx context.Context, id string) error
 	GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Policy, error)
+	GetRolesByPolicyId(ctx context.Context, policies []string) ([]string, error)
+	AddResourceToRole(ctx context.Context, roleId string, resourceId string, name string) error
 }

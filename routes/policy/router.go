@@ -10,4 +10,5 @@ func RegisterRoutes(router fiber.Router) {
 	policy.Put("/:id", Update)
 	policy.Delete("/:id", Delete)
 	policy.Get("/role/:id", GetPoliciesByRoleId)
+	policy.Post("/sync", SyncResources)
 }

@@ -23,7 +23,8 @@ func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 }
 
 func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
-	return s.s.Create(ctx, resource)
+	_, err := s.s.Create(ctx, resource)
+	return err
 }
 
 func (s service) Update(ctx context.Context, resource *sdk.Resource) error {

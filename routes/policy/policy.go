@@ -205,3 +205,37 @@ func GetPoliciesByRoleId(c *fiber.Ctx) error {
 		Data:    ds,
 	})
 }
+
+func SyncResources(c *fiber.Ctx) error {
+	log.Debug("received sync resources request")
+	var payload struct {
+		Policies   map[string]string `json:"policies"`
+		ResourceId string            `json:"resourceId"`
+		Name       string            `json:"name"`
+	}
+	// payload := new(sdk.SyncResourcesRequest)
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(sdk.PolicyResponse{
+			Success: false,
+			Message: fmt.Errorf("invalid request. %w", err).Error(),
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	err := pr.S.Policy.SyncResourcesbyPolicyId(c.Context(), payload.Policies, payload.ResourceId, payload.Name)
+	if err != nil {
+		status := http.StatusInternalServerError
+		message := fmt.Errorf("failed to sync resources. %w", err).Error()
+		log.Errorw("failed to sync resources", "error", err)
+		return c.Status(status).JSON(sdk.PolicyResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+	log.Debug("resources synced successfully")
+
+	return c.Status(http.StatusOK).JSON(sdk.PolicyResponse{
+		Success: true,
+		Message: "Resources synced successfully",
+	})
+}

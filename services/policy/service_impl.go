@@ -10,8 +10,10 @@ type service struct {
 	s Store
 }
 
-func NewService(s Store) service {
-	return service{s: s}
+func NewService(s Store) Service {
+	return &service{
+		s: s,
+	}
 }
 
 func (s service) GetAll(ctx context.Context) ([]sdk.Policy, error) {
@@ -39,4 +41,28 @@ func (s service) Delete(ctx context.Context, id string) error {
 
 func (s service) GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Policy, error) {
 	return s.s.GetPoliciesByRoleId(ctx, roleId)
+}
+
+func (s service) SyncResourcesbyPolicyId(ctx context.Context, policies map[string]string, ResourceId string, name string) error {
+	// convert policies into string array
+	policyIDs := make([]string, 0, len(policies))
+	for id := range policies {
+		policyIDs = append(policyIDs, id)
+	}
+
+	// get all the roles having these policies
+	roles, err := s.s.GetRolesByPolicyId(ctx, policyIDs)
+	if err != nil {
+		return err
+	}
+
+	// add the resource to all the roles
+	for _, role := range roles {
+		err = s.s.AddResourceToRole(ctx, role, ResourceId, name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -91,7 +91,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 	return fromModelToSdk(&resource), nil
 }
 
-func (s store) Create(ctx context.Context, resource *sdk.Resource) error {
+func (s store) Create(ctx context.Context, resource *sdk.Resource) (string, error) {
 	id := uuid.New().String()
 	resource.ID = id
 	t := time.Now()
@@ -100,9 +100,9 @@ func (s store) Create(ctx context.Context, resource *sdk.Resource) error {
 	md := models.GetResourceModel()
 	_, err := s.db.InsertOne(ctx, md, d)
 	if err != nil {
-		return fmt.Errorf("error creating resource: %w", err)
+		return "", fmt.Errorf("error creating resource: %w", err)
 	}
-	return nil
+	return id, nil
 }
 
 func (s store) Update(ctx context.Context, resource *sdk.Resource) error {

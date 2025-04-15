@@ -10,16 +10,21 @@ import (
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/services/resource"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type store struct {
-	db db.DB
+	db          db.DB
+	ResourceStr resource.Store
 }
 
-func NewStore(db db.DB) Store {
-	return store{db: db}
+func NewStore(db db.DB, resourceStr resource.Store) Store {
+	return &store{
+		db:          db,
+		ResourceStr: resourceStr,
+	}
 }
 
 // Create adds a new policy to the database
@@ -275,4 +280,87 @@ func (s store) GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Po
 	}
 
 	return fromModelListToSdk(policies), nil
+}
+
+func (s store) GetRolesByPolicyId(ctx context.Context, policyIDs []string) ([]string, error) {
+	if len(policyIDs) == 0 {
+		return nil, errors.New("policies cannot be empty")
+	}
+
+	// Define a slice to hold the policies
+	var policies []models.Policy
+	// Query policies by their ID
+	cursor, err := s.db.Find(ctx, models.GetPolicyModel(), bson.D{{Key: "id", Value: bson.M{"$in": policyIDs}}})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch policies: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &policies); err != nil {
+		return nil, fmt.Errorf("failed to decode policies: %w", err)
+	}
+
+	// Use a map to deduplicate role IDs
+	roleIDSet := make(map[string]struct{})
+
+	for _, policy := range policies {
+		for roleID := range policy.Roles {
+			roleIDSet[roleID] = struct{}{}
+		}
+	}
+
+	// Convert set to slice
+	roleIDs := make([]string, 0, len(roleIDSet))
+	for id := range roleIDSet {
+		roleIDs = append(roleIDs, id)
+	}
+
+	return roleIDs, nil
+}
+
+func (s store) AddResourceToRole(ctx context.Context, roleID, resourceID, Name string) error {
+	if roleID == "" || resourceID == "" {
+		return errors.New("role ID and resource ID cannot be empty")
+	}
+
+	// create a new resource
+	id, err := s.ResourceStr.Create(ctx, &sdk.Resource{Key: resourceID, Name: Name})
+	if err != nil {
+		return fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	//create a new resource object
+	resource := &sdk.Resource{Key: resourceID, ID: id, Name: Name}
+
+	// Update the role with the new resource
+	roleModel := models.GetRoleModel()
+	update := bson.M{
+		"$set": bson.M{
+			fmt.Sprintf("resources.%s", resourceID): resource,
+		},
+	}
+	_, err = s.db.UpdateOne(ctx, roleModel, bson.M{roleModel.IdKey: roleID}, update)
+	if err != nil {
+		return fmt.Errorf("failed to add resource to role: %w", err)
+	}
+
+	// Update all users with this role to add the resource
+	userModel := models.GetUserModel()
+
+	// This is the key change - we need to query for users where roles.roleID exists
+	filter := bson.M{
+		fmt.Sprintf("%s.%s", userModel.RolesIdKey, roleID): bson.M{"$exists": true},
+	}
+
+	updateUsers := bson.M{
+		"$set": bson.M{
+			fmt.Sprintf("%s.%s", userModel.ResourceIdKey, resourceID): resource,
+		},
+	}
+
+	_, err = s.db.UpdateMany(ctx, models.GetUserModel(), filter, updateUsers)
+	if err != nil {
+		return fmt.Errorf("failed to add resource to users with role: %w", err)
+	}
+	return nil
 }

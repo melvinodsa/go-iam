@@ -38,6 +38,7 @@ type UserModel struct {
 	PhoneKey      string
 	EnabledKey    string
 	RolesIdKey    string
+	PoliciesKey   string
 	ResourceIdKey string
 	IsEnabledKey  string
 	ProjectIDKey  string
@@ -56,7 +57,8 @@ func GetUserModel() UserModel {
 		PhoneKey:      "phone",
 		EnabledKey:    "enabled",
 		RolesIdKey:    "roles",
-		ResourceIdKey: "resource",
+		ResourceIdKey: "resources",
+		PoliciesKey:   "policies",
 		IsEnabledKey:  "is_enabled",
 		ProjectIDKey:  "project_id",
 		ExpiryKey:     "expiry",
