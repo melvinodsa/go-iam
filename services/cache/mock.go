@@ -1,6 +1,7 @@
-package mockredis
+package cache
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -14,7 +15,7 @@ type RedisService struct {
 }
 
 // NewRedisService creates a new instance of RedisService.
-func NewService() *RedisService {
+func NewMockService() *RedisService {
 	return &RedisService{
 		data: make(map[string]string),
 		ttl:  make(map[string]time.Time),
@@ -22,7 +23,7 @@ func NewService() *RedisService {
 }
 
 // Set stores a key-value pair in the Redis service with an optional TTL.
-func (r *RedisService) Set(key string, value string, ttl time.Duration) {
+func (r *RedisService) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -32,11 +33,12 @@ func (r *RedisService) Set(key string, value string, ttl time.Duration) {
 	} else {
 		delete(r.ttl, key) // Remove TTL if no duration is provided
 	}
+	return nil
 }
 
 // Get retrieves the value for a given key from the Redis service.
 // It returns an error if the key does not exist or has expired.
-func (r *RedisService) Get(key string) (string, error) {
+func (r *RedisService) Get(ctx context.Context, key string) (string, error) {
 	if r == nil {
 		return "", errors.New("redis service is nil")
 	}
@@ -66,7 +68,7 @@ func (r *RedisService) Get(key string) (string, error) {
 }
 
 // Delete removes a key-value pair from the Redis service.
-func (r *RedisService) Delete(key string) error {
+func (r *RedisService) Delete(ctx context.Context, key string) error {
 	if r == nil {
 		return errors.New("redis service is nil")
 	}
@@ -83,7 +85,7 @@ func (r *RedisService) Delete(key string) error {
 }
 
 // Exists checks if a key exists in the Redis service.
-func (r *RedisService) Exists(key string) bool {
+func (r *RedisService) Exists(ctx context.Context, key string) bool {
 	if r == nil {
 		return false
 	}
@@ -96,7 +98,7 @@ func (r *RedisService) Exists(key string) bool {
 }
 
 // Expire sets a TTL (time-to-live) for a key.
-func (r *RedisService) Expire(key string, ttl time.Duration) error {
+func (r *RedisService) Expire(ctx context.Context, key string, ttl time.Duration) error {
 	if r == nil {
 		return errors.New("redis service is nil")
 	}
@@ -112,7 +114,7 @@ func (r *RedisService) Expire(key string, ttl time.Duration) error {
 }
 
 // TTL retrieves the remaining time-to-live for a key.
-func (r *RedisService) TTL(key string) (time.Duration, error) {
+func (r *RedisService) TTL(ctx context.Context, key string) (time.Duration, error) {
 	if r == nil {
 		return 0, errors.New("redis service is nil")
 	}

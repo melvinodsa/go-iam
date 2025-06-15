@@ -75,6 +75,10 @@ func (a *AppConfig) LoadServerConfig() {
 	if port != "" {
 		a.Server.Port = port
 	}
+	enableRedis := os.Getenv("ENABLE_REDIS")
+	if enableRedis == "true" {
+		a.Server.EnableRedis = true
+	}
 }
 
 // LoadDeploymentConfig loads the deployment config

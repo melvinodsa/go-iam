@@ -24,7 +24,12 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := NewCache(cnf)
+
+	var cS cache.Service = cache.NewMockService()
+
+	if cnf.Server.EnableRedis {
+		cS = cache.NewRedisService(cnf.Redis.Host, cnf.Redis.Password)
+	}
 
 	enc, err := encrypt.NewService(cnf.Encrypter.Key())
 	if err != nil {
@@ -33,13 +38,13 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
-	svcs := NewServices(d, c, enc, jwtSvc)
+	svcs := NewServices(d, cS, enc, jwtSvc)
 	mid := middlewares.NewMiddlewares(svcs.Projects, d)
 
 	return &Provider{
 		S: svcs,
 		D: d,
-		C: *c,
+		C: cS,
 		M: *mid,
 	}, nil
 }

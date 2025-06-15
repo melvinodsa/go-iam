@@ -1,8 +1,9 @@
 package config
 
 type Server struct {
-	Host string
-	Port string
+	Host        string
+	Port        string
+	EnableRedis bool
 }
 
 type Deployment struct {

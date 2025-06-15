@@ -14,7 +14,7 @@ func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
 
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("redis", "false"))
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to create authprovider", "error", message)
@@ -40,8 +40,7 @@ func Redirect(c *fiber.Ctx) error {
 	code := c.Query("code")
 	state := c.Query("state")
 	postback := c.Query("postback", "false")
-	redis := c.Query("redis", "false")
-	resp, err := pr.S.Auth.Redirect(c.Context(), code, state, redis)
+	resp, err := pr.S.Auth.Redirect(c.Context(), code, state)
 	if err != nil {
 		message := fmt.Errorf("failed to redirect. %w", err).Error()
 		log.Errorw("failed to redirect", "error", message)
@@ -60,8 +59,7 @@ func Verify(c *fiber.Ctx) error {
 	log.Debug("received callback request")
 	pr := providers.GetProviders(c)
 	code := c.Query("code")
-	redis := "false"
-	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, redis)
+	resp, err := pr.S.Auth.ClientCallback(c.Context(), code)
 	if err != nil {
 		message := fmt.Errorf("failed to get callback. %w", err).Error()
 		return sdk.AuthProviderInternalServerError(message, c)

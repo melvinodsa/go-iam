@@ -30,7 +30,7 @@ func Me(c *fiber.Ctx) error {
 	}
 
 	pr := providers.GetProviders(c)
-	user, err := pr.S.Auth.GetIdentity(c.Context(), token, "false")
+	user, err := pr.S.Auth.GetIdentity(c.Context(), token)
 	if err != nil {
 		message := fmt.Errorf("failed to fetch user. %w", err).Error()
 		log.Errorw("failed to fetch user", "error", err)
