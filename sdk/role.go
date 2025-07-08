@@ -8,14 +8,16 @@ import (
 var ErrRoleNotFound = errors.New("role not found")
 
 type Role struct {
-	Id        string               `json:"id"`
-	ProjectId string               `json:"project_id"`
-	Name      string               `json:"name"`
-	Resources map[string]Resources `json:"resources"`
-	CreatedAt *time.Time           `json:"created_at"`
-	CreatedBy string               `json:"created_by"`
-	UpdatedAt *time.Time           `json:"updated_at"`
-	UpdatedBy string               `json:"updated_by"`
+	Id          string               `json:"id"`
+	ProjectId   string               `json:"project_id"`
+	Description string               `json:"description"`
+	Name        string               `json:"name"`
+	Resources   map[string]Resources `json:"resources"`
+	Enabled     bool                 `json:"enabled"`
+	CreatedAt   *time.Time           `json:"created_at"`
+	CreatedBy   string               `json:"created_by"`
+	UpdatedAt   *time.Time           `json:"updated_at"`
+	UpdatedBy   string               `json:"updated_by"`
 }
 
 type Resources struct {
@@ -25,8 +27,10 @@ type Resources struct {
 }
 
 type RoleQuery struct {
-	ProjectId   string `json:"project_id"`
-	SearchQuery string `json:"search_query"`
+	ProjectIds  []string `json:"project_ids"`
+	SearchQuery string   `json:"search_query"`
+	Skip        int64    `json:"skip"`
+	Limit       int64    `json:"limit"`
 }
 
 type RoleResponse struct {
@@ -35,8 +39,15 @@ type RoleResponse struct {
 	Data    *Role  `json:"data,omitempty"`
 }
 
+type RoleList struct {
+	Roles []Role `json:"roles"`
+	Total int64  `json:"total"`
+	Skip  int64  `json:"skip"`
+	Limit int64  `json:"limit"`
+}
+
 type RoleListResponse struct {
-	Success bool    `json:"success"`
-	Message string  `json:"message"`
-	Data    *[]Role `json:"data,omitempty"`
+	Success bool      `json:"success"`
+	Message string    `json:"message"`
+	Data    *RoleList `json:"data,omitempty"`
 }

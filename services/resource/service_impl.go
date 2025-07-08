@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
@@ -15,6 +16,7 @@ func NewService(s Store) Service {
 }
 
 func (s service) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.ResourceList, error) {
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.Search(ctx, query)
 }
 

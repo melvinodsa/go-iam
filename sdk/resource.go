@@ -8,6 +8,7 @@ type Resource struct {
 	Description string     `json:"description"`
 	Key         string     `json:"key"`
 	Enabled     bool       `json:"enabled"`
+	ProjectId   string     `json:"project_id"`
 	CreatedAt   *time.Time `json:"created_at"`
 	CreatedBy   string     `json:"created_by"`
 	UpdatedAt   *time.Time `json:"updated_at"`
@@ -16,11 +17,12 @@ type Resource struct {
 }
 
 type ResourceQuery struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	Key         string `json:"key,omitempty"`
-	Skip        int64  `json:"skip"`
-	Limit       int64  `json:"limit"`
+	ProjectIds  []string `json:"project_ids,omitempty"`
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Key         string   `json:"key,omitempty"`
+	Skip        int64    `json:"skip"`
+	Limit       int64    `json:"limit"`
 }
 
 type ResourceResponse struct {

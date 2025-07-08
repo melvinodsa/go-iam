@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/policy"
 	"go.mongodb.org/mongo-driver/bson"
@@ -169,7 +170,8 @@ func (s *service) GetById(ctx context.Context, id string) (*sdk.Role, error) {
 	return s.store.GetById(ctx, id)
 }
 
-func (s *service) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, error) {
+func (s *service) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error) {
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.store.GetAll(ctx, query)
 }
 

@@ -43,7 +43,7 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 		filter = append(filter, bson.D{{Key: md.KeyKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.Key), Options: "i"}}})
 	}
 
-	cond := bson.D{{Key: md.EnabledKey, Value: true}}
+	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
 
 	if len(filter) > 0 {
 		cond = bson.D{{Key: "$or", Value: filter}}
