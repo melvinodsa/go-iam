@@ -24,7 +24,7 @@ func NewService(s Store, p project.Service) Service {
 }
 
 func (s service) GetAll(ctx context.Context, params sdk.AuthProviderQueryParams) ([]sdk.AuthProvider, error) {
-	params.ProjectIds = utils.Map(middlewares.GetProjects(ctx), func(p sdk.Project) string { return p.Id })
+	params.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.GetAll(ctx, params)
 }
 func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.AuthProvider, error) {
@@ -37,7 +37,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 	}
 
 	// check if the project exists
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[ap.ProjectId]; !ok {
 		return nil, ErrAuthProviderNotFound
 	}
@@ -45,7 +45,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 }
 func (s service) Create(ctx context.Context, provider *sdk.AuthProvider) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[provider.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -53,7 +53,7 @@ func (s service) Create(ctx context.Context, provider *sdk.AuthProvider) error {
 }
 func (s service) Update(ctx context.Context, provider *sdk.AuthProvider) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[provider.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}

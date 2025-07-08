@@ -18,6 +18,7 @@ type Resource struct {
 type ResourceQuery struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
+	Key         string `json:"key,omitempty"`
 	Skip        int64  `json:"skip"`
 	Limit       int64  `json:"limit"`
 }
@@ -30,9 +31,9 @@ type ResourceResponse struct {
 
 type ResourceList struct {
 	Resources []Resource `json:"resources"`
-	Total    int64      `json:"total"`
-	Skip     int64      `json:"skip"`
-	Limit    int64      `json:"limit"`
+	Total     int64      `json:"total"`
+	Skip      int64      `json:"skip"`
+	Limit     int64      `json:"limit"`
 }
 
 type ResourcesResponse struct {

@@ -22,7 +22,7 @@ func fromModelToSdk(provider *models.AuthProvider) *sdk.AuthProvider {
 }
 
 func fromModelListToSdk(providers []models.AuthProvider) []sdk.AuthProvider {
-	var res []sdk.AuthProvider
+	res := []sdk.AuthProvider{}
 	for _, p := range providers {
 		res = append(res, *fromModelToSdk(&p))
 	}

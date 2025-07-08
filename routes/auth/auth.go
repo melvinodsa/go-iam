@@ -17,7 +17,7 @@ func Login(c *fiber.Ctx) error {
 	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
-		log.Errorw("failed to create authprovider", "error", message)
+		log.Errorw("failed to get login url", "error", message)
 		return sdk.AuthProviderInternalServerError(message, c)
 	}
 

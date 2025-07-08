@@ -20,7 +20,7 @@ func NewService(s Store, p project.Service) Service {
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	queryParams.ProjectIds = utils.Map(middlewares.GetProjects(ctx), func(p sdk.Project) string { return p.Id })
+	queryParams.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.GetAll(ctx, queryParams)
 }
 func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.Client, error) {
@@ -32,7 +32,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 		return cl, nil
 	}
 
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[cl.ProjectId]; !ok {
 		return nil, ErrClientNotFound
 	}
@@ -40,7 +40,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 }
 func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -54,7 +54,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p sdk.Project) map[string]bool { ini[p.Id] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
