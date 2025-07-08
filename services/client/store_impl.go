@@ -25,7 +25,7 @@ func NewStore(db db.DB) Store {
 
 func (s store) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
 	md := models.GetClientModel()
-	var clients []models.Client
+	clients := []models.Client{}
 	filter := bson.D{}
 	if len(queryParams.ProjectIds) > 0 {
 		filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: queryParams.ProjectIds}}})

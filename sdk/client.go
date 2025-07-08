@@ -48,7 +48,7 @@ func ClientInternalServerError(msg string, c *fiber.Ctx) error {
 type ClientsResponse struct {
 	Success bool     `json:"success"`
 	Message string   `json:"message"`
-	Data    []Client `json:"data,omitempty"`
+	Data    []Client `json:"data"`
 }
 
 func NewErrorClientsResponse(msg string, status int, c *fiber.Ctx) error {

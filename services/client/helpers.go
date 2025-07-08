@@ -10,7 +10,7 @@ import (
 )
 
 func fromModelListToSdk(clients []models.Client) []sdk.Client {
-	var sdkClients []sdk.Client
+	sdkClients := []sdk.Client{}
 	for _, client := range clients {
 		sdkClients = append(sdkClients, *fromModelToSdk(&client))
 	}
