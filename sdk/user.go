@@ -36,8 +36,10 @@ type UserResource struct {
 }
 
 type UserQuery struct {
-	ProjectId   string `json:"project_id"`
-	SearchQuery string `json:"search_query"`
+	ProjectIds  []string `json:"project_ids"`
+	SearchQuery string   `json:"search_query"`
+	Skip        int64    `json:"skip"`
+	Limit       int64    `json:"limit"`
 }
 
 type UserResponse struct {
@@ -46,8 +48,15 @@ type UserResponse struct {
 	Data    *User  `json:"data,omitempty"`
 }
 
+type UserList struct {
+	Users []User `json:"users"`
+	Total int64  `json:"total"`
+	Skip  int64  `json:"skip"`
+	Limit int64  `json:"limit"`
+}
+
 type UserListResponse struct {
-	Success bool             `json:"success"`
-	Message string           `json:"message"`
-	Data    *map[string]User `json:"data,omitempty"` // Changed to map for consistency
+	Success bool      `json:"success"`
+	Message string    `json:"message"`
+	Data    *UserList `json:"data"` // Changed to map for consistency
 }

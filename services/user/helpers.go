@@ -95,7 +95,7 @@ func fromModelUserResourceMapToSdk(resources map[string]models.UserResource) map
 
 // Convert list of Model Users to list of SDK Users
 func fromModelListToSdk(users []models.User) []sdk.User {
-	var result []sdk.User
+	result := []sdk.User{}
 	for i := range users {
 		result = append(result, *fromModelToSdk(&users[i]))
 	}

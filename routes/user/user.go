@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -81,11 +82,24 @@ func GetById(c *fiber.Ctx) error {
 func GetAll(c *fiber.Ctx) error {
 	log.Debug("received get users request")
 	query := sdk.UserQuery{
-		ProjectId:   c.Query("project_id"),
-		SearchQuery: c.Query("search_query"),
+		SearchQuery: c.Query("query"),
+		Skip:        0,  // Default value
+		Limit:       10, // Default value
+	}
+
+	// Parse pagination parameters if provided
+	if skip := c.Query("skip"); skip != "" {
+		if val, err := strconv.ParseInt(skip, 10, 64); err == nil {
+			query.Skip = val
+		}
+	}
+	if limit := c.Query("limit"); limit != "" {
+		if val, err := strconv.ParseInt(limit, 10, 64); err == nil {
+			query.Limit = val
+		}
 	}
 	pr := providers.GetProviders(c)
-	_, err := pr.S.User.GetAll(c.Context(), query)
+	users, err := pr.S.User.GetAll(c.Context(), query)
 	if err != nil {
 		message := fmt.Sprintf("failed to get users. %v", err)
 		log.Error("failed to get users", "error", err)
@@ -99,6 +113,7 @@ func GetAll(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(sdk.UserListResponse{
 		Success: true,
 		Message: "Users fetched successfully",
+		Data:    users,
 	})
 }
 

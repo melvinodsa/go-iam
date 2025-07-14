@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
@@ -36,6 +37,7 @@ func (s *service) GetByPhone(ctx context.Context, phone string, projectId string
 	return s.store.GetByPhone(ctx, phone, projectId)
 }
 
-func (s *service) GetAll(ctx context.Context, query sdk.UserQuery) ([]sdk.User, error) {
+func (s *service) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error) {
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.store.GetAll(ctx, query)
 }
