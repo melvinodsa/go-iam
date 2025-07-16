@@ -48,6 +48,17 @@ type UserResponse struct {
 	Data    *User  `json:"data,omitempty"`
 }
 
+type DashboardUserResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    struct {
+		User  *User `json:"user"`
+		Setup struct {
+			ClientAdded bool `json:"client_added"`
+		} `json:"setup"`
+	} `json:"data,omitempty"`
+}
+
 type UserList struct {
 	Users []User `json:"users"`
 	Total int64  `json:"total"`

@@ -11,4 +11,5 @@ type Service interface {
 	Get(ctx context.Context, id string) (*sdk.Project, error)
 	Create(ctx context.Context, project *sdk.Project) error
 	Update(ctx context.Context, project *sdk.Project) error
+	GetByName(ctx context.Context, name string) (*sdk.Project, error)
 }

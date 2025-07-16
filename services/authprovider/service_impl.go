@@ -27,6 +27,7 @@ func (s service) GetAll(ctx context.Context, params sdk.AuthProviderQueryParams)
 	params.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.GetAll(ctx, params)
 }
+
 func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.AuthProvider, error) {
 	ap, err := s.s.Get(ctx, id)
 	if err != nil {

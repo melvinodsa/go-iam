@@ -1,13 +1,17 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/middlewares"
+	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/cache"
+	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
 )
@@ -16,7 +20,7 @@ type Provider struct {
 	S *Service
 	D db.DB
 	C cache.Service
-	M middlewares.Middlewares
+	M *middlewares.Middlewares
 }
 
 func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
@@ -39,13 +43,17 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
 	svcs := NewServices(d, cS, enc, jwtSvc)
-	mid := middlewares.NewMiddlewares(svcs.Projects, d)
+	authEnabled := checkIfGoIamClientEnabled(svcs.Clients)
+	mid := middlewares.NewMiddlewares(svcs.Projects, d, authEnabled)
+
+	svcs.Clients.Subscribe(sdk.EventClientCreated, mid)
+	svcs.Clients.Subscribe(sdk.EventClientUpdated, mid)
 
 	return &Provider{
 		S: svcs,
 		D: d,
 		C: cS,
-		M: *mid,
+		M: mid,
 	}, nil
 }
 
@@ -62,4 +70,16 @@ func (p Provider) Handle(c *fiber.Ctx) error {
 
 func GetProviders(c *fiber.Ctx) Provider {
 	return c.Locals(providerKey).(Provider)
+}
+
+func checkIfGoIamClientEnabled(svc client.Service) bool {
+	prvs, err := svc.GetGoIamClients(context.Background(), sdk.ClientQueryParams{
+		GoIamClient: true,
+	})
+	if err != nil {
+		log.Errorw("error getting go iam client", "error", err)
+		return false
+	}
+	log.Warn("IAM running in insecure mode. Create a client for Go IAM to make the application secure")
+	return len(prvs) > 0
 }
