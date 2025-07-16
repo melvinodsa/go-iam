@@ -28,6 +28,7 @@ type ClientModel struct {
 	DescriptionKey string
 	ProjectIdKey   string
 	GoIamClientKey string // Indicates if this is a Go-IAM client
+	UpdatedAtKey   string
 }
 
 func (c ClientModel) Name() string {
@@ -42,5 +43,6 @@ func GetClientModel() ClientModel {
 		DescriptionKey: "description",
 		ProjectIdKey:   "project_id",
 		GoIamClientKey: "go_iam_client", // Indicates if this is a Go-IAM client
+		UpdatedAtKey:   "updated_at",
 	}
 }

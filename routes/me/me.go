@@ -50,8 +50,7 @@ func Me(c *fiber.Ctx) error {
 func DashboardMe(c *fiber.Ctx) error {
 
 	pr := providers.GetProviders(c)
-	authEnabled := pr.M.AuthEnabled
-	if !authEnabled {
+	if pr.AuthClient == nil {
 		res := sdk.DashboardUserResponse{
 			Success: true,
 			Message: "auth is not setup yet.",
@@ -63,9 +62,10 @@ func DashboardMe(c *fiber.Ctx) error {
 		Success: false,
 	}
 	res.Data.Setup.ClientAdded = true
+	res.Data.Setup.ClientId = pr.AuthClient.Id
 	// get access token from auth bearer token
 	authHeader := c.Get("Authorization")
-	if authHeader == "" {
+	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
 		res.Message = "Authorization not found in header"
 		return c.Status(http.StatusUnauthorized).JSON(res)
 	}

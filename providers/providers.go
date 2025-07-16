@@ -14,13 +14,15 @@ import (
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
+	"github.com/melvinodsa/go-iam/utils"
 )
 
 type Provider struct {
-	S *Service
-	D db.DB
-	C cache.Service
-	M *middlewares.Middlewares
+	S          *Service
+	D          db.DB
+	C          cache.Service
+	M          *middlewares.Middlewares
+	AuthClient *sdk.Client
 }
 
 func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
@@ -43,18 +45,20 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
 	svcs := NewServices(d, cS, enc, jwtSvc)
-	authEnabled := checkIfGoIamClientEnabled(svcs.Clients)
-	mid := middlewares.NewMiddlewares(svcs.Projects, d, authEnabled)
+	mid := middlewares.NewMiddlewares(svcs.Projects)
 
-	svcs.Clients.Subscribe(sdk.EventClientCreated, mid)
-	svcs.Clients.Subscribe(sdk.EventClientUpdated, mid)
+	pvd := &Provider{
+		S:          svcs,
+		D:          d,
+		C:          cS,
+		M:          mid,
+		AuthClient: getGoIamClient(svcs.Clients),
+	}
 
-	return &Provider{
-		S: svcs,
-		D: d,
-		C: cS,
-		M: mid,
-	}, nil
+	svcs.Clients.Subscribe(sdk.EventClientCreated, pvd)
+	svcs.Clients.Subscribe(sdk.EventClientUpdated, pvd)
+
+	return pvd, nil
 }
 
 type keyType struct {
@@ -63,23 +67,39 @@ type keyType struct {
 
 var providerKey = keyType{"providers"}
 
-func (p Provider) Handle(c *fiber.Ctx) error {
-	c.Locals(providerKey, p)
-	return c.Next()
+func Handle(p *Provider) func(c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		c.Locals(providerKey, p)
+		return c.Next()
+	}
 }
 
-func GetProviders(c *fiber.Ctx) Provider {
-	return c.Locals(providerKey).(Provider)
+func GetProviders(c *fiber.Ctx) *Provider {
+	return c.Locals(providerKey).(*Provider)
 }
 
-func checkIfGoIamClientEnabled(svc client.Service) bool {
+func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
+	fmt.Println("Handling event:", e.Name(), "for client:", e.Payload().Id, "is go iam client:", e.Payload().GoIamClient)
+	if e.Name() != sdk.EventClientCreated && e.Name() != sdk.EventClientUpdated {
+		return
+	}
+	if !e.Payload().GoIamClient {
+		return
+	}
+	p.AuthClient = getGoIamClient(p.S.Clients)
+}
+
+func getGoIamClient(svc client.Service) *sdk.Client {
 	prvs, err := svc.GetGoIamClients(context.Background(), sdk.ClientQueryParams{
 		GoIamClient: true,
 	})
 	if err != nil {
 		log.Errorw("error getting go iam client", "error", err)
-		return false
+		return nil
 	}
-	log.Warn("IAM running in insecure mode. Create a client for Go IAM to make the application secure")
-	return len(prvs) > 0
+	if len(prvs) == 0 {
+		log.Warn("IAM running in insecure mode. Create a client for Go IAM to make the application secure")
+		return nil
+	}
+	return &prvs[0]
 }

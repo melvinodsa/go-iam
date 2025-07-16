@@ -6,7 +6,7 @@ type Event[T any] interface {
 }
 
 type Subscriber[T Event[V], V any] interface {
-	Handle(event T)
+	HandleEvent(event T)
 }
 
 type Emitter[T Event[V], V any] interface {
@@ -21,7 +21,7 @@ type emitter[T Event[V], V any] struct {
 func (e *emitter[T, V]) Emit(event T) {
 	if handlers, ok := e.subscribers[event.Name()]; ok {
 		for _, handler := range handlers {
-			handler.Handle(event)
+			handler.HandleEvent(event)
 		}
 	}
 }

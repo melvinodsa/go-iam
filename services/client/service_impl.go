@@ -17,7 +17,7 @@ type service struct {
 }
 
 func NewService(s Store, p project.Service) Service {
-	return service{s: s, p: p, e: utils.NewEmitter[utils.Event[sdk.Client], sdk.Client]()}
+	return service{s: s, p: p, e: utils.NewEmitter[utils.Event[sdk.Client]]()}
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
@@ -27,6 +27,7 @@ func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) 
 
 func (s service) GetGoIamClients(ctx context.Context, params sdk.ClientQueryParams) ([]sdk.Client, error) {
 	params.GoIamClient = true
+	params.SortByUpdatedAt = true
 	providers, err := s.s.GetAll(ctx, params)
 	if err != nil {
 		return nil, err

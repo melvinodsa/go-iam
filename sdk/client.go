@@ -64,8 +64,9 @@ func ClientsInternalServerError(msg string, c *fiber.Ctx) error {
 }
 
 type ClientQueryParams struct {
-	ProjectIds  []string `json:"project_id"`
-	GoIamClient bool     `json:"go_iam_client"`
+	ProjectIds      []string `json:"project_id"`
+	GoIamClient     bool     `json:"go_iam_client"`
+	SortByUpdatedAt bool     `json:"sort_by_updated_at"`
 }
 
 const (

@@ -54,7 +54,8 @@ type DashboardUserResponse struct {
 	Data    struct {
 		User  *User `json:"user"`
 		Setup struct {
-			ClientAdded bool `json:"client_added"`
+			ClientAdded bool   `json:"client_added"`
+			ClientId    string `json:"client_id"`
 		} `json:"setup"`
 	} `json:"data,omitempty"`
 }

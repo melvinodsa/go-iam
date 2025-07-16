@@ -13,6 +13,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type store struct {
@@ -38,6 +39,11 @@ func (s store) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([
 		// if GoIamClient is true, we fetch all clients that are not associated
 		filter = append(filter, bson.E{Key: md.GoIamClientKey, Value: queryParams.GoIamClient})
 	}
+	opts := &options.FindOptions{}
+	if queryParams.SortByUpdatedAt {
+		opts.SetSort(bson.D{{Key: md.UpdatedAtKey, Value: -1}})
+	}
+
 	cursor, err := s.db.Find(ctx, md, filter)
 	if err != nil {
 		return nil, fmt.Errorf("error finding all clients: %w", err)
