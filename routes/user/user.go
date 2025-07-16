@@ -162,3 +162,65 @@ func Update(c *fiber.Ctx) error {
 		Data:    payload,
 	})
 }
+
+func UpdateRoles(c *fiber.Ctx) error {
+	log.Debug("received update user roles request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid update user roles request. user id not found")
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: "Invalid request. User ID is required",
+		})
+	}
+
+	payload := new(sdk.UserRoleUpdate)
+	if err := c.BodyParser(payload); err != nil {
+		log.Errorw("invalid update user roles request", "error", err)
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: fmt.Sprintf("invalid request. %v", err),
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	for _, roleId := range payload.ToBeRemoved {
+		if err := pr.S.Role.RemoveRoleFromUser(c.Context(), id, roleId); err != nil {
+			if errors.Is(err, sdk.ErrRoleNotFound) {
+				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+					Success: false,
+					Message: fmt.Sprintf("Role %s not found", roleId),
+				})
+			}
+			message := fmt.Sprintf("failed to remove role %s from user %s. %v", roleId, id, err)
+			log.Errorw("failed to remove role from user", "error", message)
+			return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+				Success: false,
+				Message: message,
+			})
+		}
+	}
+
+	for _, roleId := range payload.ToBeAdded {
+		if err := pr.S.Role.AddRoleToUser(c.Context(), id, roleId); err != nil {
+			if errors.Is(err, sdk.ErrRoleNotFound) {
+				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+					Success: false,
+					Message: fmt.Sprintf("Role %s not found", roleId),
+				})
+			}
+			message := fmt.Sprintf("failed to add role %s to user %s. %v", roleId, id, err)
+			log.Errorw("failed to add role to user", "error", message)
+			return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+				Success: false,
+				Message: message,
+			})
+		}
+	}
+
+	log.Debug("user roles updated successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User roles updated successfully",
+	})
+}

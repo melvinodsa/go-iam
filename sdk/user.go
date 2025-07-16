@@ -60,3 +60,8 @@ type UserListResponse struct {
 	Message string    `json:"message"`
 	Data    *UserList `json:"data"` // Changed to map for consistency
 }
+
+type UserRoleUpdate struct {
+	ToBeAdded   []string `json:"to_be_added"`
+	ToBeRemoved []string `json:"to_be_removed"`
+}
