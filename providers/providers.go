@@ -79,7 +79,6 @@ func GetProviders(c *fiber.Ctx) *Provider {
 }
 
 func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
-	fmt.Println("Handling event:", e.Name(), "for client:", e.Payload().Id, "is go iam client:", e.Payload().GoIamClient)
 	if e.Name() != sdk.EventClientCreated && e.Name() != sdk.EventClientUpdated {
 		return
 	}
