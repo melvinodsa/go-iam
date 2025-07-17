@@ -28,7 +28,7 @@ func (m Middlewares) User(c *fiber.Ctx) error {
 	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
 		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
 			Success: false,
-			Message: "Authorizationnot found in header",
+			Message: "Authorization not found in header",
 		})
 	}
 

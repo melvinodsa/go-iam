@@ -46,7 +46,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
-	svcs := NewServices(d, cS, enc, jwtSvc)
+	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
 	am := auth.NewMiddlewares(svcs.Auth)
 
