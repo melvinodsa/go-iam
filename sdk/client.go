@@ -17,6 +17,7 @@ type Client struct {
 	Scopes                []string   `json:"scopes"`
 	ProjectId             string     `json:"project_id"`
 	DefaultAuthProviderId string     `json:"default_auth_provider_id"`
+	GoIamClient           bool       `json:"go_iam_client"` // Indicates if this is a Go-IAM client
 	Enabled               bool       `json:"enabled"`
 	CreatedAt             *time.Time `json:"created_at"`
 	CreatedBy             string     `json:"created_by"`
@@ -48,7 +49,7 @@ func ClientInternalServerError(msg string, c *fiber.Ctx) error {
 type ClientsResponse struct {
 	Success bool     `json:"success"`
 	Message string   `json:"message"`
-	Data    []Client `json:"data,omitempty"`
+	Data    []Client `json:"data"`
 }
 
 func NewErrorClientsResponse(msg string, status int, c *fiber.Ctx) error {
@@ -63,5 +64,12 @@ func ClientsInternalServerError(msg string, c *fiber.Ctx) error {
 }
 
 type ClientQueryParams struct {
-	ProjectIds []string `json:"project_id"`
+	ProjectIds      []string `json:"project_id"`
+	GoIamClient     bool     `json:"go_iam_client"`
+	SortByUpdatedAt bool     `json:"sort_by_updated_at"`
 }
+
+const (
+	EventClientCreated = "client:created"
+	EventClientUpdated = "client:updated"
+)

@@ -44,6 +44,23 @@ func (s store) GetAll(ctx context.Context) ([]sdk.Project, error) {
 	}
 	return fromModelListToSdk(projects), nil
 }
+
+func (s store) GetByName(ctx context.Context, name string) (*sdk.Project, error) {
+	if len(name) == 0 {
+		return nil, ErrProjectNotFound
+	}
+	md := models.GetProjectModel()
+	var project models.Project
+	err := s.db.FindOne(ctx, md, bson.D{{Key: md.NameKey, Value: name}}).Decode(&project)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrProjectNotFound
+		}
+		return nil, fmt.Errorf("error finding project by name: %w", err)
+	}
+	return fromModelToSdk(&project), nil
+}
+
 func (s store) Get(ctx context.Context, id string) (*sdk.Project, error) {
 	md := models.GetProjectModel()
 	var project models.Project

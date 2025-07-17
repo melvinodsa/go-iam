@@ -10,7 +10,7 @@ import (
 )
 
 func fromModelListToSdk(clients []models.Client) []sdk.Client {
-	var sdkClients []sdk.Client
+	sdkClients := []sdk.Client{}
 	for _, client := range clients {
 		sdkClients = append(sdkClients, *fromModelToSdk(&client))
 	}
@@ -26,6 +26,7 @@ func fromModelToSdk(client *models.Client) *sdk.Client {
 		Tags:                  client.Tags,
 		RedirectURLs:          client.RedirectURLs,
 		DefaultAuthProviderId: client.DefaultAuthProviderId,
+		GoIamClient:           client.GoIamClient,
 		ProjectId:             client.ProjectId,
 		Scopes:                client.Scopes,
 		Enabled:               client.Enabled,
@@ -46,6 +47,7 @@ func fromSdkToModel(client sdk.Client) models.Client {
 		RedirectURLs:          client.RedirectURLs,
 		ProjectId:             client.ProjectId,
 		DefaultAuthProviderId: client.DefaultAuthProviderId,
+		GoIamClient:           client.GoIamClient,
 		Scopes:                client.Scopes,
 		Enabled:               client.Enabled,
 		CreatedAt:             client.CreatedAt,

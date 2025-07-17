@@ -109,6 +109,14 @@ func (g GoogleIdentityName) UpdateUserDetails(user *sdk.User) {
 	user.Name = g.FirstName
 }
 
+type GoogleIdentityProfilePic struct {
+	ProfilePic string `json:"profile_pic"`
+}
+
+func (g GoogleIdentityProfilePic) UpdateUserDetails(user *sdk.User) {
+	user.ProfilePic = g.ProfilePic
+}
+
 func (g authProvider) GetIdentity(token string) ([]sdk.AuthIdentity, error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + url.QueryEscape(token))
 	if err != nil {
@@ -129,5 +137,6 @@ func (g authProvider) GetIdentity(token string) ([]sdk.AuthIdentity, error) {
 	return []sdk.AuthIdentity{
 		{Type: sdk.AuthIdentityTypeEmail, Metadata: GoogleIdentityEmail{Email: tokenResponse.Email}},
 		{Type: sdk.AuthIdentityTypeEmail, Metadata: GoogleIdentityName{FirstName: tokenResponse.GivenName}},
+		{Type: sdk.AuthIdentityTypeEmail, Metadata: GoogleIdentityProfilePic{ProfilePic: tokenResponse.Picture}},
 	}, nil
 }

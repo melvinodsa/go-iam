@@ -88,6 +88,7 @@ func Search(c *fiber.Ctx) error {
 	query := sdk.ResourceQuery{
 		Name:        c.Query("name"),
 		Description: c.Query("description"),
+		Key:         c.Query("key"),
 		Skip:        0,  // Default value
 		Limit:       10, // Default value
 	}

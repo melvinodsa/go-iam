@@ -8,4 +8,5 @@ func RegisterRoutes(router fiber.Router) {
 	user.Get("/:id", GetById)
 	user.Get("/", GetAll)
 	user.Put("/:id", Update)
+	user.Put("/:id/roles", UpdateRoles)
 }

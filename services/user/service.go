@@ -12,5 +12,5 @@ type Service interface {
 	GetByEmail(ctx context.Context, email string, projectId string) (*sdk.User, error)
 	GetById(ctx context.Context, id string) (*sdk.User, error)
 	GetByPhone(ctx context.Context, phone string, projectId string) (*sdk.User, error)
-	GetAll(ctx context.Context, query sdk.UserQuery) ([]sdk.User, error)
+	GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error)
 }

@@ -21,14 +21,16 @@ func fromSdkToModel(role sdk.Role) models.Role {
 	}
 
 	return models.Role{
-		Id:        role.Id,
-		ProjectId: role.ProjectId,
-		Name:      role.Name,
-		Resources: fromSdkResourceMapToModel(role.Resources),
-		CreatedAt: createdAt,
-		CreatedBy: role.CreatedBy,
-		UpdatedAt: updatedAt,
-		UpdatedBy: role.UpdatedBy,
+		Id:          role.Id,
+		ProjectId:   role.ProjectId,
+		Name:        role.Name,
+		Description: role.Description,
+		Resources:   fromSdkResourceMapToModel(role.Resources),
+		CreatedAt:   createdAt,
+		CreatedBy:   role.CreatedBy,
+		UpdatedAt:   updatedAt,
+		Enabled:     role.Enabled,
+		UpdatedBy:   role.UpdatedBy,
 	}
 }
 
@@ -38,14 +40,16 @@ func fromModelToSdk(role *models.Role) *sdk.Role {
 	}
 
 	return &sdk.Role{
-		Id:        role.Id,
-		ProjectId: role.ProjectId,
-		Name:      role.Name,
-		Resources: fromModelResourceMapToSdk(role.Resources),
-		CreatedAt: &role.CreatedAt,
-		CreatedBy: role.CreatedBy,
-		UpdatedAt: &role.UpdatedAt,
-		UpdatedBy: role.UpdatedBy,
+		Id:          role.Id,
+		ProjectId:   role.ProjectId,
+		Name:        role.Name,
+		Description: role.Description,
+		Resources:   fromModelResourceMapToSdk(role.Resources),
+		Enabled:     role.Enabled,
+		CreatedAt:   &role.CreatedAt,
+		CreatedBy:   role.CreatedBy,
+		UpdatedAt:   &role.UpdatedAt,
+		UpdatedBy:   role.UpdatedBy,
 	}
 }
 

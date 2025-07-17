@@ -50,9 +50,7 @@ func (s store) GetAll(ctx context.Context, params sdk.AuthProviderQueryParams) (
 
 	// fetching the values from db
 	filter := bson.D{}
-	if len(params.ProjectIds) > 0 {
-		filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: params.ProjectIds}}})
-	}
+	filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: params.ProjectIds}}})
 	cursor, err := s.db.Find(ctx, md, filter)
 	if err != nil {
 		return nil, fmt.Errorf("error finding all auth providers: %w", err)

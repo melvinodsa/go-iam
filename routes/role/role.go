@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -40,6 +41,49 @@ func Create(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Role created successfully",
 		Data:    payload,
+	})
+}
+
+// Search searches for roles based on the given criteria
+func Search(c *fiber.Ctx) error {
+	log.Debug("received search role request")
+
+	// Parse search criteria from query parameters
+	query := sdk.RoleQuery{
+		SearchQuery: c.Query("query"),
+		Skip:        0,  // Default value
+		Limit:       10, // Default value
+	}
+
+	// Parse pagination parameters if provided
+	if skip := c.Query("skip"); skip != "" {
+		if val, err := strconv.ParseInt(skip, 10, 64); err == nil {
+			query.Skip = val
+		}
+	}
+	if limit := c.Query("limit"); limit != "" {
+		if val, err := strconv.ParseInt(limit, 10, 64); err == nil {
+			query.Limit = val
+		}
+	}
+
+	pr := providers.GetProviders(c)
+	ds, err := pr.S.Role.GetAll(c.Context(), query)
+	if err != nil {
+		status := http.StatusInternalServerError
+		message := fmt.Errorf("failed to search roles. %w", err).Error()
+		log.Error("failed to search roles", "error", err)
+		return c.Status(status).JSON(sdk.RoleListResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("roles searched successfully")
+	return c.Status(http.StatusOK).JSON(sdk.RoleListResponse{
+		Success: true,
+		Message: "Roles searched successfully",
+		Data:    ds,
 	})
 }
 

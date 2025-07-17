@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -81,11 +82,24 @@ func GetById(c *fiber.Ctx) error {
 func GetAll(c *fiber.Ctx) error {
 	log.Debug("received get users request")
 	query := sdk.UserQuery{
-		ProjectId:   c.Query("project_id"),
-		SearchQuery: c.Query("search_query"),
+		SearchQuery: c.Query("query"),
+		Skip:        0,  // Default value
+		Limit:       10, // Default value
+	}
+
+	// Parse pagination parameters if provided
+	if skip := c.Query("skip"); skip != "" {
+		if val, err := strconv.ParseInt(skip, 10, 64); err == nil {
+			query.Skip = val
+		}
+	}
+	if limit := c.Query("limit"); limit != "" {
+		if val, err := strconv.ParseInt(limit, 10, 64); err == nil {
+			query.Limit = val
+		}
 	}
 	pr := providers.GetProviders(c)
-	_, err := pr.S.User.GetAll(c.Context(), query)
+	users, err := pr.S.User.GetAll(c.Context(), query)
 	if err != nil {
 		message := fmt.Sprintf("failed to get users. %v", err)
 		log.Error("failed to get users", "error", err)
@@ -99,6 +113,7 @@ func GetAll(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(sdk.UserListResponse{
 		Success: true,
 		Message: "Users fetched successfully",
+		Data:    users,
 	})
 }
 
@@ -145,5 +160,67 @@ func Update(c *fiber.Ctx) error {
 		Success: true,
 		Message: "User updated successfully",
 		Data:    payload,
+	})
+}
+
+func UpdateRoles(c *fiber.Ctx) error {
+	log.Debug("received update user roles request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid update user roles request. user id not found")
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: "Invalid request. User ID is required",
+		})
+	}
+
+	payload := new(sdk.UserRoleUpdate)
+	if err := c.BodyParser(payload); err != nil {
+		log.Errorw("invalid update user roles request", "error", err)
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: fmt.Sprintf("invalid request. %v", err),
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	for _, roleId := range payload.ToBeRemoved {
+		if err := pr.S.Role.RemoveRoleFromUser(c.Context(), id, roleId); err != nil {
+			if errors.Is(err, sdk.ErrRoleNotFound) {
+				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+					Success: false,
+					Message: fmt.Sprintf("Role %s not found", roleId),
+				})
+			}
+			message := fmt.Sprintf("failed to remove role %s from user %s. %v", roleId, id, err)
+			log.Errorw("failed to remove role from user", "error", message)
+			return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+				Success: false,
+				Message: message,
+			})
+		}
+	}
+
+	for _, roleId := range payload.ToBeAdded {
+		if err := pr.S.Role.AddRoleToUser(c.Context(), id, roleId); err != nil {
+			if errors.Is(err, sdk.ErrRoleNotFound) {
+				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+					Success: false,
+					Message: fmt.Sprintf("Role %s not found", roleId),
+				})
+			}
+			message := fmt.Sprintf("failed to add role %s to user %s. %v", roleId, id, err)
+			log.Errorw("failed to add role to user", "error", message)
+			return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+				Success: false,
+				Message: message,
+			})
+		}
+	}
+
+	log.Debug("user roles updated successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User roles updated successfully",
 	})
 }

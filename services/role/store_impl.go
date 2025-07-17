@@ -11,7 +11,9 @@ import (
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type store struct {
@@ -88,23 +90,33 @@ func (s *store) GetById(ctx context.Context, id string) (*sdk.Role, error) {
 	return fromModelToSdk(&role), nil
 }
 
-func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, error) {
+func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error) {
 	md := models.GetRoleModel()
-	var roles []models.Role
+	filter := bson.A{}
 
-	filter := bson.D{}
-	if query.ProjectId != "" {
-		filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: query.ProjectId})
-	}
 	if query.SearchQuery != "" {
-		filter = append(filter, bson.E{
-			Key: "$or", Value: bson.A{
-				bson.D{{Key: md.NameKey, Value: bson.D{{Key: "$regex", Value: query.SearchQuery}, {Key: "$options", Value: "i"}}}},
-			},
-		})
+		filter = append(filter, bson.D{{Key: md.NameKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.SearchQuery), Options: "i"}}})
+		filter = append(filter, bson.D{{Key: md.DescriptionKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.SearchQuery), Options: "i"}}})
 	}
 
-	cursor, err := s.db.Find(ctx, md, filter)
+	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
+
+	if len(filter) > 0 {
+		cond = bson.D{{Key: "$or", Value: filter}}
+	}
+
+	// Get total count
+	total, err := s.db.CountDocuments(ctx, md, cond)
+	if err != nil {
+		return nil, fmt.Errorf("error counting resources: %w", err)
+	}
+
+	opts := options.Find().
+		SetSkip(query.Skip).
+		SetLimit(query.Limit)
+
+	var roles []models.Role
+	cursor, err := s.db.Find(ctx, md, cond, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %w", err)
 	}
@@ -114,7 +126,12 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) ([]sdk.Role, er
 		return nil, fmt.Errorf("failed to read roles: %w", err)
 	}
 
-	return fromModelListToSdk(roles), nil
+	return &sdk.RoleList{
+		Roles: fromModelListToSdk(roles),
+		Total: total,
+		Skip:  query.Skip,
+		Limit: query.Limit,
+	}, nil
 }
 
 func (s *store) AddRoleToUser(ctx context.Context, user *models.User) error {

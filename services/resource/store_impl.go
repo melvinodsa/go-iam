@@ -12,6 +12,7 @@ import (
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -30,17 +31,26 @@ func NewStore(db db.DB) Store {
 
 func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.ResourceList, error) {
 	md := models.GetResourceModel()
-	filter := bson.D{}
+	filter := bson.A{}
 
 	if query.Name != "" {
-		filter = append(filter, bson.E{Key: md.NameKey, Value: query.Name})
+		filter = append(filter, bson.D{{Key: md.NameKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.Name), Options: "i"}}})
 	}
 	if query.Description != "" {
-		filter = append(filter, bson.E{Key: md.DescriptionKey, Value: query.Description})
+		filter = append(filter, bson.D{{Key: md.DescriptionKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.Description), Options: "i"}}})
+	}
+	if query.Key != "" {
+		filter = append(filter, bson.D{{Key: md.KeyKey, Value: primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", query.Key), Options: "i"}}})
+	}
+
+	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
+
+	if len(filter) > 0 {
+		cond = bson.D{{Key: "$or", Value: filter}}
 	}
 
 	// Get total count
-	total, err := s.db.CountDocuments(ctx, md, filter)
+	total, err := s.db.CountDocuments(ctx, md, cond)
 	if err != nil {
 		return nil, fmt.Errorf("error counting resources: %w", err)
 	}
@@ -51,7 +61,7 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 		SetLimit(query.Limit)
 
 	var resources []models.Resource
-	cursor, err := s.db.Find(ctx, md, filter, opts)
+	cursor, err := s.db.Find(ctx, md, cond, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error finding resources: %w", err)
 	}
@@ -80,7 +90,7 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 func (s store) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 	md := models.GetResourceModel()
 	var resource models.Resource
-	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}).Decode(&resource)
+	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}, {Key: md.EnabledKey, Value: true}}).Decode(&resource)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrResourceNotFound
