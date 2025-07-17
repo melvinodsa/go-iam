@@ -15,13 +15,23 @@ import (
 )
 
 func RegisterRoutes(app *fiber.App, prv *providers.Provider) {
-	project.RegisterRoutes(app.Group("/project"))
-	client.RegisterRoutes(app.Group("/client"))
-	authprovider.RegisterRoutes(app.Group("/authprovider"))
-	auth.RegisterRoutes(app.Group("/auth"))
+	RegisterOpenRoutes(app, prv)
+	RegisterAuthRoutes(app, prv)
+}
+
+func RegisterAuthRoutes(app *fiber.App, prv *providers.Provider) {
+	ap := app.Use(prv.AM.User)
+	project.RegisterRoutes(ap.Group("/project"))
+	client.RegisterRoutes(ap.Group("/client"))
+	authprovider.RegisterRoutes(ap.Group("/authprovider"))
+	auth.RegisterRoutes(ap.Group("/auth"))
+	user.RegisterRoutes(ap.Group("/user"))
+	resource.RegisterRoutes(ap.Group("/resource"))
+	role.RegisterRoutes(ap.Group("/role"))
+	policy.RegisterRoutes(ap.Group("/policy"))
+}
+
+func RegisterOpenRoutes(app *fiber.App, prv *providers.Provider) {
 	me.RegisterRoutes(app.Group("/me"))
-	user.RegisterRoutes(app.Group("/user"))
-	resource.RegisterRoutes(app.Group("/resource"))
-	role.RegisterRoutes(app.Group("/role"))
-	policy.RegisterRoutes(app.Group("/policy"))
+	auth.RegisterRoutes(app.Group("/auth"))
 }

@@ -8,7 +8,8 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
-	"github.com/melvinodsa/go-iam/middlewares"
+	"github.com/melvinodsa/go-iam/middlewares/auth"
+	"github.com/melvinodsa/go-iam/middlewares/projects"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/client"
@@ -21,7 +22,8 @@ type Provider struct {
 	S          *Service
 	D          db.DB
 	C          cache.Service
-	M          *middlewares.Middlewares
+	PM         *projects.Middlewares
+	AM         *auth.Middlewares
 	AuthClient *sdk.Client
 }
 
@@ -45,13 +47,15 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
 	svcs := NewServices(d, cS, enc, jwtSvc)
-	mid := middlewares.NewMiddlewares(svcs.Projects)
+	pm := projects.NewMiddlewares(svcs.Projects)
+	am := auth.NewMiddlewares(svcs.Auth)
 
 	pvd := &Provider{
 		S:          svcs,
 		D:          d,
 		C:          cS,
-		M:          mid,
+		PM:         pm,
+		AM:         am,
 		AuthClient: getGoIamClient(svcs.Clients),
 	}
 

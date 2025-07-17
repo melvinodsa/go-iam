@@ -1,11 +1,22 @@
-package middlewares
+package projects
 
 import (
 	"context"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/melvinodsa/go-iam/services/project"
 )
+
+type Middlewares struct {
+	projectSvc project.Service
+}
+
+func NewMiddlewares(projectSvc project.Service) *Middlewares {
+	return &Middlewares{
+		projectSvc: projectSvc,
+	}
+}
 
 func (m Middlewares) Projects(c *fiber.Ctx) error {
 	headers := c.GetReqHeaders()

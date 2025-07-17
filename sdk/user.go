@@ -8,20 +8,21 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type User struct {
-	Id        string                  `json:"id"`
-	ProjectId string                  `json:"project_id"`
-	Name      string                  `json:"name"`
-	Email     string                  `json:"email"`
-	Phone     string                  `json:"phone"`
-	Enabled   bool                    `json:"enabled"`
-	Expiry    *time.Time              `json:"expiry"`
-	Roles     map[string]UserRole     `json:"roles"`
-	Resources map[string]UserResource `json:"resources"`
-	Policies  map[string]string       `json:"policies"`
-	CreatedAt *time.Time              `json:"created_at"`
-	CreatedBy string                  `json:"created_by"`
-	UpdatedAt *time.Time              `json:"updated_at"`
-	UpdatedBy string                  `json:"updated_by"`
+	Id         string                  `json:"id"`
+	ProjectId  string                  `json:"project_id"`
+	Name       string                  `json:"name"`
+	Email      string                  `json:"email"`
+	Phone      string                  `json:"phone"`
+	Enabled    bool                    `json:"enabled"`
+	ProfilePic string                  `json:"profile_pic"`
+	Expiry     *time.Time              `json:"expiry"`
+	Roles      map[string]UserRole     `json:"roles"`
+	Resources  map[string]UserResource `json:"resources"`
+	Policies   map[string]string       `json:"policies"`
+	CreatedAt  *time.Time              `json:"created_at"`
+	CreatedBy  string                  `json:"created_by"`
+	UpdatedAt  *time.Time              `json:"updated_at"`
+	UpdatedBy  string                  `json:"updated_by"`
 }
 
 type UserRole struct {

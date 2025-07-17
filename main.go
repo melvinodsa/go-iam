@@ -50,7 +50,7 @@ func setupServer(app *fiber.App) *config.AppConfig {
 	app.Use(providers.Handle(prv))
 	app.Use(cors.New())
 
-	app.Use(prv.M.Projects)
+	app.Use(prv.PM.Projects)
 	routes.RegisterRoutes(app, prv)
 
 	return cnf
