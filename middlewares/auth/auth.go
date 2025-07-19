@@ -45,7 +45,7 @@ func (m Middlewares) User(c *fiber.Ctx) error {
 	if err != nil {
 		message := fmt.Errorf("failed to fetch user. %w", err).Error()
 		log.Errorw("failed to fetch user", "error", err)
-		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
 			Success: false,
 			Message: message,
 		})

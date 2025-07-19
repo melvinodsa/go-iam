@@ -21,8 +21,7 @@ func Me(c *fiber.Ctx) error {
 	})
 }
 
-func DashboardMe(c *fiber.Ctx) error {
-
+func AuthClientCheck(c *fiber.Ctx) error {
 	pr := providers.GetProviders(c)
 	if pr.AuthClient == nil {
 		res := sdk.DashboardUserResponse{
@@ -32,6 +31,11 @@ func DashboardMe(c *fiber.Ctx) error {
 		res.Data.Setup.ClientAdded = false
 		return c.Status(http.StatusOK).JSON(res)
 	}
+	return c.Next()
+}
+
+func DashboardMe(c *fiber.Ctx) error {
+	pr := providers.GetProviders(c)
 	res := sdk.DashboardUserResponse{
 		Success: false,
 	}
@@ -40,10 +44,7 @@ func DashboardMe(c *fiber.Ctx) error {
 	// get access token from auth bearer token
 	user := auth.GetUser(c.Context())
 	log.Debug("user fetched successfully")
-	res = sdk.DashboardUserResponse{
-		Success: true,
-		Message: "User fetched successfully",
-	}
+	res.Message = "User fetched successfully"
 	res.Data.Setup.ClientAdded = true
 	res.Data.User = user
 	return c.Status(http.StatusOK).JSON(res)
