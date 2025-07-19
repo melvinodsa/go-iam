@@ -26,7 +26,7 @@ type Service struct {
 	Policy        policy.Service
 }
 
-func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.Service) *Service {
+func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.Service, tokenTTL int64, refetchTTL int64) *Service {
 	pstr := project.NewStore(db)
 	psvc := project.NewService(pstr)
 	cstr := client.NewStore(db)
@@ -40,7 +40,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	apSvc := authprovider.NewService(apStr, psvc)
 	ustr := user.NewStore(db)
 	usvc := user.NewService(ustr)
-	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, usvc)
+	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, usvc, tokenTTL, refetchTTL)
 	polstr := policy.NewStore(db, rstr)
 	polSvc := policy.NewService(polstr)
 	roleStr := role.NewStore(db)

@@ -22,22 +22,26 @@ import (
 )
 
 type service struct {
-	authP     authprovider.Service
-	clientSvc client.Service
-	cacheSvc  cache.Service
-	jwtSvc    jwt.Service
-	encSvc    encrypt.Service
-	usrSvc    user.Service
+	authP      authprovider.Service
+	clientSvc  client.Service
+	cacheSvc   cache.Service
+	jwtSvc     jwt.Service
+	encSvc     encrypt.Service
+	usrSvc     user.Service
+	tokenTTL   int64
+	refetchTTL int64
 }
 
-func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service, usrSvc user.Service) *service {
+func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service, usrSvc user.Service, tokenTTL int64, refetchTTL int64) *service {
 	return &service{
-		authP:     authP,
-		clientSvc: clientSvc,
-		cacheSvc:  cacheSvc,
-		jwtSvc:    jwtSvc,
-		encSvc:    encSvc,
-		usrSvc:    usrSvc,
+		authP:      authP,
+		clientSvc:  clientSvc,
+		cacheSvc:   cacheSvc,
+		jwtSvc:     jwtSvc,
+		encSvc:     encSvc,
+		usrSvc:     usrSvc,
+		tokenTTL:   tokenTTL,
+		refetchTTL: refetchTTL,
 	}
 }
 
@@ -155,6 +159,11 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if !ok {
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
+	usr, err := s.getUserFromCache(ctx, accessToken)
+	if err == nil && usr != nil {
+		log.Debugf("fetched user records from cache - %s", usr.Id)
+		return usr, nil
+	}
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
@@ -163,9 +172,14 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if err != nil {
 		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
 	}
-	usr, err := s.getOrCreateUser(ctx, *identity)
+	usr, err = s.getOrCreateUser(ctx, *identity)
 	if err != nil {
 		return nil, fmt.Errorf("error getting or creating the user %w", err)
+	}
+	log.Debugf("fetched user records from auth provider - %s", usr.Id)
+	err = s.cacheUserDetails(ctx, accessToken, *usr)
+	if err != nil {
+		return nil, fmt.Errorf("error caching the user details %w", err)
 	}
 
 	return usr, nil
@@ -252,6 +266,49 @@ func (s service) refreshAuthToken(ctx context.Context, accessToken string, token
 	return tk, nil
 }
 
+func (s service) cacheUserDetails(ctx context.Context, accessToken string, user sdk.User) error {
+	/*
+	 * encode the user to json
+	 * generate a new user id
+	 * save the user in cache
+	 */
+	b := bytes.NewBuffer([]byte{})
+	err := json.NewEncoder(b).Encode(user)
+	if err != nil {
+		return fmt.Errorf("error encoding the user %w", err)
+	}
+	userEnc, err := s.encSvc.Encrypt(b.String())
+	if err != nil {
+		return fmt.Errorf("error encrypting the user %w", err)
+	}
+	err = s.cacheSvc.Set(ctx, fmt.Sprintf("token-%s", accessToken), userEnc, time.Minute*time.Duration(s.refetchTTL))
+	if err != nil {
+		return fmt.Errorf("error saving the user %w", err)
+	}
+	return nil
+}
+
+func (s service) getUserFromCache(ctx context.Context, accessToken string) (*sdk.User, error) {
+	/*
+	 * get the value from cache
+	 */
+	val, err := s.cacheSvc.Get(ctx, fmt.Sprintf("token-%s", accessToken))
+	if err != nil {
+		return nil, fmt.Errorf("error fetching the value from cache %w", err)
+	}
+
+	userDec, err := s.encSvc.Decrypt(val)
+	if err != nil {
+		return nil, fmt.Errorf("error decrypting the user %w", err)
+	}
+	result := sdk.User{}
+	err = json.NewDecoder(strings.NewReader(userDec)).Decode(&result)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding the user %w", err)
+	}
+	return &result, nil
+}
+
 func (s service) getToken(ctx context.Context, authProviderId, code string) (*sdk.AuthToken, error) {
 	/*
 	 * get the client details
@@ -294,7 +351,7 @@ func (s service) cacheAccessToken(ctx context.Context, token sdk.AuthToken, acce
 		accessToken = uuid.New().String()
 	}
 
-	err = s.cacheSvc.Set(ctx, fmt.Sprintf("access-token-%s", accessToken), auEnc, time.Hour*24)
+	err = s.cacheSvc.Set(ctx, fmt.Sprintf("access-token-%s", accessToken), auEnc, time.Minute*time.Duration(s.tokenTTL))
 	if err != nil {
 		return "", fmt.Errorf("error saving the access token %w", err)
 	}

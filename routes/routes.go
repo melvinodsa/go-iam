@@ -29,9 +29,10 @@ func RegisterAuthRoutes(app *fiber.App, prv *providers.Provider) {
 	resource.RegisterRoutes(ap.Group("/resource"))
 	role.RegisterRoutes(ap.Group("/role"))
 	policy.RegisterRoutes(ap.Group("/policy"))
+	me.RegisterRoutes(app.Group("/me"))
 }
 
 func RegisterOpenRoutes(app *fiber.App, prv *providers.Provider) {
-	me.RegisterRoutes(app.Group("/me"))
+	me.RegisterOpenRoutes(app.Group("/me"), prv)
 	auth.RegisterRoutes(app.Group("/auth"))
 }

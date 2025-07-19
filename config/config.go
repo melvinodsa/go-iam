@@ -79,6 +79,34 @@ func (a *AppConfig) LoadServerConfig() {
 	if enableRedis == "true" {
 		a.Server.EnableRedis = true
 	}
+	tokenCacheTTL := os.Getenv("TOKEN_CACHE_TTL_IN_MINUTES")
+	if tokenCacheTTL != "" {
+		ttl, err := strconv.ParseInt(tokenCacheTTL, 10, 64)
+		if err == nil {
+			a.Server.TokenCacheTTLInMinutes = ttl
+		} else {
+			panic(fmt.Errorf("error converting token cache ttl to int: %w", err))
+		}
+	} else {
+		a.Server.TokenCacheTTLInMinutes = 1440 // default to 1440 minutes - 24 hours
+	}
+	authProviderRefetchInterval := os.Getenv("AUTH_PROVIDER_REFETCH_INTERVAL_IN_MINUTES")
+	if authProviderRefetchInterval != "" {
+		interval, err := strconv.ParseInt(authProviderRefetchInterval, 10, 64)
+		if err == nil {
+			a.Server.AuthProviderRefetchIntervalInMinutes = interval
+		} else {
+			panic(fmt.Errorf("error converting auth provider refetch interval to int: %w", err))
+		}
+	} else {
+		a.Server.AuthProviderRefetchIntervalInMinutes = 1 // default to 1 minute
+	}
+	log.Infow("Loaded Server Configurations",
+		"host", a.Server.Host,
+		"port", a.Server.Port,
+		"enable_redis", a.Server.EnableRedis,
+		"token_cache_ttl", a.Server.TokenCacheTTLInMinutes,
+	)
 }
 
 // LoadDeploymentConfig loads the deployment config
