@@ -2,3 +2,5 @@
 .vscode
 .idea
 /tmp/
+
+.DS_Store

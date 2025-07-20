@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,10 +11,10 @@ import (
 	"github.com/melvinodsa/go-iam/middlewares/projects"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/cache"
-	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
 	"github.com/melvinodsa/go-iam/utils"
+	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 )
 
 type Provider struct {
@@ -48,7 +47,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
-	am := auth.NewMiddlewares(svcs.Auth)
+	am := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
 
 	pvd := &Provider{
 		S:          svcs,
@@ -56,11 +55,19 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 		C:          cS,
 		PM:         pm,
 		AM:         am,
-		AuthClient: getGoIamClient(svcs.Clients),
+		AuthClient: goaiamclient.GetGoIamClient(svcs.Clients),
 	}
 
+	// subscribe to client events for checking auth client
 	svcs.Clients.Subscribe(sdk.EventClientCreated, pvd)
 	svcs.Clients.Subscribe(sdk.EventClientUpdated, pvd)
+
+	// creating default project if it doesn't exist
+	err = checkAndAddDefaultProject(svcs.Projects)
+	if err != nil {
+		log.Errorw("error checking and adding default project", "error", err)
+		return nil, fmt.Errorf("error checking and adding default project: %w", err)
+	}
 
 	return pvd, nil
 }
@@ -89,20 +96,6 @@ func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
 	if !e.Payload().GoIamClient {
 		return
 	}
-	p.AuthClient = getGoIamClient(p.S.Clients)
-}
-
-func getGoIamClient(svc client.Service) *sdk.Client {
-	prvs, err := svc.GetGoIamClients(context.Background(), sdk.ClientQueryParams{
-		GoIamClient: true,
-	})
-	if err != nil {
-		log.Errorw("error getting go iam client", "error", err)
-		return nil
-	}
-	if len(prvs) == 0 {
-		log.Warn("IAM running in insecure mode. Create a client for Go IAM to make the application secure")
-		return nil
-	}
-	return &prvs[0]
+	p.AuthClient = goaiamclient.GetGoIamClient(p.S.Clients)
+	p.AM.AuthClient = p.AuthClient
 }
