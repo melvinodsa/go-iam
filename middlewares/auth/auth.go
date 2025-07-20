@@ -29,10 +29,6 @@ func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) *Middlewares
 }
 
 func (m *Middlewares) User(c *fiber.Ctx) error {
-	if m.AuthClient == nil {
-		// If the auth client is not set, we cannot authenticate the user
-		return c.Next()
-	}
 	// This middleware can be used to check if the user is authenticated
 	user, err := m.GetUser(c)
 	if err != nil {
