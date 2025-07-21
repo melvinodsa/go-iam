@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -9,49 +10,81 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/auth"
+	"github.com/melvinodsa/go-iam/services/client"
+	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 )
 
 type Middlewares struct {
-	authSvc auth.Service
+	authSvc    auth.Service
+	clientSvc  client.Service
+	AuthClient *sdk.Client
 }
 
-func NewMiddlewares(authSvc auth.Service) *Middlewares {
+func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) *Middlewares {
 	return &Middlewares{
-		authSvc: authSvc,
+		authSvc:    authSvc,
+		clientSvc:  clientSvc,
+		AuthClient: goaiamclient.GetGoIamClient(clientSvc),
 	}
 }
 
-func (m Middlewares) User(c *fiber.Ctx) error {
+func (m *Middlewares) User(c *fiber.Ctx) error {
+	if m.AuthClient == nil {
+		// If the auth client is not set, we cannot authenticate the user
+		return c.Next()
+	}
 	// This middleware can be used to check if the user is authenticated
-	// For now, we just pass the request to the next handler
-	authHeader := c.Get("Authorization")
-	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+	user, err := m.GetUser(c)
+	if err != nil {
+		log.Errorw("failed to fetch user", "error", err)
 		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
 			Success: false,
-			Message: "Authorization not found in header",
+			Message: err.Error(),
 		})
+	}
+	c.Context().SetUserValue("user", user)
+	return c.Next()
+}
+
+func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
+	if m.AuthClient == nil {
+		// If the auth client is not set, we cannot authenticate the user
+		return c.Next()
+	}
+	res := &sdk.DashboardUserResponse{
+		Success: false,
+	}
+	res.Data.Setup.ClientAdded = m.AuthClient != nil
+	res.Data.Setup.ClientId = m.AuthClient.Id
+	// This middleware can be used to check if the user is authenticated
+	user, err := m.GetUser(c)
+	if err != nil {
+		log.Errorw("failed to fetch user", "error", err)
+		res.Message = err.Error()
+		return c.Status(http.StatusUnauthorized).JSON(res)
+	}
+
+	c.Context().SetUserValue("user", user)
+	return c.Next()
+}
+
+func (m *Middlewares) GetUser(c *fiber.Ctx) (*sdk.User, error) {
+	authHeader := c.Get("Authorization")
+	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
+		return nil, errors.New("`Authorization` not found in header")
 	}
 
 	// Extract the token from the header
 	token := authHeader[len("Bearer "):]
 	if token == "" {
-		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
-			Success: false,
-			Message: "Bearer token not found in header",
-		})
+		return nil, errors.New("`Bearer` token not found in header")
 	}
 
 	user, err := m.authSvc.GetIdentity(c.Context(), token)
 	if err != nil {
-		message := fmt.Errorf("failed to fetch user. %w", err).Error()
-		log.Errorw("failed to fetch user", "error", err)
-		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
-			Success: false,
-			Message: message,
-		})
+		return nil, fmt.Errorf("failed to fetch identity: %w", err)
 	}
-	c.Context().SetUserValue("user", user)
-	return c.Next()
+	return user, nil
 }
 
 func GetUser(ctx context.Context) *sdk.User {

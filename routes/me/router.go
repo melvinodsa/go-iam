@@ -12,5 +12,5 @@ func RegisterRoutes(router fiber.Router) {
 
 func RegisterOpenRoutes(router fiber.Router, prv *providers.Provider) {
 	v1 := router.Group("/v1")
-	v1.Get("/dashboard", AuthClientCheck, prv.AM.User, DashboardMe)
+	v1.Get("/dashboard", AuthClientCheck, prv.AM.DashboardUser, DashboardMe)
 }
