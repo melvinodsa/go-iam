@@ -3,9 +3,10 @@
 **go-iam** is a lightweight, multi-tenant Identity and Access Management (IAM) server built in **Golang**. It provides robust authentication and fine-grained authorization for modern applications. With support for custom roles, third-party auth providers, and multi-client setups, `go-iam` gives you full control over access management in a scalable and modular way.
 
 > ✅ Admin UI: [go-iam-ui](https://github.com/melvinodsa/go-iam-ui)  
+> 🐳 Docker Setup: [go-iam-docker](https://github.com/melvinodsa/go-iam-docker)  
 > 🔐 Backend: [go-iam](https://github.com/melvinodsa/go-iam)
 
-<img src=".github/go-iam.png" alt="drawing" width="400"/>
+<img src=".github/go-iam.png" alt="go-iam overview" width="400"/>
 
 ---
 
@@ -13,31 +14,34 @@
 
 ### 🔀 Multi-Tenancy
 
-- Create and manage **Projects**.
-- Each project is **isolated**, ensuring strict data boundaries.
+- Create and manage **Projects**
+- Strict **isolation** of data between tenants
 
 ### 🔐 Authentication Provider Integration
 
-- Supports **Google OAuth** login.
-- Multiple auth providers can be added (extensible).
-- Supports **shared credentials** across clients for simplicity.
+- Google OAuth login support
+- Easily extendable to add more providers
+- **Shared credentials** support across multiple clients
 
 ### 🧩 Client Management
 
-- Manage multiple **clients** (apps) under the same project.
-- Reuse the same auth credentials across clients.
+- Multiple apps (clients) per project
+- Avoid duplicate OAuth credentials
 
 ### 🧱 Role-Based Access Control (RBAC)
 
-- Define **resources** and group them into **roles**.
-- Create **custom roles** and assign them to users.
-- Resource-level access control.
+- Define resources and group them into roles
+- Create custom roles and assign to users
+- Granular access control for different actions/resources
 
 ### 🛠️ Admin UI
 
-- Full-featured UI for managing users, roles, projects, and clients.
-- Built for clarity and operational efficiency.
-- [Go to Admin UI Repo](https://github.com/melvinodsa/go-iam-ui)
+- React-based Admin interface for managing:
+  - Projects
+  - Users
+  - Roles
+  - Resources
+  - Clients
 
 ---
 
@@ -54,17 +58,16 @@
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Option 1: 🔧 Manual Setup (Development)
+
+#### Prerequisites
 
 - Go 1.21+
 - MongoDB
-- Node.js + PNPM (for Admin UI)
+- Redis (optional, recommended)
 - Google OAuth Credentials
-- Redis (optional but recommended for performance)
 
----
-
-### 🧪 Backend Setup
+#### Run the Backend
 
 ```bash
 git clone https://github.com/melvinodsa/go-iam.git
@@ -72,3 +75,40 @@ cd go-iam
 cp sample.env .env
 go run main.go
 ```
+
+### Option 2: 🐳 Docker-Based Local Setup (Recommended for Testing)
+
+Use the official go-iam-docker repo to spin up everything with Docker Compose, including:
+
+- MongoDB
+- Redis
+- go-iam (backend)
+- go-iam-ui (admin frontend)
+
+#### Steps
+
+```bash
+git clone https://github.com/melvinodsa/go-iam-docker.git
+cd go-iam-docker
+cp sample.env .env
+docker compose up -d
+```
+
+#### Access
+
+- Admin UI: [http://localhost:4173](http://localhost:4173)
+- API: [http://localhost:3000](http://localhost:3000)
+
+## 📦 Environment Variables
+
+Some important environment variables used in `.env`:
+
+| Variable                                       | Description                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| `LOGGER_LEVEL`                                 | Logger level `1 - Debug` (refer., `https://docs.gofiber.io/api/log/`) |
+| `DB_HOST`                                      | MongoDB URI (e.g., `mongodb://user:pass@host/db`)                     |
+| `JWT_SECRET`                                   | Secret key used for generating and verifying JWT tokens               |
+| `REDIS_HOST`, `REDIS_PASSWORD`, `ENABLE_REDIS` | Redis host address and toggle to enable Redis caching                 |
+| `ENCRYPTER_KEY`                                | Optional symmetric key for encrypting sensitive fields - change this  |
+| `AUTH_PROVIDER_REFETCH_INTERVAL_IN_MINUTES`    | Interval in minutes to refetch and sync third-party auth providers    |
+| `TOKEN_CACHE_TTL_IN_MINUTES`                   | Interval for which the authentication token should be valid           |
