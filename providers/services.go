@@ -8,7 +8,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
-	"github.com/melvinodsa/go-iam/services/policy"
+	"github.com/melvinodsa/go-iam/services/policybeta"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/services/resource"
 	"github.com/melvinodsa/go-iam/services/role"
@@ -23,7 +23,7 @@ type Service struct {
 	Resources     resource.Service
 	User          user.Service
 	Role          role.Service
-	Policy        policy.Service
+	Policy        policybeta.Service
 }
 
 func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.Service, tokenTTL int64, refetchTTL int64) *Service {
@@ -41,8 +41,8 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	ustr := user.NewStore(db)
 	usvc := user.NewService(ustr)
 	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, usvc, tokenTTL, refetchTTL)
-	polstr := policy.NewStore(db, rstr)
-	polSvc := policy.NewService(polstr)
+	polstr := policybeta.NewStore(db, rstr)
+	polSvc := policybeta.NewService(polstr)
 	roleStr := role.NewStore(db)
 	roleSvc := role.NewService(roleStr, polSvc)
 

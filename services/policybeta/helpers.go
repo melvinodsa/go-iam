@@ -1,4 +1,4 @@
-package policy
+package policybeta
 
 import (
 	"github.com/melvinodsa/go-iam/db/models"

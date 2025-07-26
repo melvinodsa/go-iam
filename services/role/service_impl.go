@@ -8,17 +8,17 @@ import (
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/middlewares/projects"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/policy"
+	"github.com/melvinodsa/go-iam/services/policybeta"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type service struct {
 	store         Store
-	policyService policy.Service
+	policyService policybeta.Service
 }
 
-func NewService(store Store, policySvc policy.Service) Service {
+func NewService(store Store, policySvc policybeta.Service) Service {
 	return &service{
 		store:         store,
 		policyService: policySvc,

@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/policy"
+	"github.com/melvinodsa/go-iam/services/policybeta"
 )
 
 func Create(c *fiber.Ctx) error {
@@ -57,7 +57,7 @@ func Get(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to get policy. %w", err).Error()
-		if errors.Is(err, policy.ErrPolicyNotFound) {
+		if errors.Is(err, policybeta.ErrPolicyNotFound) {
 			status = http.StatusBadRequest
 			message = "policy not found"
 		}
@@ -123,7 +123,7 @@ func Update(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to update policy. %w", err).Error()
-		if errors.Is(err, policy.ErrPolicyNotFound) {
+		if errors.Is(err, policybeta.ErrPolicyNotFound) {
 			status = http.StatusBadRequest
 			message = "policy not found"
 		}
@@ -158,7 +158,7 @@ func Delete(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to delete policy. %w", err).Error()
-		if errors.Is(err, policy.ErrPolicyNotFound) {
+		if errors.Is(err, policybeta.ErrPolicyNotFound) {
 			status = http.StatusBadRequest
 			message = "policy not found"
 		}
