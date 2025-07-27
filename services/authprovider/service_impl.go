@@ -61,7 +61,7 @@ func (s service) Update(ctx context.Context, provider *sdk.AuthProvider) error {
 	return s.s.Update(ctx, provider)
 }
 
-func (s service) GetProvider(v sdk.AuthProvider) (sdk.ServiceProvider, error) {
+func (s service) GetProvider(ctx context.Context, v sdk.AuthProvider) (sdk.ServiceProvider, error) {
 	switch v.Provider {
 	case sdk.AuthProviderTypeGoogle:
 		return google.NewAuthProvider(v), nil
