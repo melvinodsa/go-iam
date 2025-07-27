@@ -63,7 +63,7 @@ func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, stat
 	if err != nil {
 		return "", fmt.Errorf("error fetching auth provider details %w", err)
 	}
-	sp, err := s.authP.GetProvider(*p)
+	sp, err := s.authP.GetProvider(ctx, *p)
 	if err != nil {
 		return "", fmt.Errorf("error getting service provider %w", err)
 	}
@@ -227,7 +227,7 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 	if err != nil {
 		return nil, fmt.Errorf("error fetching auth provider details %w", err)
 	}
-	sp, err := s.authP.GetProvider(*p)
+	sp, err := s.authP.GetProvider(ctx, *p)
 	if err != nil {
 		return nil, fmt.Errorf("error getting service provider %w", err)
 	}
@@ -320,7 +320,7 @@ func (s service) getToken(ctx context.Context, authProviderId, code string) (*sd
 	if err != nil {
 		return nil, fmt.Errorf("error fetching auth provider details %w", err)
 	}
-	sp, err := s.authP.GetProvider(*p)
+	sp, err := s.authP.GetProvider(ctx, *p)
 	if err != nil {
 		return nil, fmt.Errorf("error getting service provider %w", err)
 	}
