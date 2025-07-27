@@ -51,7 +51,3 @@ type RoleListResponse struct {
 	Message string    `json:"message"`
 	Data    *RoleList `json:"data,omitempty"`
 }
-
-const (
-	EventRoleUpdated = "role:updated"
-)
