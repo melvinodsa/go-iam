@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/melvinodsa/go-iam/middlewares/projects"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
@@ -21,7 +21,7 @@ func NewService(s Store, p project.Service) Service {
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	queryParams.ProjectIds = projects.GetProjects(ctx)
+	queryParams.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.GetAll(ctx, queryParams)
 }
 
@@ -44,7 +44,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 		return cl, nil
 	}
 
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[cl.ProjectId]; !ok {
 		return nil, ErrClientNotFound
 	}
@@ -52,7 +52,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 }
 func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -66,12 +66,12 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientCreated, *client))
+	s.Emit(newEvent(sdk.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -79,7 +79,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while updating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientUpdated, *client))
+	s.Emit(newEvent(sdk.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -95,8 +95,9 @@ func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.E
 }
 
 type event struct {
-	name    string
-	payload sdk.Client
+	name     string
+	payload  sdk.Client
+	metadata sdk.Metadata
 }
 
 func (e event) Name() string {
@@ -107,6 +108,10 @@ func (e event) Payload() sdk.Client {
 	return e.payload
 }
 
-func newEvent(name string, payload sdk.Client) utils.Event[sdk.Client] {
-	return event{name: name, payload: payload}
+func (e event) Metadata() sdk.Metadata {
+	return e.metadata
+}
+
+func newEvent(name string, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
+	return event{name: name, payload: payload, metadata: metadata}
 }

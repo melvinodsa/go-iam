@@ -1,8 +1,11 @@
 package utils
 
+import "github.com/melvinodsa/go-iam/sdk"
+
 type Event[T any] interface {
 	Name() string
 	Payload() T
+	Metadata() sdk.Metadata
 }
 
 type Subscriber[T Event[V], V any] interface {

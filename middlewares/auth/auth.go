@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -85,16 +84,4 @@ func (m *Middlewares) GetUser(c *fiber.Ctx) (*sdk.User, error) {
 		return nil, fmt.Errorf("failed to fetch identity: %w", err)
 	}
 	return user, nil
-}
-
-func GetUser(ctx context.Context) *sdk.User {
-	user := ctx.Value("user")
-	if user == nil {
-		return nil
-	}
-	authUser, ok := user.(*sdk.User)
-	if !ok {
-		return nil
-	}
-	return authUser
 }
