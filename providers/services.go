@@ -2,7 +2,6 @@ package providers
 
 import (
 	"github.com/melvinodsa/go-iam/db"
-	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/auth"
 	"github.com/melvinodsa/go-iam/services/authprovider"
 	"github.com/melvinodsa/go-iam/services/cache"
@@ -14,6 +13,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/resource"
 	"github.com/melvinodsa/go-iam/services/role"
 	"github.com/melvinodsa/go-iam/services/user"
+	"github.com/melvinodsa/go-iam/utils"
 )
 
 type Service struct {
@@ -40,7 +40,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	userSvc := user.NewService(userStr, roleSvc)
 
 	// subscribing to role updates
-	roleSvc.Subscribe(sdk.EventRoleUpdated, userSvc)
+	roleSvc.Subscribe(utils.EventRoleUpdated, userSvc)
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)

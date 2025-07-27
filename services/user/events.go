@@ -10,7 +10,7 @@ import (
 
 func (s *service) HandleEvent(e utils.Event[sdk.Role]) {
 	switch e.Name() {
-	case sdk.EventRoleUpdated:
+	case utils.EventRoleUpdated:
 		s.handleRoleUpdate(e)
 	default:
 		return

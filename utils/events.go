@@ -39,3 +39,19 @@ func NewEmitter[T Event[V], V any]() Emitter[T, V] {
 		subscribers: make(map[string][]Subscriber[T, V]),
 	}
 }
+
+const (
+	EventRoleUpdated = "role:updated"
+
+	EventClientCreated = "client:created"
+	EventClientUpdated = "client:updated"
+)
+
+func SupportedEvents() []string {
+	return []string{
+		EventClientCreated,
+		EventClientUpdated,
+
+		EventRoleUpdated,
+	}
+}

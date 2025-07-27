@@ -59,8 +59,8 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	}
 
 	// subscribe to client events for checking auth client
-	svcs.Clients.Subscribe(sdk.EventClientCreated, pvd)
-	svcs.Clients.Subscribe(sdk.EventClientUpdated, pvd)
+	svcs.Clients.Subscribe(utils.EventClientCreated, pvd)
+	svcs.Clients.Subscribe(utils.EventClientUpdated, pvd)
 
 	// creating default project if it doesn't exist
 	err = checkAndAddDefaultProject(svcs.Projects)
@@ -90,7 +90,7 @@ func GetProviders(c *fiber.Ctx) *Provider {
 }
 
 func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
-	if e.Name() != sdk.EventClientCreated && e.Name() != sdk.EventClientUpdated {
+	if e.Name() != utils.EventClientCreated && e.Name() != utils.EventClientUpdated {
 		return
 	}
 	if !e.Payload().GoIamClient {
