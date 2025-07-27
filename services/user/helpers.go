@@ -74,9 +74,10 @@ func fromSdkUserResourceMapToModel(resources map[string]sdk.UserResource) map[st
 	userResources := make(map[string]models.UserResource)
 	for key, res := range resources {
 		userResources[key] = models.UserResource{
-			Id:   res.Id,
-			Key:  res.Key,
-			Name: res.Name,
+			PolicyIds: res.PolicyIds,
+			RoleIds:   res.RoleIds,
+			Key:       res.Key,
+			Name:      res.Name,
 		}
 	}
 	return userResources
@@ -87,9 +88,10 @@ func fromModelUserResourceMapToSdk(resources map[string]models.UserResource) map
 	userResources := make(map[string]sdk.UserResource)
 	for key, res := range resources {
 		userResources[key] = sdk.UserResource{
-			Id:   res.Id,
-			Key:  res.Key,
-			Name: res.Name,
+			PolicyIds: res.PolicyIds,
+			RoleIds:   res.RoleIds,
+			Key:       res.Key,
+			Name:      res.Name,
 		}
 	}
 	return userResources
@@ -102,4 +104,69 @@ func fromModelListToSdk(users []models.User) []sdk.User {
 		result = append(result, *fromModelToSdk(&users[i]))
 	}
 	return result
+}
+
+func removeRoleFromUserObj(user *sdk.User, role sdk.Role) {
+	// Ensure user's fields are initialized
+	if user.Roles == nil {
+		user.Roles = make(map[string]sdk.UserRole)
+	}
+	if user.Resources == nil {
+		user.Resources = make(map[string]sdk.UserResource)
+	}
+
+	// update user roles
+	delete(user.Roles, role.Id)
+
+	// Remove resources only if no other roles require them
+	for _, res := range role.Resources {
+
+		vl, exists := user.Resources[res.Key]
+		if !exists {
+			continue
+		}
+		delete(vl.RoleIds, role.Id)
+
+		// there are no requirement of the resource as no one needs it
+		if len(vl.RoleIds) == 0 && len(vl.PolicyIds) == 0 {
+			delete(user.Resources, res.Key)
+		} else {
+			user.Resources[res.Key] = vl
+		}
+	}
+}
+
+func addRoleToUserObj(user *sdk.User, role sdk.Role) {
+	// Initialize user's fields if nil
+	if user.Roles == nil {
+		user.Roles = make(map[string]sdk.UserRole)
+	}
+	if user.Resources == nil {
+		user.Resources = make(map[string]sdk.UserResource)
+	}
+
+	// Add new role
+	user.Roles[role.Id] = sdk.UserRole{
+		Id:   role.Id,
+		Name: role.Name,
+	}
+
+	// Add unique resources from role
+	for _, res := range role.Resources {
+		// other ran roleids policy ids cuold also exist that is why special treatment for resources
+		existingResource, exists := user.Resources[res.Key]
+		if !exists {
+			existingResource = sdk.UserResource{
+				RoleIds: map[string]bool{role.Id: true},
+				Key:     res.Key,
+				Name:    res.Name,
+			}
+		} else {
+			if len(existingResource.RoleIds) == 0 {
+				existingResource.RoleIds = map[string]bool{}
+			}
+			existingResource.RoleIds[role.Id] = true
+		}
+		user.Resources[res.Key] = existingResource
+	}
 }

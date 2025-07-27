@@ -31,13 +31,15 @@ type UserRole struct {
 }
 
 type UserResource struct {
-	Id   string `json:"id"`
-	Key  string `json:"key"`
-	Name string `json:"name"`
+	RoleIds   map[string]bool `bson:"role_ids"`
+	PolicyIds map[string]bool `bson:"policy_ids"`
+	Key       string          `json:"key"`
+	Name      string          `json:"name"`
 }
 
 type UserQuery struct {
 	ProjectIds  []string `json:"project_ids"`
+	RoleId      string   `json:"role_id"`
 	SearchQuery string   `json:"search_query"`
 	Skip        int64    `json:"skip"`
 	Limit       int64    `json:"limit"`

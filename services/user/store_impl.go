@@ -119,6 +119,10 @@ func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList,
 	}
 	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIDKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
 
+	if len(query.RoleId) > 0 {
+		cond = append(cond, bson.E{Key: fmt.Sprintf("%s.%s", md.RolesIdKey, query.RoleId), Value: bson.E{Key: "$exists", Value: true}})
+	}
+
 	if len(filter) > 0 {
 		cond = append(cond, bson.E{Key: "$or", Value: filter})
 	}
