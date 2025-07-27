@@ -29,7 +29,7 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 	if err != nil {
 		return fmt.Errorf("failed to update role: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventRoleUpdated, *role, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(utils.EventRoleUpdated, *role, middlewares.GetMetadata(ctx)))
 	return nil
 }
 

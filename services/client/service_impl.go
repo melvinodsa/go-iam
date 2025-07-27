@@ -66,7 +66,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(utils.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
@@ -79,7 +79,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while updating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(utils.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
