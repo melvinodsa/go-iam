@@ -5,7 +5,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
-func fromSdkToModel(policy *sdk.Policy) *models.Policy {
+func fromSdkToModel(policy *sdk.PolicyBeta) *models.Policy {
 	return &models.Policy{
 		Id:          policy.Id,
 		Name:        policy.Name,
@@ -15,8 +15,8 @@ func fromSdkToModel(policy *sdk.Policy) *models.Policy {
 	}
 }
 
-func fromModelToSdk(policy *models.Policy) *sdk.Policy {
-	return &sdk.Policy{
+func fromModelToSdk(policy *models.Policy) *sdk.PolicyBeta {
+	return &sdk.PolicyBeta{
 		Id:          policy.Id,
 		Name:        policy.Name,
 		Roles:       policy.Roles,
@@ -25,8 +25,8 @@ func fromModelToSdk(policy *models.Policy) *sdk.Policy {
 	}
 }
 
-func fromModelListToSdk(policies []models.Policy) []sdk.Policy {
-	var sdkPolicies []sdk.Policy
+func fromModelListToSdk(policies []models.Policy) []sdk.PolicyBeta {
+	var sdkPolicies []sdk.PolicyBeta
 	for i := range policies {
 		sdkPolicies = append(sdkPolicies, *fromModelToSdk(&policies[i]))
 	}

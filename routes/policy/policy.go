@@ -36,7 +36,7 @@ func CreateRoute(router fiber.Router, basePath string) {
 
 func Create(c *fiber.Ctx) error {
 	log.Debug("received create policy request")
-	payload := new(sdk.Policy)
+	payload := new(sdk.PolicyBeta)
 	if err := c.BodyParser(payload); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(sdk.PolicyResponse{
 			Success: false,
@@ -201,7 +201,7 @@ func Update(c *fiber.Ctx) error {
 			Message: "Invalid request. Policy id is required",
 		})
 	}
-	payload := new(sdk.Policy)
+	payload := new(sdk.PolicyBeta)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update policy request", "error", err)
 		return c.Status(http.StatusBadRequest).JSON(sdk.PolicyResponse{
