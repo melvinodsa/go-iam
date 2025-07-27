@@ -336,7 +336,7 @@ func UpdateRoles(c *fiber.Ctx) error {
 
 	pr := providers.GetProviders(c)
 	for _, roleId := range payload.ToBeRemoved {
-		if err := pr.S.Role.RemoveRoleFromUser(c.Context(), id, roleId); err != nil {
+		if err := pr.S.User.RemoveRoleFromUser(c.Context(), id, roleId); err != nil {
 			if errors.Is(err, sdk.ErrRoleNotFound) {
 				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
 					Success: false,
@@ -353,7 +353,7 @@ func UpdateRoles(c *fiber.Ctx) error {
 	}
 
 	for _, roleId := range payload.ToBeAdded {
-		if err := pr.S.Role.AddRoleToUser(c.Context(), id, roleId); err != nil {
+		if err := pr.S.User.AddRoleToUser(c.Context(), id, roleId); err != nil {
 			if errors.Is(err, sdk.ErrRoleNotFound) {
 				return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
 					Success: false,

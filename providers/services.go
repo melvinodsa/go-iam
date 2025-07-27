@@ -2,6 +2,7 @@ package providers
 
 import (
 	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/auth"
 	"github.com/melvinodsa/go-iam/services/authprovider"
 	"github.com/melvinodsa/go-iam/services/cache"
@@ -31,20 +32,21 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	psvc := project.NewService(pstr)
 	cstr := client.NewStore(db)
 	csvc := client.NewService(cstr, psvc)
-	userStr := user.NewStore(db)
-	userSvc := user.NewService(userStr)
 	rstr := resource.NewStore(db)
 	rsvc := resource.NewService(rstr)
+	roleStr := role.NewStore(db)
+	roleSvc := role.NewService(roleStr)
+	userStr := user.NewStore(db)
+	userSvc := user.NewService(userStr, roleSvc)
+
+	// subscribing to role updates
+	roleSvc.Subscribe(sdk.EventRoleUpdated, userSvc)
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)
-	ustr := user.NewStore(db)
-	usvc := user.NewService(ustr)
-	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, usvc, tokenTTL, refetchTTL)
+	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, userSvc, tokenTTL, refetchTTL)
 	polstr := policybeta.NewStore(db, rstr)
 	polSvc := policybeta.NewService(polstr)
-	roleStr := role.NewStore(db)
-	roleSvc := role.NewService(roleStr, polSvc)
 
 	return &Service{
 		Projects:      psvc,

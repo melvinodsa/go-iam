@@ -12,7 +12,7 @@ type User struct {
 	ProfilePic string                  `bson:"profile_pic"`
 	Expiry     *time.Time              `bson:"expiry"`
 	Roles      map[string]UserRoles    `bson:"roles"`
-	Resources  map[string]UserResource `bson:"resources"`
+	Resources  map[string]UserResource `bson:"role_resources"`
 	Policies   map[string]string       `bson:"policies"`
 	CreatedAt  *time.Time              `bson:"created_at"`
 	CreatedBy  string                  `bson:"created_by"`
@@ -21,9 +21,10 @@ type User struct {
 }
 
 type UserResource struct {
-	Id   string `bson:"id"`
-	Key  string `bson:"key"`
-	Name string `bson:"name"`
+	RoleIds   map[string]bool `bson:"role_ids"`
+	PolicyIds map[string]bool `bson:"policy_ids"`
+	Key       string          `bson:"key"`
+	Name      string          `bson:"name"`
 }
 
 type UserRoles struct {
