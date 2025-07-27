@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/melvinodsa/go-iam/middlewares/projects"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/utils"
 )
@@ -29,7 +29,7 @@ func (s *service) Update(ctx context.Context, role *sdk.Role) error {
 	if err != nil {
 		return fmt.Errorf("failed to update role: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventRoleUpdated, *role))
+	s.Emit(newEvent(sdk.EventRoleUpdated, *role, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -38,7 +38,7 @@ func (s *service) GetById(ctx context.Context, id string) (*sdk.Role, error) {
 }
 
 func (s *service) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error) {
-	query.ProjectIds = projects.GetProjects(ctx)
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.store.GetAll(ctx, query)
 }
 
@@ -54,8 +54,9 @@ func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.E
 }
 
 type event struct {
-	name    string
-	payload sdk.Role
+	name     string
+	payload  sdk.Role
+	metadata sdk.Metadata
 }
 
 func (e event) Name() string {
@@ -66,6 +67,10 @@ func (e event) Payload() sdk.Role {
 	return e.payload
 }
 
-func newEvent(name string, payload sdk.Role) utils.Event[sdk.Role] {
-	return event{name: name, payload: payload}
+func (e event) Metadata() sdk.Metadata {
+	return e.metadata
+}
+
+func newEvent(name string, payload sdk.Role, metadata sdk.Metadata) utils.Event[sdk.Role] {
+	return event{name: name, payload: payload, metadata: metadata}
 }

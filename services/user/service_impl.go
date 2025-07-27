@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/melvinodsa/go-iam/middlewares/projects"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/role"
 )
@@ -43,7 +43,7 @@ func (s *service) GetByPhone(ctx context.Context, phone string, projectId string
 }
 
 func (s *service) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error) {
-	query.ProjectIds = projects.GetProjects(ctx)
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.store.GetAll(ctx, query)
 }
 
