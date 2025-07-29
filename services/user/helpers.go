@@ -170,3 +170,26 @@ func addRoleToUserObj(user *sdk.User, role sdk.Role) {
 		user.Resources[res.Key] = existingResource
 	}
 }
+
+func addResourceToUserObj(user *sdk.User, res sdk.AddUserResourceRequest) {
+	// Initialize user's fields if nil
+	if user.Resources == nil {
+		user.Resources = make(map[string]sdk.UserResource)
+	}
+
+	// other ran roleids policy ids cuold also exist that is why special treatment for resources
+	existingResource, exists := user.Resources[res.Key]
+	if !exists {
+		existingResource = sdk.UserResource{
+			PolicyIds: map[string]bool{res.PolicyId: true},
+			Key:       res.Key,
+			Name:      res.Name,
+		}
+	} else {
+		if len(existingResource.PolicyIds) == 0 {
+			existingResource.PolicyIds = map[string]bool{}
+		}
+		existingResource.PolicyIds[res.PolicyId] = true
+	}
+	user.Resources[res.Key] = existingResource
+}

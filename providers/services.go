@@ -8,6 +8,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
+	"github.com/melvinodsa/go-iam/services/policy/system"
 	"github.com/melvinodsa/go-iam/services/policybeta"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/services/resource"
@@ -41,6 +42,8 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 
 	// subscribing to role updates
 	roleSvc.Subscribe(utils.EventRoleUpdated, userSvc)
+	// subscribing to resource create updates
+	rsvc.Subscribe(utils.EventResourceCreated, system.NewAccessToCreatedResource(userSvc))
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)

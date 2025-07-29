@@ -37,6 +37,13 @@ type UserResource struct {
 	Name      string          `json:"name"`
 }
 
+type AddUserResourceRequest struct {
+	RoleId   string `bson:"role_id"`
+	PolicyId string `bson:"policy_id"`
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+}
+
 type UserQuery struct {
 	ProjectIds  []string `json:"project_ids"`
 	RoleId      string   `json:"role_id"`
