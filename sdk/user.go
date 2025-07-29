@@ -18,7 +18,7 @@ type User struct {
 	Expiry     *time.Time              `json:"expiry"`
 	Roles      map[string]UserRole     `json:"roles"`
 	Resources  map[string]UserResource `json:"resources"`
-	Policies   map[string]string       `json:"policies"`
+	Policies   map[string]bool         `json:"policies"`
 	CreatedAt  *time.Time              `json:"created_at"`
 	CreatedBy  string                  `json:"created_by"`
 	UpdatedAt  *time.Time              `json:"updated_at"`

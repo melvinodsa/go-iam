@@ -45,6 +45,8 @@ const (
 
 	EventResourceCreated = "resource:created"
 
+	EventUserCreated = "user:created"
+
 	EventClientCreated = "client:created"
 	EventClientUpdated = "client:updated"
 )

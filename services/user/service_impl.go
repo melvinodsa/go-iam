@@ -8,10 +8,12 @@ import (
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/role"
+	"github.com/melvinodsa/go-iam/utils"
 )
 
 type service struct {
 	store   Store
+	e       utils.Emitter[utils.Event[sdk.User], sdk.User]
 	roleSvc role.Service
 }
 
@@ -19,11 +21,17 @@ func NewService(store Store, roleSvc role.Service) Service {
 	return &service{
 		store:   store,
 		roleSvc: roleSvc,
+		e:       utils.NewEmitter[utils.Event[sdk.User]](),
 	}
 }
 
 func (s *service) Create(ctx context.Context, user *sdk.User) error {
-	return s.store.Create(ctx, user)
+	err := s.store.Create(ctx, user)
+	if err != nil {
+		return err
+	}
+	s.Emit(newEvent(utils.EventUserCreated, *user, middlewares.GetMetadata(ctx)))
+	return nil
 }
 
 func (s *service) Update(ctx context.Context, user *sdk.User) error {
@@ -125,4 +133,37 @@ func (s *service) AddResourceToUser(ctx context.Context, userId string, request 
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 	return nil
+}
+
+func (s service) Emit(event utils.Event[sdk.User]) {
+	if event == nil {
+		return
+	}
+	s.e.Emit(event)
+}
+
+func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.Event[sdk.User], sdk.User]) {
+	s.e.Subscribe(eventName, subscriber)
+}
+
+type event struct {
+	name     string
+	payload  sdk.User
+	metadata sdk.Metadata
+}
+
+func (e event) Name() string {
+	return e.name
+}
+
+func (e event) Payload() sdk.User {
+	return e.payload
+}
+
+func (e event) Metadata() sdk.Metadata {
+	return e.metadata
+}
+
+func newEvent(name string, payload sdk.User, metadata sdk.Metadata) utils.Event[sdk.User] {
+	return event{name: name, payload: payload, metadata: metadata}
 }
