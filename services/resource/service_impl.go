@@ -5,14 +5,17 @@ import (
 
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils"
 )
 
 type service struct {
 	s Store
+	e utils.Emitter[utils.Event[sdk.Resource], sdk.Resource]
 }
 
 func NewService(s Store) Service {
-	return service{s: s}
+	return service{s: s,
+		e: utils.NewEmitter[utils.Event[sdk.Resource]]()}
 }
 
 func (s service) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.ResourceList, error) {
@@ -26,6 +29,7 @@ func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 
 func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
 	_, err := s.s.Create(ctx, resource)
+	s.Emit(newEvent(utils.EventResourceCreated, *resource, middlewares.GetMetadata(ctx)))
 	return err
 }
 
@@ -35,4 +39,37 @@ func (s service) Update(ctx context.Context, resource *sdk.Resource) error {
 
 func (s service) Delete(ctx context.Context, id string) error {
 	return s.s.Delete(ctx, id)
+}
+
+func (s service) Emit(event utils.Event[sdk.Resource]) {
+	if event == nil {
+		return
+	}
+	s.e.Emit(event)
+}
+
+func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.Event[sdk.Resource], sdk.Resource]) {
+	s.e.Subscribe(eventName, subscriber)
+}
+
+type event struct {
+	name     string
+	payload  sdk.Resource
+	metadata sdk.Metadata
+}
+
+func (e event) Name() string {
+	return e.name
+}
+
+func (e event) Payload() sdk.Resource {
+	return e.payload
+}
+
+func (e event) Metadata() sdk.Metadata {
+	return e.metadata
+}
+
+func newEvent(name string, payload sdk.Resource, metadata sdk.Metadata) utils.Event[sdk.Resource] {
+	return event{name: name, payload: payload, metadata: metadata}
 }
