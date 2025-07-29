@@ -110,3 +110,19 @@ func (s *service) RemoveRoleFromUser(ctx context.Context, userId, roleId string)
 
 	return nil
 }
+
+func (s *service) AddResourceToUser(ctx context.Context, userId string, request sdk.AddUserResourceRequest) error {
+	usr, err := s.store.GetById(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	addResourceToUserObj(usr, request)
+
+	// Update user in the database
+	err = s.store.Update(ctx, usr)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+	return nil
+}

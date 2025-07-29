@@ -16,5 +16,6 @@ type Service interface {
 	GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error)
 	AddRoleToUser(ctx context.Context, userId, roleId string) error
 	RemoveRoleFromUser(ctx context.Context, userId, roleId string) error
+	AddResourceToUser(ctx context.Context, userId string, request sdk.AddUserResourceRequest) error
 	HandleEvent(event utils.Event[sdk.Role])
 }
