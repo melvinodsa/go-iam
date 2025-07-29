@@ -43,6 +43,8 @@ func NewEmitter[T Event[V], V any]() Emitter[T, V] {
 const (
 	EventRoleUpdated = "role:updated"
 
+	EventResourceCreated = "resource:created"
+
 	EventClientCreated = "client:created"
 	EventClientUpdated = "client:updated"
 )
