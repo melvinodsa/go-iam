@@ -18,11 +18,24 @@ type User struct {
 	Expiry     *time.Time              `json:"expiry"`
 	Roles      map[string]UserRole     `json:"roles"`
 	Resources  map[string]UserResource `json:"resources"`
-	Policies   map[string]bool         `json:"policies"`
+	Policies   map[string]UserPolicy   `json:"policies"`
 	CreatedAt  *time.Time              `json:"created_at"`
 	CreatedBy  string                  `json:"created_by"`
 	UpdatedAt  *time.Time              `json:"updated_at"`
 	UpdatedBy  string                  `json:"updated_by"`
+}
+
+type UserPolicy struct {
+	Def     interface{}       `json:"def,omitempty"`
+	Mapping UserPolicyMapping `json:"mapping,omitempty"`
+}
+
+type UserPolicyMapping struct {
+	Arguments map[string]UserPolicyMappingValue `json:"arguments,omitempty"`
+}
+
+type UserPolicyMappingValue struct {
+	Static string `json:"static,omitempty"`
 }
 
 type UserRole struct {

@@ -17,7 +17,7 @@ func fromSdkToModel(user sdk.User) models.User {
 		ProfilePic: user.ProfilePic,
 		Roles:      fromSdkUserRoleMapToModel(user.Roles),
 		Resources:  fromSdkUserResourceMapToModel(user.Resources),
-		Policies:   user.Policies,
+		Policies:   fromSdkUserPoliciesToModel(user.Policies),
 		CreatedAt:  user.CreatedAt,
 		CreatedBy:  user.CreatedBy,
 		UpdatedAt:  user.UpdatedAt,
@@ -37,12 +37,54 @@ func fromModelToSdk(user *models.User) *sdk.User {
 		Enabled:    user.Enabled,
 		Roles:      fromModelUserRoleMapToSdk(user.Roles),
 		Resources:  fromModelUserResourceMapToSdk(user.Resources),
-		Policies:   user.Policies,
+		Policies:   fromModelUserPoliciesToSdk(user.Policies),
 		CreatedAt:  user.CreatedAt,
 		CreatedBy:  user.CreatedBy,
 		UpdatedAt:  user.UpdatedAt,
 		UpdatedBy:  user.UpdatedBy,
 	}
+}
+
+func fromSdkUserPoliciesToModel(policies map[string]sdk.UserPolicy) map[string]models.UserPolicy {
+	result := map[string]models.UserPolicy{}
+	for key, policy := range policies {
+		result[key] = models.UserPolicy{
+			Def:     policy.Def,
+			Mapping: fromSdkUserPolicyMappingToModel(policy.Mapping),
+		}
+	}
+	return result
+}
+
+func fromSdkUserPolicyMappingToModel(mapping sdk.UserPolicyMapping) models.UserPolicyMapping {
+	arguments := map[string]models.UserPolicyMappingValue{}
+	for key, argument := range mapping.Arguments {
+		arguments[key] = models.UserPolicyMappingValue{
+			Static: argument.Static,
+		}
+	}
+	return models.UserPolicyMapping{Arguments: arguments}
+}
+
+func fromModelUserPoliciesToSdk(policies map[string]models.UserPolicy) map[string]sdk.UserPolicy {
+	result := map[string]sdk.UserPolicy{}
+	for key, policy := range policies {
+		result[key] = sdk.UserPolicy{
+			Def:     policy.Def,
+			Mapping: fromModelUserPolicyMappingToSdk(policy.Mapping),
+		}
+	}
+	return result
+}
+
+func fromModelUserPolicyMappingToSdk(mapping models.UserPolicyMapping) sdk.UserPolicyMapping {
+	arguments := map[string]sdk.UserPolicyMappingValue{}
+	for key, argument := range mapping.Arguments {
+		arguments[key] = sdk.UserPolicyMappingValue{
+			Static: argument.Static,
+		}
+	}
+	return sdk.UserPolicyMapping{Arguments: arguments}
 }
 
 // Convert SDK UserRole map to Model UserRoles map (Key: Name)
@@ -192,4 +234,15 @@ func addResourceToUserObj(user *sdk.User, res sdk.AddUserResourceRequest) {
 		existingResource.PolicyIds[res.PolicyId] = true
 	}
 	user.Resources[res.Key] = existingResource
+}
+
+func addPoliciesToUserObj(user *sdk.User, policies map[string]sdk.UserPolicy) {
+	// Initialize user's fields if nil
+	if user.Policies == nil {
+		user.Policies = make(map[string]sdk.UserPolicy)
+	}
+
+	for key, policy := range policies {
+		user.Policies[key] = policy
+	}
 }

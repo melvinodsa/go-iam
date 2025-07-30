@@ -28,3 +28,7 @@ func GetMetadata(ctx context.Context) sdk.Metadata {
 		ProjectIds: GetProjects(ctx),
 	}
 }
+
+func AddMetadata(ctx context.Context, metadata sdk.Metadata) context.Context {
+	return context.WithValue(context.WithValue(ctx, "projects", metadata.ProjectIds), "user", metadata.User)
+}

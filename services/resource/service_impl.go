@@ -29,7 +29,7 @@ func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 
 func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
 	_, err := s.s.Create(ctx, resource)
-	s.Emit(newEvent(utils.EventResourceCreated, *resource, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, utils.EventResourceCreated, *resource, middlewares.GetMetadata(ctx)))
 	return err
 }
 
@@ -56,6 +56,7 @@ type event struct {
 	name     string
 	payload  sdk.Resource
 	metadata sdk.Metadata
+	ctx      context.Context
 }
 
 func (e event) Name() string {
@@ -70,6 +71,10 @@ func (e event) Metadata() sdk.Metadata {
 	return e.metadata
 }
 
-func newEvent(name string, payload sdk.Resource, metadata sdk.Metadata) utils.Event[sdk.Resource] {
-	return event{name: name, payload: payload, metadata: metadata}
+func (e event) Context() context.Context {
+	return e.ctx
+}
+
+func newEvent(ctx context.Context, name string, payload sdk.Resource, metadata sdk.Metadata) utils.Event[sdk.Resource] {
+	return event{ctx: ctx, name: name, payload: payload, metadata: metadata}
 }

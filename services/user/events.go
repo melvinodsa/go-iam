@@ -19,7 +19,7 @@ func (s *service) HandleEvent(e utils.Event[sdk.Role]) {
 }
 
 func (s *service) handleRoleUpdate(e utils.Event[sdk.Role]) {
-	err := s.fetchAndUpdateUsersWithRole(context.Background(), e.Payload())
+	err := s.fetchAndUpdateUsersWithRole(e.Context(), e.Payload())
 	if err != nil {
 		log.Errorw("error fetching and updating users with role", "error", err)
 	}

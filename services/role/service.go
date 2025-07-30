@@ -12,5 +12,6 @@ type Service interface {
 	Update(ctx context.Context, role *sdk.Role) error
 	GetById(ctx context.Context, id string) (*sdk.Role, error)
 	GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error)
+	AddResource(ctx context.Context, roleId string, resource sdk.Resources) error
 	utils.Emitter[utils.Event[sdk.Role], sdk.Role]
 }

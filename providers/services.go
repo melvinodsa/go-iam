@@ -44,6 +44,8 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	roleSvc.Subscribe(utils.EventRoleUpdated, userSvc)
 	// subscribing to resource create updates
 	rsvc.Subscribe(utils.EventResourceCreated, system.NewAccessToCreatedResource(userSvc))
+	rsvc.Subscribe(utils.EventResourceCreated, system.NewAddResourcesToUser(userSvc))
+	rsvc.Subscribe(utils.EventResourceCreated, system.NewAddResourcesToRole(userSvc, roleSvc))
 	// adding default policies to a user when gets created
 	userSvc.Subscribe(utils.EventUserCreated, system.NewDefaultPoliciesOnUser(userSvc))
 
