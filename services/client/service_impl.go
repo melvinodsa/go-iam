@@ -66,7 +66,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	s.Emit(newEvent(utils.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, utils.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
@@ -79,7 +79,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while updating client: %w", err)
 	}
-	s.Emit(newEvent(utils.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, utils.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -98,6 +98,7 @@ type event struct {
 	name     string
 	payload  sdk.Client
 	metadata sdk.Metadata
+	ctx      context.Context
 }
 
 func (e event) Name() string {
@@ -112,6 +113,10 @@ func (e event) Metadata() sdk.Metadata {
 	return e.metadata
 }
 
-func newEvent(name string, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
-	return event{name: name, payload: payload, metadata: metadata}
+func (e event) Context() context.Context {
+	return e.ctx
+}
+
+func newEvent(ctx context.Context, name string, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
+	return event{ctx: ctx, name: name, payload: payload, metadata: metadata}
 }

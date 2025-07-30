@@ -30,7 +30,7 @@ func (s *service) Create(ctx context.Context, user *sdk.User) error {
 	if err != nil {
 		return err
 	}
-	s.Emit(newEvent(utils.EventUserCreated, *user, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, utils.EventUserCreated, *user, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -51,7 +51,6 @@ func (s *service) GetByPhone(ctx context.Context, phone string, projectId string
 }
 
 func (s *service) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error) {
-	query.ProjectIds = middlewares.GetProjects(ctx)
 	return s.store.GetAll(ctx, query)
 }
 
@@ -135,6 +134,22 @@ func (s *service) AddResourceToUser(ctx context.Context, userId string, request 
 	return nil
 }
 
+func (s *service) AddPolicyToUser(ctx context.Context, userId string, policies map[string]sdk.UserPolicy) error {
+	usr, err := s.store.GetById(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	addPoliciesToUserObj(usr, policies)
+
+	// Update user in the database
+	err = s.store.Update(ctx, usr)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+	return nil
+}
+
 func (s service) Emit(event utils.Event[sdk.User]) {
 	if event == nil {
 		return
@@ -150,6 +165,7 @@ type event struct {
 	name     string
 	payload  sdk.User
 	metadata sdk.Metadata
+	ctx      context.Context
 }
 
 func (e event) Name() string {
@@ -164,6 +180,10 @@ func (e event) Metadata() sdk.Metadata {
 	return e.metadata
 }
 
-func newEvent(name string, payload sdk.User, metadata sdk.Metadata) utils.Event[sdk.User] {
-	return event{name: name, payload: payload, metadata: metadata}
+func (e event) Context() context.Context {
+	return e.ctx
+}
+
+func newEvent(ctx context.Context, name string, payload sdk.User, metadata sdk.Metadata) utils.Event[sdk.User] {
+	return event{ctx: ctx, name: name, payload: payload, metadata: metadata}
 }

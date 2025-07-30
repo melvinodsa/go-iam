@@ -1,11 +1,16 @@
 package utils
 
-import "github.com/melvinodsa/go-iam/sdk"
+import (
+	"context"
+
+	"github.com/melvinodsa/go-iam/sdk"
+)
 
 type Event[T any] interface {
 	Name() string
 	Payload() T
 	Metadata() sdk.Metadata
+	Context() context.Context
 }
 
 type Subscriber[T Event[V], V any] interface {

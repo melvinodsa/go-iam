@@ -108,7 +108,7 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList,
 	// Get total count
 	total, err := s.db.CountDocuments(ctx, md, cond)
 	if err != nil {
-		return nil, fmt.Errorf("error counting resources: %w", err)
+		return nil, fmt.Errorf("error counting roles: %w", err)
 	}
 
 	opts := options.Find().

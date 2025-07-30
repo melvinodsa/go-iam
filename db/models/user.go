@@ -12,12 +12,25 @@ type User struct {
 	ProfilePic string                  `bson:"profile_pic"`
 	Expiry     *time.Time              `bson:"expiry"`
 	Roles      map[string]UserRoles    `bson:"roles"`
-	Resources  map[string]UserResource `bson:"role_resources"`
-	Policies   map[string]bool         `bson:"policies"`
+	Resources  map[string]UserResource `bson:"resources"`
+	Policies   map[string]UserPolicy   `bson:"policies"`
 	CreatedAt  *time.Time              `bson:"created_at"`
 	CreatedBy  string                  `bson:"created_by"`
 	UpdatedAt  *time.Time              `bson:"updated_at"`
 	UpdatedBy  string                  `bson:"updated_by"`
+}
+
+type UserPolicy struct {
+	Def     interface{}       `bson:"def,omitempty"`
+	Mapping UserPolicyMapping `bson:"mapping,omitempty"`
+}
+
+type UserPolicyMapping struct {
+	Arguments map[string]UserPolicyMappingValue `bson:"arguments,omitempty"`
+}
+
+type UserPolicyMappingValue struct {
+	Static string `bson:"static,omitempty"`
 }
 
 type UserResource struct {
