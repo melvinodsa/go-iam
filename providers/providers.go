@@ -15,6 +15,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/jwt"
 	"github.com/melvinodsa/go-iam/utils"
 	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type Provider struct {
@@ -59,8 +60,8 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	}
 
 	// subscribe to client events for checking auth client
-	svcs.Clients.Subscribe(utils.EventClientCreated, pvd)
-	svcs.Clients.Subscribe(utils.EventClientUpdated, pvd)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, pvd)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, pvd)
 
 	// creating default project if it doesn't exist
 	err = checkAndAddDefaultProject(svcs.Projects)
@@ -90,7 +91,7 @@ func GetProviders(c *fiber.Ctx) *Provider {
 }
 
 func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
-	if e.Name() != utils.EventClientCreated && e.Name() != utils.EventClientUpdated {
+	if e.Name() != goiamuniverse.EventClientCreated && e.Name() != goiamuniverse.EventClientUpdated {
 		return
 	}
 	if !e.Payload().GoIamClient {

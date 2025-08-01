@@ -11,13 +11,13 @@ type PolicyBeta struct {
 	CreatedBy   string            `json:"created_by"`
 }
 
-type PolicyResponse struct {
+type PolicyBetaResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
 	Data    *PolicyBeta `json:"data,omitempty"`
 }
 
-type PoliciesResponse struct {
+type PoliciesBetaResponse struct {
 	Success bool         `json:"success"`
 	Message string       `json:"message"`
 	Data    []PolicyBeta `json:"data,omitempty"`

@@ -8,6 +8,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type service struct {
@@ -66,7 +67,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	s.Emit(newEvent(ctx, utils.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, goiamuniverse.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
@@ -79,7 +80,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while updating client: %w", err)
 	}
-	s.Emit(newEvent(ctx, utils.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
+	s.Emit(newEvent(ctx, goiamuniverse.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -90,18 +91,18 @@ func (s service) Emit(event utils.Event[sdk.Client]) {
 	s.e.Emit(event)
 }
 
-func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
+func (s service) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
 	s.e.Subscribe(eventName, subscriber)
 }
 
 type event struct {
-	name     string
+	name     goiamuniverse.Event
 	payload  sdk.Client
 	metadata sdk.Metadata
 	ctx      context.Context
 }
 
-func (e event) Name() string {
+func (e event) Name() goiamuniverse.Event {
 	return e.name
 }
 
@@ -117,6 +118,6 @@ func (e event) Context() context.Context {
 	return e.ctx
 }
 
-func newEvent(ctx context.Context, name string, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
+func newEvent(ctx context.Context, name goiamuniverse.Event, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
 	return event{ctx: ctx, name: name, payload: payload, metadata: metadata}
 }
