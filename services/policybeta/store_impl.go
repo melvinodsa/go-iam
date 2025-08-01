@@ -28,7 +28,7 @@ func NewStore(db db.DB, resourceStr resource.Store) Store {
 }
 
 // Create adds a new policy to the database
-func (s store) Create(ctx context.Context, policy *sdk.Policy) error {
+func (s store) Create(ctx context.Context, policy *sdk.PolicyBeta) error {
 	if policy == nil {
 		return errors.New("policy cannot be nil")
 	}
@@ -76,13 +76,13 @@ func (s store) Delete(ctx context.Context, id string) error {
 }
 
 // Update modifies an existing policy in the database
-func (s store) Update(ctx context.Context, policy *sdk.Policy) error {
+func (s store) Update(ctx context.Context, policy *sdk.PolicyBeta) error {
 	if policy == nil || policy.Id == "" {
 		return errors.New("policy ID is required")
 	}
 
 	// Get the original policy to compare role changes
-	originalPolicy := &sdk.Policy{}
+	originalPolicy := &sdk.PolicyBeta{}
 	md := models.GetPolicyModel()
 	result := s.db.FindOne(
 		ctx,
@@ -159,7 +159,7 @@ func (s store) Update(ctx context.Context, policy *sdk.Policy) error {
 		policyOrQuery = append(policyOrQuery, bson.M{"roles." + id: bson.M{"$exists": true}})
 	}
 
-	var allPolicies []sdk.Policy
+	var allPolicies []sdk.PolicyBeta
 	cursor, err = s.db.Find(ctx, policyMd, bson.M{"$or": policyOrQuery})
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (s store) Update(ctx context.Context, policy *sdk.Policy) error {
 	}
 
 	// Map role -> policies
-	roleToPolicies := map[string][]sdk.Policy{}
+	roleToPolicies := map[string][]sdk.PolicyBeta{}
 	for _, p := range allPolicies {
 		for rid := range p.Roles {
 			roleToPolicies[rid] = append(roleToPolicies[rid], p)
@@ -224,7 +224,7 @@ func (s store) Update(ctx context.Context, policy *sdk.Policy) error {
 }
 
 // GetById retrieves a policy by ID
-func (s store) Get(ctx context.Context, id string) (*sdk.Policy, error) {
+func (s store) Get(ctx context.Context, id string) (*sdk.PolicyBeta, error) {
 	if id == "" {
 		return nil, errors.New("policy ID cannot be empty")
 	}
@@ -243,7 +243,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.Policy, error) {
 }
 
 // GetAll retrieves all policies from the database
-func (s store) GetAll(ctx context.Context) ([]sdk.Policy, error) {
+func (s store) GetAll(ctx context.Context) ([]sdk.PolicyBeta, error) {
 	md := models.GetPolicyModel()
 	var policies []models.Policy
 
@@ -261,7 +261,7 @@ func (s store) GetAll(ctx context.Context) ([]sdk.Policy, error) {
 }
 
 // GetPoliciesByRoleId retrieves all policies associated with a specific role ID
-func (s store) GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.Policy, error) {
+func (s store) GetPoliciesByRoleId(ctx context.Context, roleId string) ([]sdk.PolicyBeta, error) {
 	if roleId == "" {
 		return nil, errors.New("role ID cannot be empty")
 	}

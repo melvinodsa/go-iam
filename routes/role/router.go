@@ -8,6 +8,4 @@ func RegisterRoutes(router fiber.Router) {
 	role.Get("/", Search)
 	role.Get("/:id", Get)
 	role.Put("/:id", Update)
-	role.Post("/:userid/:roleid", AddRoleToUser)
-	role.Get("/:userid/:roleid", RemoveRoleFromUser)
 }

@@ -1,14 +1,22 @@
 package sdk
 
-import "time"
+import "github.com/melvinodsa/go-iam/utils/goiamuniverse"
 
 type Policy struct {
-	Id          string            `json:"id"`
-	Name        string            `json:"name"`
-	Roles       map[string]string `json:"roles"`
-	Description string            `json:"description"`
-	CreatedAt   *time.Time        `json:"created_at"`
-	CreatedBy   string            `json:"created_by"`
+	Id          string           `json:"id"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Definition  PolicyDefinition `json:"definition"`
+}
+
+type PolicyDefinition struct {
+	Arguments []PolicyArgument
+}
+
+type PolicyArgument struct {
+	Name        string
+	Description string
+	DataType    goiamuniverse.DataType
 }
 
 type PolicyResponse struct {

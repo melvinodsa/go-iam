@@ -5,14 +5,14 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/melvinodsa/go-iam/middlewares/auth"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
 func Me(c *fiber.Ctx) error {
 	// get access token from auth bearer token
-	user := auth.GetUser(c.Context())
+	user := middlewares.GetUser(c.Context())
 	log.Debug("user fetched successfully")
 	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
 		Success: true,
@@ -42,7 +42,7 @@ func DashboardMe(c *fiber.Ctx) error {
 	res.Data.Setup.ClientAdded = true
 	res.Data.Setup.ClientId = pr.AuthClient.Id
 	// get access token from auth bearer token
-	user := auth.GetUser(c.Context())
+	user := middlewares.GetUser(c.Context())
 	log.Debug("user fetched successfully")
 	res.Message = "User fetched successfully"
 	res.Data.Setup.ClientAdded = true
