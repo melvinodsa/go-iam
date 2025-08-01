@@ -14,7 +14,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/resource"
 	"github.com/melvinodsa/go-iam/services/role"
 	"github.com/melvinodsa/go-iam/services/user"
-	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type Service struct {
@@ -41,13 +41,13 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	userSvc := user.NewService(userStr, roleSvc)
 
 	// subscribing to role updates
-	roleSvc.Subscribe(utils.EventRoleUpdated, userSvc)
+	roleSvc.Subscribe(goiamuniverse.EventRoleUpdated, userSvc)
 	// subscribing to resource create updates
-	rsvc.Subscribe(utils.EventResourceCreated, system.NewAccessToCreatedResource(userSvc))
-	rsvc.Subscribe(utils.EventResourceCreated, system.NewAddResourcesToUser(userSvc))
-	rsvc.Subscribe(utils.EventResourceCreated, system.NewAddResourcesToRole(userSvc, roleSvc))
+	rsvc.Subscribe(goiamuniverse.EventResourceCreated, system.NewAccessToCreatedResource(userSvc))
+	rsvc.Subscribe(goiamuniverse.EventResourceCreated, system.NewAddResourcesToUser(userSvc))
+	rsvc.Subscribe(goiamuniverse.EventResourceCreated, system.NewAddResourcesToRole(userSvc, roleSvc))
 	// adding default policies to a user when gets created
-	userSvc.Subscribe(utils.EventUserCreated, system.NewDefaultPoliciesOnUser(userSvc))
+	userSvc.Subscribe(goiamuniverse.EventUserCreated, system.NewDefaultPoliciesOnUser(userSvc))
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)

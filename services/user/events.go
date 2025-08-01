@@ -6,11 +6,12 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 func (s *service) HandleEvent(e utils.Event[sdk.Role]) {
 	switch e.Name() {
-	case utils.EventRoleUpdated:
+	case goiamuniverse.EventRoleUpdated:
 		s.handleRoleUpdate(e)
 	default:
 		return
