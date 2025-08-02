@@ -10,7 +10,30 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
+
+// CreateRoute registers the routes for the role
+func CreateRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	router.Post(routePath, Create)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Create Role",
+		Description: "Create a new role",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Role data",
+			Content:     new(sdk.Role),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Role created successfully",
+			Content:     new(sdk.RoleResponse),
+		},
+		Tags: routeTags,
+	})
+}
 
 // Create handles the creation of a new role
 func Create(c *fiber.Ctx) error {
@@ -41,6 +64,44 @@ func Create(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Role created successfully",
 		Data:    payload,
+	})
+}
+
+// SearchRoute registers the route for searching roles
+func SearchRoute(router fiber.Router, basePath string) {
+	routePath := "/search"
+	path := basePath + routePath
+	router.Get(routePath, Search)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Search Roles",
+		Description: "Search for roles",
+		Response: &docs.ApiResponse{
+			Description: "Roles fetched successfully",
+			Content:     new(sdk.RoleListResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "query",
+				In:          "query",
+				Description: "Search query for roles",
+				Required:    false,
+			},
+			{
+				Name:        "skip",
+				In:          "query",
+				Description: "Number of records to skip for pagination. Default is 0",
+				Required:    false,
+			},
+			{
+				Name:        "limit",
+				In:          "query",
+				Description: "Maximum number of records to return. Default is 10",
+				Required:    false,
+			},
+		},
+		Tags: routeTags,
 	})
 }
 
@@ -87,6 +148,32 @@ func Search(c *fiber.Ctx) error {
 	})
 }
 
+// GetRoute registers the route for fetching a specific role
+func GetRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	router.Get(routePath, Get)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Get Role",
+		Description: "Get a role by ID",
+		Response: &docs.ApiResponse{
+			Description: "Role fetched successfully",
+			Content:     new(sdk.RoleResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the role",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
 // Get retrieves a specific role by ID
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get role request")
@@ -120,6 +207,36 @@ func Get(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Role fetched successfully",
 		Data:    ds,
+	})
+}
+
+// UpdateRoute registers the route for updating a role
+func UpdateRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	router.Put(routePath, Update)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update Role",
+		Description: "Update an existing role",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Role data",
+			Content:     new(sdk.Role),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Role updated successfully",
+			Content:     new(sdk.RoleResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the role",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
 	})
 }
 
@@ -166,77 +283,5 @@ func Update(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Role updated successfully",
 		Data:    payload,
-	})
-}
-
-func AddRoleToUser(c *fiber.Ctx) error {
-	userid := c.Params("userid")
-	if userid == "" {
-		log.Error("invalid add role to user request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. User id is required",
-		})
-	}
-
-	roleid := c.Params("roleid")
-	if roleid == "" {
-		log.Error("invalid add role to user request. role id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. Role id is required",
-		})
-	}
-
-	pr := providers.GetProviders(c)
-
-	err := pr.S.Role.AddRoleToUser(c.Context(), userid, roleid)
-	if err != nil {
-		log.Error("error adding role to user", err)
-		return c.Status(http.StatusInternalServerError).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: fmt.Errorf("error adding role to user. %w", err).Error(),
-		})
-	}
-	log.Debug("role added to user successfully")
-	return c.Status(http.StatusOK).JSON(sdk.RoleResponse{
-		Success: true,
-		Message: "Role added to user successfully",
-	})
-}
-
-func RemoveRoleFromUser(c *fiber.Ctx) error {
-	userid := c.Params("userid")
-	if userid == "" {
-		log.Error("invalid remove role from user request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. User id is required",
-		})
-	}
-
-	roleid := c.Params("roleid")
-	if roleid == "" {
-		log.Error("invalid remove role from user request. role id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. Role id is required",
-		})
-	}
-
-	pr := providers.GetProviders(c)
-
-	err := pr.S.Role.RemoveRoleFromUser(c.Context(), userid, roleid)
-	if err != nil {
-		log.Error("error removing role from user", err)
-		return c.Status(http.StatusInternalServerError).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: fmt.Errorf("error removing role from user. %w", err).Error(),
-		})
-	}
-	log.Debug("role removed from user successfully")
-	return c.Status(http.StatusOK).JSON(sdk.RoleResponse{
-		Success: true,
-		Message: "Role removed from user successfully",
 	})
 }

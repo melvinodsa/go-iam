@@ -8,6 +8,7 @@ import (
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/routes"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
 
 func main() {
@@ -26,6 +27,8 @@ func main() {
 		}
 		log.Infof("%s %s", route.Method, route.Path)
 	}
+
+	docs.CreateOpenApiDoc("docs/goiam.yaml")
 
 	err := app.Listen(":" + cnf.Server.Port)
 	if err != nil {

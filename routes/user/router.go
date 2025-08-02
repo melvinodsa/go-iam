@@ -2,11 +2,14 @@ package user
 
 import "github.com/gofiber/fiber/v2"
 
-func RegisterRoutes(router fiber.Router) {
-	user := router.Group("/v1")
-	user.Post("/", Create)
-	user.Get("/:id", GetById)
-	user.Get("/", GetAll)
-	user.Put("/:id", Update)
-	user.Put("/:id/roles", UpdateRoles)
+func RegisterRoutes(router fiber.Router, path string) {
+	v1Path := path + "/v1"
+	v1 := router.Group(v1Path)
+	CreateRoute(v1, v1Path)
+	GetByIdRoute(v1, v1Path)
+	GetAllRoute(v1, v1Path)
+	UpdateRoute(v1, v1Path)
+	UpdateRolesRoute(v1, v1Path)
 }
+
+var routeTags = []string{"User"}

@@ -10,7 +10,30 @@ import (
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
+
+func CreateRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Create Project",
+		Description: "Create a new project",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Project data",
+			Content:     new(sdk.Project),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Project created successfully",
+			Content:     new(sdk.ProjectResponse),
+		},
+		ProjectIDNotRequired: true,
+		Tags:                 routeTags,
+	})
+	router.Post(routePath, Create)
+}
 
 func Create(c *fiber.Ctx) error {
 	log.Debug("received create project request")
@@ -40,6 +63,32 @@ func Create(c *fiber.Ctx) error {
 		Message: "Project created successfully",
 		Data:    payload,
 	})
+}
+
+func GetRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Get Project",
+		Description: "Get a project by ID",
+		Response: &docs.ApiResponse{
+			Description: "Project fetched successfully",
+			Content:     new(sdk.ProjectResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the project",
+				Required:    true,
+			},
+		},
+		ProjectIDNotRequired: true,
+		Tags:                 routeTags,
+	})
+	router.Get(routePath, Get)
 }
 
 // Get project
@@ -77,6 +126,24 @@ func Get(c *fiber.Ctx) error {
 	})
 }
 
+func FetchAllRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Fetch All Projects",
+		Description: "Fetch all projects",
+		Response: &docs.ApiResponse{
+			Description: "Projects fetched successfully",
+			Content:     new(sdk.ProjectsResponse),
+		},
+		ProjectIDNotRequired: true,
+		Tags:                 routeTags,
+	})
+	router.Get(routePath, FetchAll)
+}
+
 func FetchAll(c *fiber.Ctx) error {
 	log.Debug("received get projects request")
 	pr := providers.GetProviders(c)
@@ -98,6 +165,36 @@ func FetchAll(c *fiber.Ctx) error {
 		Message: "Projects fetched successfully",
 		Data:    ds,
 	})
+}
+
+func UpdateRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update Project",
+		Description: "Update a project by ID",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Project data",
+			Content:     new(sdk.Project),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Project updated successfully",
+			Content:     new(sdk.ProjectResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the project",
+				Required:    true,
+			},
+		},
+		ProjectIDNotRequired: true,
+		Tags:                 routeTags,
+	})
+	router.Put(routePath, Update)
 }
 
 // Update project

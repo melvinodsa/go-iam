@@ -1,0 +1,3010 @@
+components:
+    securitySchemes:
+        BearerAuth:
+            bearerFormat: JWT
+            description: Auth is required if and only if go IAM is configured to use auth providers. By default only `/me/v1` requires authentication.
+            scheme: bearer
+            type: http
+info:
+    description: "# Documentation for Go IAM APIs\n**go-iam** is a lightweight, multi-tenant Identity and Access Management (IAM) server built in **Golang**.\nIt provides robust authentication and fine-grained authorization for modern applications. With support for custom roles, third-party auth providers, and multi-client setups, *go-iam* gives you full control over access management in a scalable and modular way.\n\n\n![Go IAM Logo](/docs/goiam.png)\n\n## Resources\n\n> ✅ Admin UI: [go-iam-ui](https://github.com/melvinodsa/go-iam-ui)  \n> \U0001F433 Docker Setup: [go-iam-docker](https://github.com/melvinodsa/go-iam-docker)  \n> \U0001F510 Backend: [go-iam](https://github.com/melvinodsa/go-iam)\n\n## How it works\n\n### Multi-Tenant Architecture\n*go-iam* is designed to handle multiple projects or applications within a single instance.\nEach project can have its own set of users, roles, auth providers, resources, clients, and policies, allowing for efficient resource management and isolation.\n\n### Authentication and Authorization\n\n*go-iam* supports multiple authentication providers like Google, GitHub, and custom OAuth2 providers.\nIt uses JWT tokens for secure, stateless authentication. The server can be configured to require authentication for specific routes or resources.\nUsers can be authenticated using auth providers. Multiple applications can share the same auth provider, allowing for a unified login experience across different projects.\nYou can create an auth provider and link it to multiple clients. Applications use clients to authenticate users.\n\n![Auth process](/docs/auth-backend.svg)\n\n### Resources and Roles\n\nAnything that needs access control is considered a resource in *go-iam*. Resources can be anything from API endpoints to database records.\nResources can be added to roles. And roles can be assigned to users. There policies can be used to define fine-grained access control.\n\n![Auth process](/docs/resources-roles-users.svg)\n\n\n<details>\n<summary>Examples</summary>\n\nYou can create a button called **@ui/my-super-app/button** that allows users to create an account in your application.\nYou can create a resource called **@ui/my-super-app/resource** that represents the button in your application.\nThen you can create a role called **@ui/my-super-app/role** that allows users to access the button. Add the resource to the role.\nThen you can assign the role to users. Users can then access the button in your application.\n</details>"
+    title: Go IAM APIs
+    version: 1.0.0
+openapi: 3.0.3
+paths:
+    /auth/v1/authp-callback:
+        get:
+            description: Redirect to the authentication provider
+            parameters:
+                - description: The authentication code
+                  in: query
+                  name: code
+                  required: true
+                - description: State parameter for CSRF protection
+                  in: query
+                  name: state
+                - description: Whether to return the redirect URL in the response
+                  in: query
+                  name: postback
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    redirect_url:
+                                        type: string
+                                type: object
+                    description: Redirect URL generated successfully
+            summary: Redirect
+            tags:
+                - Auth
+    /auth/v1/login:
+        get:
+            description: Login to the application
+            parameters:
+                - description: The client ID
+                  in: query
+                  name: client_id
+                  required: true
+                - description: The authentication provider
+                  in: query
+                  name: auth_provider
+                - description: State parameter for CSRF protection
+                  in: query
+                  name: state
+                - description: The URL to redirect to after login
+                  in: query
+                  name: redirect_url
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        properties:
+                                            login_url:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Login URL generated successfully
+            summary: Login
+            tags:
+                - Auth
+    /auth/v1/verify:
+        get:
+            description: Verify the authentication code
+            parameters:
+                - description: The authentication code
+                  in: query
+                  name: code
+                  required: true
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            access_token:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Verification successful
+            summary: Verify
+            tags:
+                - Auth
+    /authprovider/v1/:
+        get:
+            description: Fetch all authproviders
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        items:
+                                            properties:
+                                                created_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                created_by:
+                                                    type: string
+                                                enabled:
+                                                    type: boolean
+                                                icon:
+                                                    type: string
+                                                id:
+                                                    type: string
+                                                name:
+                                                    type: string
+                                                params:
+                                                    items:
+                                                        properties:
+                                                            is_secret:
+                                                                type: boolean
+                                                            key:
+                                                                type: string
+                                                            label:
+                                                                type: string
+                                                            value:
+                                                                type: string
+                                                        type: object
+                                                    type: array
+                                                project_id:
+                                                    type: string
+                                                provider:
+                                                    type: string
+                                                updated_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                updated_by:
+                                                    type: string
+                                            type: object
+                                        type: array
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: AuthProviders fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Fetch All AuthProviders
+            tags:
+                - Auth Provider
+        post:
+            description: Create a new authprovider
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                icon:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                params:
+                                    items:
+                                        properties:
+                                            is_secret:
+                                                type: boolean
+                                            key:
+                                                type: string
+                                            label:
+                                                type: string
+                                            value:
+                                                type: string
+                                        type: object
+                                    type: array
+                                project_id:
+                                    type: string
+                                provider:
+                                    type: string
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: AuthProvider data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            icon:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            params:
+                                                items:
+                                                    properties:
+                                                        is_secret:
+                                                            type: boolean
+                                                        key:
+                                                            type: string
+                                                        label:
+                                                            type: string
+                                                        value:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            project_id:
+                                                type: string
+                                            provider:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: AuthProvider created successfully
+            security:
+                - BearerAuth: []
+            summary: Create AuthProvider
+            tags:
+                - Auth Provider
+    /authprovider/v1/{id}:
+        get:
+            description: Get an authprovider by ID
+            parameters:
+                - description: The ID of the authprovider
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            icon:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            params:
+                                                items:
+                                                    properties:
+                                                        is_secret:
+                                                            type: boolean
+                                                        key:
+                                                            type: string
+                                                        label:
+                                                            type: string
+                                                        value:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            project_id:
+                                                type: string
+                                            provider:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: AuthProvider fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get AuthProvider
+            tags:
+                - Auth Provider
+        put:
+            description: Update an authprovider by ID
+            parameters:
+                - description: The ID of the authprovider
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                icon:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                params:
+                                    items:
+                                        properties:
+                                            is_secret:
+                                                type: boolean
+                                            key:
+                                                type: string
+                                            label:
+                                                type: string
+                                            value:
+                                                type: string
+                                        type: object
+                                    type: array
+                                project_id:
+                                    type: string
+                                provider:
+                                    type: string
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: AuthProvider data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            icon:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            params:
+                                                items:
+                                                    properties:
+                                                        is_secret:
+                                                            type: boolean
+                                                        key:
+                                                            type: string
+                                                        label:
+                                                            type: string
+                                                        value:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            project_id:
+                                                type: string
+                                            provider:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: AuthProvider updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update AuthProvider
+            tags:
+                - Auth Provider
+    /client/v1/:
+        get:
+            description: Fetch all clients
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        items:
+                                            properties:
+                                                created_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                created_by:
+                                                    type: string
+                                                default_auth_provider_id:
+                                                    type: string
+                                                description:
+                                                    type: string
+                                                enabled:
+                                                    type: boolean
+                                                go_iam_client:
+                                                    type: boolean
+                                                id:
+                                                    type: string
+                                                name:
+                                                    type: string
+                                                project_id:
+                                                    type: string
+                                                redirect_urls:
+                                                    items:
+                                                        type: string
+                                                    type: array
+                                                scopes:
+                                                    items:
+                                                        type: string
+                                                    type: array
+                                                secret:
+                                                    type: string
+                                                tags:
+                                                    items:
+                                                        type: string
+                                                    type: array
+                                                updated_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                updated_by:
+                                                    type: string
+                                            type: object
+                                        type: array
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Clients fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Fetch All Clients
+            tags:
+                - Client
+        post:
+            description: Create a new client
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                default_auth_provider_id:
+                                    type: string
+                                description:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                go_iam_client:
+                                    type: boolean
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                project_id:
+                                    type: string
+                                redirect_urls:
+                                    items:
+                                        type: string
+                                    type: array
+                                scopes:
+                                    items:
+                                        type: string
+                                    type: array
+                                secret:
+                                    type: string
+                                tags:
+                                    items:
+                                        type: string
+                                    type: array
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Client data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            default_auth_provider_id:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            go_iam_client:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            redirect_urls:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            scopes:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            secret:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Client created successfully
+            security:
+                - BearerAuth: []
+            summary: Create Client
+            tags:
+                - Client
+    /client/v1/{id}:
+        get:
+            description: Get a client by ID
+            parameters:
+                - description: The ID of the client
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            default_auth_provider_id:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            go_iam_client:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            redirect_urls:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            scopes:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            secret:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Client fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Client
+            tags:
+                - Client
+        put:
+            description: Update a client by ID
+            parameters:
+                - description: The ID of the client
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                default_auth_provider_id:
+                                    type: string
+                                description:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                go_iam_client:
+                                    type: boolean
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                project_id:
+                                    type: string
+                                redirect_urls:
+                                    items:
+                                        type: string
+                                    type: array
+                                scopes:
+                                    items:
+                                        type: string
+                                    type: array
+                                secret:
+                                    type: string
+                                tags:
+                                    items:
+                                        type: string
+                                    type: array
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Client data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            default_auth_provider_id:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            go_iam_client:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            redirect_urls:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            scopes:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            secret:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Client updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update Client
+            tags:
+                - Client
+    /me/v1/dashboard:
+        get:
+            description: Get current user information for dashboard
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        properties:
+                                            setup:
+                                                properties:
+                                                    client_added:
+                                                        type: boolean
+                                                    client_id:
+                                                        type: string
+                                                type: object
+                                            user:
+                                                nullable: true
+                                                properties:
+                                                    created_at:
+                                                        format: date-time
+                                                        nullable: true
+                                                        type: string
+                                                    created_by:
+                                                        type: string
+                                                    email:
+                                                        type: string
+                                                    enabled:
+                                                        type: boolean
+                                                    expiry:
+                                                        format: date-time
+                                                        nullable: true
+                                                        type: string
+                                                    id:
+                                                        type: string
+                                                    name:
+                                                        type: string
+                                                    phone:
+                                                        type: string
+                                                    policies:
+                                                        additionalProperties:
+                                                            type: string
+                                                        type: object
+                                                    profile_pic:
+                                                        type: string
+                                                    project_id:
+                                                        type: string
+                                                    resources:
+                                                        additionalProperties:
+                                                            properties:
+                                                                id:
+                                                                    type: string
+                                                                key:
+                                                                    type: string
+                                                                name:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                    roles:
+                                                        additionalProperties:
+                                                            properties:
+                                                                id:
+                                                                    type: string
+                                                                name:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                    updated_at:
+                                                        format: date-time
+                                                        nullable: true
+                                                        type: string
+                                                    updated_by:
+                                                        type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Dashboard Me
+            tags:
+                - Me
+    /me/v1/me:
+        get:
+            description: Get current user information
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Me
+            tags:
+                - Me
+    /policy/v1/:
+        get:
+            description: Fetch all policies
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        items:
+                                            properties:
+                                                created_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                created_by:
+                                                    type: string
+                                                description:
+                                                    type: string
+                                                id:
+                                                    type: string
+                                                name:
+                                                    type: string
+                                                roles:
+                                                    additionalProperties:
+                                                        type: string
+                                                    type: object
+                                            type: object
+                                        type: array
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policies fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Fetch All Policies
+            tags:
+                - Policy
+        post:
+            description: Create a new policy
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                roles:
+                                    additionalProperties:
+                                        type: string
+                                    type: object
+                            type: object
+                description: Policy data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            roles:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policy created successfully
+            security:
+                - BearerAuth: []
+            summary: Create Policy
+            tags:
+                - Policy
+    /policy/v1/{id}:
+        delete:
+            description: Delete a policy by ID
+            parameters:
+                - description: The ID of the policy
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            roles:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policy deleted successfully
+            security:
+                - BearerAuth: []
+            summary: Delete Policy
+            tags:
+                - Policy
+        get:
+            description: Get a policy by ID
+            parameters:
+                - description: The ID of the policy
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            roles:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policy fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Policy
+            tags:
+                - Policy
+        put:
+            description: Update a policy by ID
+            parameters:
+                - description: The ID of the policy
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                roles:
+                                    additionalProperties:
+                                        type: string
+                                    type: object
+                            type: object
+                description: Updated policy data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            roles:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policy updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update Policy
+            tags:
+                - Policy
+    /policy/v1/role/{id}:
+        get:
+            description: Fetch policies associated with a specific role ID
+            parameters:
+                - description: The ID of the role
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        items:
+                                            properties:
+                                                created_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                created_by:
+                                                    type: string
+                                                description:
+                                                    type: string
+                                                id:
+                                                    type: string
+                                                name:
+                                                    type: string
+                                                roles:
+                                                    additionalProperties:
+                                                        type: string
+                                                    type: object
+                                            type: object
+                                        type: array
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Policies fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Policies by Role ID
+            tags:
+                - Policy
+    /policy/v1/sync:
+        post:
+            description: Sync resources by policy ID
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                name:
+                                    type: string
+                                policies:
+                                    additionalProperties:
+                                        type: string
+                                    type: object
+                                resourceId:
+                                    type: string
+                            type: object
+                description: Sync resources request
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            roles:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resources synced successfully
+            security:
+                - BearerAuth: []
+            summary: Sync Resources
+            tags:
+                - Policy
+    /project/v1/:
+        get:
+            description: Fetch all projects
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        items:
+                                            properties:
+                                                created_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                created_by:
+                                                    type: string
+                                                description:
+                                                    type: string
+                                                id:
+                                                    type: string
+                                                name:
+                                                    type: string
+                                                tags:
+                                                    items:
+                                                        type: string
+                                                    type: array
+                                                updated_at:
+                                                    format: date-time
+                                                    nullable: true
+                                                    type: string
+                                                updated_by:
+                                                    type: string
+                                            type: object
+                                        type: array
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Projects fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Fetch All Projects
+            tags:
+                - Project
+        post:
+            description: Create a new project
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                tags:
+                                    items:
+                                        type: string
+                                    type: array
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Project data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Project created successfully
+            security:
+                - BearerAuth: []
+            summary: Create Project
+            tags:
+                - Project
+    /project/v1/{id}:
+        get:
+            description: Get a project by ID
+            parameters:
+                - description: The ID of the project
+                  in: path
+                  name: id
+                  required: true
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Project fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Project
+            tags:
+                - Project
+        put:
+            description: Update a project by ID
+            parameters:
+                - description: The ID of the project
+                  in: path
+                  name: id
+                  required: true
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                tags:
+                                    items:
+                                        type: string
+                                    type: array
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Project data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            tags:
+                                                items:
+                                                    type: string
+                                                type: array
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Project updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update Project
+            tags:
+                - Project
+    /resource/v1/:
+        post:
+            description: Create a new resource
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                deleted_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                description:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                id:
+                                    type: string
+                                key:
+                                    type: string
+                                name:
+                                    type: string
+                                project_id:
+                                    type: string
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Resource data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            deleted_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resource created successfully
+            security:
+                - BearerAuth: []
+            summary: Create Resource
+            tags:
+                - Resource
+    /resource/v1/{id}:
+        delete:
+            description: Delete a resource by ID
+            parameters:
+                - description: The ID of the resource
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            deleted_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resource deleted successfully
+            security:
+                - BearerAuth: []
+            summary: Delete Resource
+            tags:
+                - Resource
+        get:
+            description: Get a resource by ID
+            parameters:
+                - description: The ID of the resource
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            deleted_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resource fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Resource
+            tags:
+                - Resource
+        put:
+            description: Update an existing resource
+            parameters:
+                - description: The ID of the resource
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            deleted_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resource updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update Resource
+            tags:
+                - Resource
+    /resource/v1/search:
+        get:
+            description: Search for resources
+            parameters:
+                - description: Name of the resource to search for
+                  in: query
+                  name: name
+                - description: Description of the resource to search for
+                  in: query
+                  name: description
+                - description: Key of the resource to search for
+                  in: query
+                  name: key
+                - description: Number of records to skip for pagination. Default is 0
+                  in: query
+                  name: skip
+                - description: Maximum number of records to return. Default is 10
+                  in: query
+                  name: limit
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            limit:
+                                                format: int64
+                                                type: integer
+                                            resources:
+                                                items:
+                                                    properties:
+                                                        created_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        created_by:
+                                                            type: string
+                                                        deleted_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        description:
+                                                            type: string
+                                                        enabled:
+                                                            type: boolean
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                        project_id:
+                                                            type: string
+                                                        updated_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        updated_by:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            skip:
+                                                format: int64
+                                                type: integer
+                                            total:
+                                                format: int64
+                                                type: integer
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Resources fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Search Resources
+            tags:
+                - Resource
+    /role/v1/:
+        post:
+            description: Create a new role
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                project_id:
+                                    type: string
+                                resources:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Role data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Role created successfully
+            security:
+                - BearerAuth: []
+            summary: Create Role
+            tags:
+                - Role
+    /role/v1/{id}:
+        get:
+            description: Get a role by ID
+            parameters:
+                - description: The ID of the role
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Role fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get Role
+            tags:
+                - Role
+        put:
+            description: Update an existing role
+            parameters:
+                - description: The ID of the role
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                description:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                project_id:
+                                    type: string
+                                resources:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: Role data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            description:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Role updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update Role
+            tags:
+                - Role
+    /role/v1/search:
+        get:
+            description: Search for roles
+            parameters:
+                - description: Search query for roles
+                  in: query
+                  name: query
+                - description: Number of records to skip for pagination. Default is 0
+                  in: query
+                  name: skip
+                - description: Maximum number of records to return. Default is 10
+                  in: query
+                  name: limit
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            limit:
+                                                format: int64
+                                                type: integer
+                                            roles:
+                                                items:
+                                                    properties:
+                                                        created_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        created_by:
+                                                            type: string
+                                                        description:
+                                                            type: string
+                                                        enabled:
+                                                            type: boolean
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                        project_id:
+                                                            type: string
+                                                        resources:
+                                                            additionalProperties:
+                                                                properties:
+                                                                    id:
+                                                                        type: string
+                                                                    key:
+                                                                        type: string
+                                                                    name:
+                                                                        type: string
+                                                                type: object
+                                                            type: object
+                                                        updated_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        updated_by:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            skip:
+                                                format: int64
+                                                type: integer
+                                            total:
+                                                format: int64
+                                                type: integer
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Roles fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Search Roles
+            tags:
+                - Role
+    /user/v1/:
+        get:
+            description: Get all users
+            parameters:
+                - description: Search query for filtering users
+                  in: query
+                  name: query
+                - description: Number of users to skip for pagination. Default is 0
+                  in: query
+                  name: skip
+                - description: Maximum number of users to return. Default is 10
+                  in: query
+                  name: limit
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            limit:
+                                                format: int64
+                                                type: integer
+                                            skip:
+                                                format: int64
+                                                type: integer
+                                            total:
+                                                format: int64
+                                                type: integer
+                                            users:
+                                                items:
+                                                    properties:
+                                                        created_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        created_by:
+                                                            type: string
+                                                        email:
+                                                            type: string
+                                                        enabled:
+                                                            type: boolean
+                                                        expiry:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                        phone:
+                                                            type: string
+                                                        policies:
+                                                            additionalProperties:
+                                                                type: string
+                                                            type: object
+                                                        profile_pic:
+                                                            type: string
+                                                        project_id:
+                                                            type: string
+                                                        resources:
+                                                            additionalProperties:
+                                                                properties:
+                                                                    id:
+                                                                        type: string
+                                                                    key:
+                                                                        type: string
+                                                                    name:
+                                                                        type: string
+                                                                type: object
+                                                            type: object
+                                                        roles:
+                                                            additionalProperties:
+                                                                properties:
+                                                                    id:
+                                                                        type: string
+                                                                    name:
+                                                                        type: string
+                                                                type: object
+                                                            type: object
+                                                        updated_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        updated_by:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Users fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get All Users
+            tags:
+                - User
+        post:
+            description: Create a new user
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                email:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                expiry:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                phone:
+                                    type: string
+                                policies:
+                                    additionalProperties:
+                                        type: string
+                                    type: object
+                                profile_pic:
+                                    type: string
+                                project_id:
+                                    type: string
+                                resources:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                roles:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: User data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User created successfully
+            security:
+                - BearerAuth: []
+            summary: Create User
+            tags:
+                - User
+    /user/v1/{id}:
+        get:
+            description: Get a user by ID
+            parameters:
+                - description: The ID of the user
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Get User
+            tags:
+                - User
+        put:
+            description: Update a user by ID
+            parameters:
+                - description: The ID of the user
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                created_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                created_by:
+                                    type: string
+                                email:
+                                    type: string
+                                enabled:
+                                    type: boolean
+                                expiry:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                id:
+                                    type: string
+                                name:
+                                    type: string
+                                phone:
+                                    type: string
+                                policies:
+                                    additionalProperties:
+                                        type: string
+                                    type: object
+                                profile_pic:
+                                    type: string
+                                project_id:
+                                    type: string
+                                resources:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            key:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                roles:
+                                    additionalProperties:
+                                        properties:
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                updated_at:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                updated_by:
+                                    type: string
+                            type: object
+                description: User data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update User
+            tags:
+                - User
+    /user/v1/{id}/roles:
+        put:
+            description: Update roles for a user by ID
+            parameters:
+                - description: The ID of the user
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                to_be_added:
+                                    items:
+                                        type: string
+                                    type: array
+                                to_be_removed:
+                                    items:
+                                        type: string
+                                    type: array
+                            type: object
+                description: User roles update data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User roles updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update User Roles
+            tags:
+                - User

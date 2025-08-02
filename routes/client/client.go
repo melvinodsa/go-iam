@@ -10,7 +10,30 @@ import (
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/client"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
+
+// CreateRoute registers the routes for the client
+func CreateRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	router.Post(routePath, Create)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Create Client",
+		Description: "Create a new client",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Client data",
+			Content:     new(sdk.Client),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Client created successfully",
+			Content:     new(sdk.ClientResponse),
+		},
+		Tags: routeTags,
+	})
+}
 
 func Create(c *fiber.Ctx) error {
 	log.Debug("received create client request")
@@ -32,6 +55,32 @@ func Create(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Client created successfully",
 		Data:    payload,
+	})
+}
+
+// GetRoute registers the route for getting a client
+func GetRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	router.Get(routePath, Get)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Get Client",
+		Description: "Get a client by ID",
+		Response: &docs.ApiResponse{
+			Description: "Client fetched successfully",
+			Content:     new(sdk.ClientResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the client",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
 	})
 }
 
@@ -62,6 +111,24 @@ func Get(c *fiber.Ctx) error {
 	})
 }
 
+// FetchAllRoute registers the route for fetching all clients
+func FetchAllRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	router.Get(routePath, FetchAll)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Fetch All Clients",
+		Description: "Fetch all clients",
+		Response: &docs.ApiResponse{
+			Description: "Clients fetched successfully",
+			Content:     new(sdk.ClientsResponse),
+		},
+		Tags: routeTags,
+	})
+}
+
 func FetchAll(c *fiber.Ctx) error {
 	log.Debug("received get clients request")
 	pr := providers.GetProviders(c)
@@ -78,6 +145,36 @@ func FetchAll(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Clients fetched successfully",
 		Data:    ds,
+	})
+}
+
+// UpdateRoute registers the route for updating a client
+func UpdateRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	router.Put(routePath, Update)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update Client",
+		Description: "Update a client by ID",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Client data",
+			Content:     new(sdk.Client),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Client updated successfully",
+			Content:     new(sdk.ClientResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the client",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
 	})
 }
 

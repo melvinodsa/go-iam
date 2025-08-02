@@ -2,13 +2,16 @@ package policy
 
 import "github.com/gofiber/fiber/v2"
 
-func RegisterRoutes(router fiber.Router) {
-	policy := router.Group("/v1")
-	policy.Post("/", Create)
-	policy.Get("/:id", Get)
-	policy.Get("/", FetchAll)
-	policy.Put("/:id", Update)
-	policy.Delete("/:id", Delete)
-	policy.Get("/role/:id", GetPoliciesByRoleId)
-	policy.Post("/sync", SyncResources)
+func RegisterRoutes(router fiber.Router, path string) {
+	v1Path := path + "/v1"
+	v1 := router.Group(v1Path)
+	CreateRoute(v1, v1Path)
+	FetchAllRoute(v1, v1Path)
+	GetRoute(v1, v1Path)
+	UpdateRoute(v1, v1Path)
+	DeleteRoute(v1, v1Path)
+	GetPoliciesByRoleIdRoute(v1, v1Path)
+	SyncResourcesRoute(v1, v1Path)
 }
+
+var routeTags = []string{"Policy"}
