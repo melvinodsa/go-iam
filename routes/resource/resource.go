@@ -11,7 +11,30 @@ import (
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/resource"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
+
+// CreateRoute registers the routes for the resource
+func CreateRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Create Resource",
+		Description: "Create a new resource",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Resource data",
+			Content:     new(sdk.Resource),
+		},
+		Response: &docs.ApiResponse{
+			Description: "Resource created successfully",
+			Content:     new(sdk.ResourceResponse),
+		},
+		Tags: routeTags,
+	})
+	router.Post(routePath, Create)
+}
 
 // Create handles the creation of a new resource
 func Create(c *fiber.Ctx) error {
@@ -43,6 +66,32 @@ func Create(c *fiber.Ctx) error {
 		Message: "Resource created successfully",
 		Data:    payload,
 	})
+}
+
+// GetRoute registers the route for getting a resource
+func GetRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Get Resource",
+		Description: "Get a resource by ID",
+		Response: &docs.ApiResponse{
+			Description: "Resource fetched successfully",
+			Content:     new(sdk.ResourceResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the resource",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+	router.Get(routePath, Get)
 }
 
 func Get(c *fiber.Ctx) error {
@@ -78,6 +127,56 @@ func Get(c *fiber.Ctx) error {
 		Message: "Resource fetched successfully",
 		Data:    ds,
 	})
+}
+
+// SearchRoute registers the route for searching resources
+func SearchRoute(router fiber.Router, basePath string) {
+	routePath := "/search"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Search Resources",
+		Description: "Search for resources",
+		Response: &docs.ApiResponse{
+			Description: "Resources fetched successfully",
+			Content:     new(sdk.ResourcesResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "name",
+				In:          "query",
+				Description: "Name of the resource to search for",
+				Required:    false,
+			},
+			{
+				Name:        "description",
+				In:          "query",
+				Description: "Description of the resource to search for",
+				Required:    false,
+			},
+			{
+				Name:        "key",
+				In:          "query",
+				Description: "Key of the resource to search for",
+				Required:    false,
+			},
+			{
+				Name:        "skip",
+				In:          "query",
+				Description: "Number of records to skip for pagination. Default is 0",
+				Required:    false,
+			},
+			{
+				Name:        "limit",
+				In:          "query",
+				Description: "Maximum number of records to return. Default is 10",
+				Required:    false,
+			},
+		},
+		Tags: routeTags,
+	})
+	router.Get(routePath, Search)
 }
 
 // Search searches for resources based on the given criteria
@@ -125,6 +224,32 @@ func Search(c *fiber.Ctx) error {
 	})
 }
 
+// UpdateRoute registers the route for updating a resource
+func UpdateRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update Resource",
+		Description: "Update an existing resource",
+		Response: &docs.ApiResponse{
+			Description: "Resource updated successfully",
+			Content:     new(sdk.ResourceResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the resource",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+	router.Put(routePath, Update)
+}
+
 // Update modifies an existing resource
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update resource request")
@@ -169,6 +294,32 @@ func Update(c *fiber.Ctx) error {
 		Message: "Resource updated successfully",
 		Data:    payload,
 	})
+}
+
+// DeleteRoute registers the route for deleting a resource
+func DeleteRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodDelete,
+		Name:        "Delete Resource",
+		Description: "Delete a resource by ID",
+		Response: &docs.ApiResponse{
+			Description: "Resource deleted successfully",
+			Content:     new(sdk.ResourceResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the resource",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+	router.Delete(routePath, Delete)
 }
 
 func Delete(c *fiber.Ctx) error {

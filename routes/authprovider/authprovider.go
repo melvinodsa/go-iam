@@ -10,7 +10,30 @@ import (
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider"
+	"github.com/melvinodsa/go-iam/utils/docs"
 )
+
+// CreateRoute registers the routes for the authprovider
+func CreateRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Create AuthProvider",
+		Description: "Create a new authprovider",
+		Tags:        routeTags,
+		RequestBody: &docs.ApiRequestBody{
+			Description: "AuthProvider data",
+			Content:     new(sdk.AuthProvider),
+		},
+		Response: &docs.ApiResponse{
+			Description: "AuthProvider created successfully",
+			Content:     new(sdk.AuthProviderResponse),
+		},
+	})
+	router.Post(routePath, Create)
+}
 
 func Create(c *fiber.Ctx) error {
 	log.Debug("received create authprovider request")
@@ -33,6 +56,31 @@ func Create(c *fiber.Ctx) error {
 		Message: "Authprovider created successfully",
 		Data:    payload,
 	})
+}
+
+func GetRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Get AuthProvider",
+		Description: "Get an authprovider by ID",
+		Tags:        routeTags,
+		Response: &docs.ApiResponse{
+			Description: "AuthProvider fetched successfully",
+			Content:     new(sdk.AuthProviderResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the authprovider",
+				Required:    true,
+			},
+		},
+	})
+	router.Get(routePath, Get)
 }
 
 func Get(c *fiber.Ctx) error {
@@ -61,6 +109,23 @@ func Get(c *fiber.Ctx) error {
 	})
 }
 
+func FetchAllRoute(router fiber.Router, basePath string) {
+	routePath := "/"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodGet,
+		Name:        "Fetch All AuthProviders",
+		Description: "Fetch all authproviders",
+		Tags:        routeTags,
+		Response: &docs.ApiResponse{
+			Description: "AuthProviders fetched successfully",
+			Content:     new(sdk.AuthProvidersResponse),
+		},
+	})
+	router.Get(routePath, FetchAll)
+}
+
 func FetchAll(c *fiber.Ctx) error {
 	log.Debug("received get authproviders request")
 	pr := providers.GetProviders(c)
@@ -78,6 +143,35 @@ func FetchAll(c *fiber.Ctx) error {
 		Message: "Authproviders fetched successfully",
 		Data:    ds,
 	})
+}
+
+func UpdateRoute(router fiber.Router, basePath string) {
+	routePath := "/:id"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update AuthProvider",
+		Description: "Update an authprovider by ID",
+		Tags:        routeTags,
+		RequestBody: &docs.ApiRequestBody{
+			Description: "AuthProvider data",
+			Content:     new(sdk.AuthProvider),
+		},
+		Response: &docs.ApiResponse{
+			Description: "AuthProvider updated successfully",
+			Content:     new(sdk.AuthProviderResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the authprovider",
+				Required:    true,
+			},
+		},
+	})
+	router.Put(routePath, Update)
 }
 
 func Update(c *fiber.Ctx) error {

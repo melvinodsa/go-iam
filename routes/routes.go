@@ -21,18 +21,20 @@ func RegisterRoutes(app *fiber.App, prv *providers.Provider) {
 
 func RegisterAuthRoutes(app *fiber.App, prv *providers.Provider) {
 	ap := app.Use(prv.AM.User)
-	project.RegisterRoutes(ap.Group("/project"))
-	client.RegisterRoutes(ap.Group("/client"))
-	authprovider.RegisterRoutes(ap.Group("/authprovider"))
-	auth.RegisterRoutes(ap.Group("/auth"))
-	user.RegisterRoutes(ap.Group("/user"))
-	resource.RegisterRoutes(ap.Group("/resource"))
-	role.RegisterRoutes(ap.Group("/role"))
-	policy.RegisterRoutes(ap.Group("/policy"))
-	me.RegisterRoutes(app.Group("/me"))
+	project.RegisterRoutes(ap, "/project")
+	client.RegisterRoutes(ap, "/client")
+	authprovider.RegisterRoutes(ap, "/authprovider")
+	auth.RegisterRoutes(ap, "/auth")
+	user.RegisterRoutes(ap, "/user")
+	resource.RegisterRoutes(ap, "/resource")
+	role.RegisterRoutes(ap, "/role")
+	policy.RegisterRoutes(ap, "/policy")
+	me.RegisterRoutes(app, "/me")
 }
 
 func RegisterOpenRoutes(app *fiber.App, prv *providers.Provider) {
-	me.RegisterOpenRoutes(app.Group("/me"), prv)
-	auth.RegisterRoutes(app.Group("/auth"))
+	me.RegisterOpenRoutes(app, "/me", prv)
+	auth.RegisterRoutes(app, "/auth")
+
+	app.Static("/docs", "./docs")
 }
