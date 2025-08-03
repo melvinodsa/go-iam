@@ -5,6 +5,7 @@
 > ✅ Admin UI: [go-iam-ui](https://github.com/melvinodsa/go-iam-ui)  
 > 🐳 Docker Setup: [go-iam-docker](https://github.com/melvinodsa/go-iam-docker)  
 > 🔐 Backend: [go-iam](https://github.com/melvinodsa/go-iam)
+> 📦 SDK: [go-iam-sdk](https://github.com/melvinodsa/go-iam-sdk)
 
 <img src=".github/go-iam.png" alt="go-iam overview" width="400"/>
 
@@ -98,6 +99,7 @@ docker compose up -d
 
 - Admin UI: [http://localhost:4173](http://localhost:4173)
 - API: [http://localhost:3000](http://localhost:3000)
+- API Docs: [http://localhost:3000/docs](http://localhost:3000/docs)
 
 ## 📦 Environment Variables
 
