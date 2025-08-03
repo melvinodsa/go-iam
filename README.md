@@ -4,7 +4,7 @@
 
 > ✅ Admin UI: [go-iam-ui](https://github.com/melvinodsa/go-iam-ui)  
 > 🐳 Docker Setup: [go-iam-docker](https://github.com/melvinodsa/go-iam-docker)  
-> 🔐 Backend: [go-iam](https://github.com/melvinodsa/go-iam)
+> 🔐 Backend: [go-iam](https://github.com/melvinodsa/go-iam)  
 > 📦 SDK: [go-iam-sdk](https://github.com/melvinodsa/go-iam-sdk)
 
 <img src=".github/go-iam.png" alt="go-iam overview" width="400"/>
