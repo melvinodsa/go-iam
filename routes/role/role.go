@@ -69,7 +69,7 @@ func Create(c *fiber.Ctx) error {
 
 // SearchRoute registers the route for searching roles
 func SearchRoute(router fiber.Router, basePath string) {
-	routePath := "/search"
+	routePath := "/"
 	path := basePath + routePath
 	router.Get(routePath, Search)
 	docs.RegisterApi(docs.ApiWrapper{

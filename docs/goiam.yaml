@@ -2048,6 +2048,92 @@ paths:
             tags:
                 - Resource
     /role/v1/:
+        get:
+            description: Search for roles
+            parameters:
+                - description: Search query for roles
+                  in: query
+                  name: query
+                - description: Number of records to skip for pagination. Default is 0
+                  in: query
+                  name: skip
+                - description: Maximum number of records to return. Default is 10
+                  in: query
+                  name: limit
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            limit:
+                                                format: int64
+                                                type: integer
+                                            roles:
+                                                items:
+                                                    properties:
+                                                        created_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        created_by:
+                                                            type: string
+                                                        description:
+                                                            type: string
+                                                        enabled:
+                                                            type: boolean
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                        project_id:
+                                                            type: string
+                                                        resources:
+                                                            additionalProperties:
+                                                                properties:
+                                                                    id:
+                                                                        type: string
+                                                                    key:
+                                                                        type: string
+                                                                    name:
+                                                                        type: string
+                                                                type: object
+                                                            type: object
+                                                        updated_at:
+                                                            format: date-time
+                                                            nullable: true
+                                                            type: string
+                                                        updated_by:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            skip:
+                                                format: int64
+                                                type: integer
+                                            total:
+                                                format: int64
+                                                type: integer
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Roles fetched successfully
+            security:
+                - BearerAuth: []
+            summary: Search Roles
+            tags:
+                - Role
         post:
             description: Create a new role
             parameters:
@@ -2324,93 +2410,6 @@ paths:
             security:
                 - BearerAuth: []
             summary: Update Role
-            tags:
-                - Role
-    /role/v1/search:
-        get:
-            description: Search for roles
-            parameters:
-                - description: Search query for roles
-                  in: query
-                  name: query
-                - description: Number of records to skip for pagination. Default is 0
-                  in: query
-                  name: skip
-                - description: Maximum number of records to return. Default is 10
-                  in: query
-                  name: limit
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            limit:
-                                                format: int64
-                                                type: integer
-                                            roles:
-                                                items:
-                                                    properties:
-                                                        created_at:
-                                                            format: date-time
-                                                            nullable: true
-                                                            type: string
-                                                        created_by:
-                                                            type: string
-                                                        description:
-                                                            type: string
-                                                        enabled:
-                                                            type: boolean
-                                                        id:
-                                                            type: string
-                                                        name:
-                                                            type: string
-                                                        project_id:
-                                                            type: string
-                                                        resources:
-                                                            additionalProperties:
-                                                                properties:
-                                                                    id:
-                                                                        type: string
-                                                                    key:
-                                                                        type: string
-                                                                    name:
-                                                                        type: string
-                                                                type: object
-                                                            type: object
-                                                        updated_at:
-                                                            format: date-time
-                                                            nullable: true
-                                                            type: string
-                                                        updated_by:
-                                                            type: string
-                                                    type: object
-                                                type: array
-                                            skip:
-                                                format: int64
-                                                type: integer
-                                            total:
-                                                format: int64
-                                                type: integer
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Roles fetched successfully
-            security:
-                - BearerAuth: []
-            summary: Search Roles
             tags:
                 - Role
     /user/v1/:
