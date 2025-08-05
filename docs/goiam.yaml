@@ -899,7 +899,19 @@ paths:
                                                         type: string
                                                     policies:
                                                         additionalProperties:
-                                                            type: string
+                                                            properties:
+                                                                def: {}
+                                                                mapping:
+                                                                    properties:
+                                                                        arguments:
+                                                                            additionalProperties:
+                                                                                properties:
+                                                                                    static:
+                                                                                        type: string
+                                                                                type: object
+                                                                            type: object
+                                                                    type: object
+                                                            type: object
                                                         type: object
                                                     profile_pic:
                                                         type: string
@@ -908,8 +920,6 @@ paths:
                                                     resources:
                                                         additionalProperties:
                                                             properties:
-                                                                id:
-                                                                    type: string
                                                                 key:
                                                                     type: string
                                                                 name:
@@ -978,7 +988,19 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        def: {}
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -987,8 +1009,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -1041,22 +1061,13 @@ paths:
                                     data:
                                         items:
                                             properties:
-                                                created_at:
-                                                    format: date-time
-                                                    nullable: true
-                                                    type: string
-                                                created_by:
-                                                    type: string
+                                                definition: {}
                                                 description:
                                                     type: string
                                                 id:
                                                     type: string
                                                 name:
                                                     type: string
-                                                roles:
-                                                    additionalProperties:
-                                                        type: string
-                                                    type: object
                                             type: object
                                         type: array
                                     message:
@@ -1084,22 +1095,13 @@ paths:
                     application/json:
                         schema:
                             properties:
-                                created_at:
-                                    format: date-time
-                                    nullable: true
-                                    type: string
-                                created_by:
-                                    type: string
+                                definition: {}
                                 description:
                                     type: string
                                 id:
                                     type: string
                                 name:
                                     type: string
-                                roles:
-                                    additionalProperties:
-                                        type: string
-                                    type: object
                             type: object
                 description: Policy data
             responses:
@@ -1111,22 +1113,13 @@ paths:
                                     data:
                                         nullable: true
                                         properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
+                                            definition: {}
                                             description:
                                                 type: string
                                             id:
                                                 type: string
                                             name:
                                                 type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
                                         type: object
                                     message:
                                         type: string
@@ -1162,22 +1155,13 @@ paths:
                                     data:
                                         nullable: true
                                         properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
+                                            definition: {}
                                             description:
                                                 type: string
                                             id:
                                                 type: string
                                             name:
                                                 type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
                                         type: object
                                     message:
                                         type: string
@@ -1212,22 +1196,13 @@ paths:
                                     data:
                                         nullable: true
                                         properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
+                                            definition: {}
                                             description:
                                                 type: string
                                             id:
                                                 type: string
                                             name:
                                                 type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
                                         type: object
                                     message:
                                         type: string
@@ -1258,22 +1233,13 @@ paths:
                     application/json:
                         schema:
                             properties:
-                                created_at:
-                                    format: date-time
-                                    nullable: true
-                                    type: string
-                                created_by:
-                                    type: string
+                                definition: {}
                                 description:
                                     type: string
                                 id:
                                     type: string
                                 name:
                                     type: string
-                                roles:
-                                    additionalProperties:
-                                        type: string
-                                    type: object
                             type: object
                 description: Updated policy data
             responses:
@@ -1285,22 +1251,13 @@ paths:
                                     data:
                                         nullable: true
                                         properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
+                                            definition: {}
                                             description:
                                                 type: string
                                             id:
                                                 type: string
                                             name:
                                                 type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
                                         type: object
                                     message:
                                         type: string
@@ -1336,22 +1293,13 @@ paths:
                                     data:
                                         items:
                                             properties:
-                                                created_at:
-                                                    format: date-time
-                                                    nullable: true
-                                                    type: string
-                                                created_by:
-                                                    type: string
+                                                definition: {}
                                                 description:
                                                     type: string
                                                 id:
                                                     type: string
                                                 name:
                                                     type: string
-                                                roles:
-                                                    additionalProperties:
-                                                        type: string
-                                                    type: object
                                             type: object
                                         type: array
                                     message:
@@ -1399,22 +1347,13 @@ paths:
                                     data:
                                         nullable: true
                                         properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
+                                            definition: {}
                                             description:
                                                 type: string
                                             id:
                                                 type: string
                                             name:
                                                 type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
                                         type: object
                                     message:
                                         type: string
@@ -2474,7 +2413,19 @@ paths:
                                                             type: string
                                                         policies:
                                                             additionalProperties:
-                                                                type: string
+                                                                properties:
+                                                                    def: {}
+                                                                    mapping:
+                                                                        properties:
+                                                                            arguments:
+                                                                                additionalProperties:
+                                                                                    properties:
+                                                                                        static:
+                                                                                            type: string
+                                                                                    type: object
+                                                                                type: object
+                                                                        type: object
+                                                                type: object
                                                             type: object
                                                         profile_pic:
                                                             type: string
@@ -2483,8 +2434,6 @@ paths:
                                                         resources:
                                                             additionalProperties:
                                                                 properties:
-                                                                    id:
-                                                                        type: string
                                                                     key:
                                                                         type: string
                                                                     name:
@@ -2556,7 +2505,19 @@ paths:
                                     type: string
                                 policies:
                                     additionalProperties:
-                                        type: string
+                                        properties:
+                                            def: {}
+                                            mapping:
+                                                properties:
+                                                    arguments:
+                                                        additionalProperties:
+                                                            properties:
+                                                                static:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                type: object
+                                        type: object
                                     type: object
                                 profile_pic:
                                     type: string
@@ -2565,8 +2526,6 @@ paths:
                                 resources:
                                     additionalProperties:
                                         properties:
-                                            id:
-                                                type: string
                                             key:
                                                 type: string
                                             name:
@@ -2621,7 +2580,19 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        def: {}
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2630,8 +2601,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2710,7 +2679,19 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        def: {}
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2719,8 +2700,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2794,7 +2773,19 @@ paths:
                                     type: string
                                 policies:
                                     additionalProperties:
-                                        type: string
+                                        properties:
+                                            def: {}
+                                            mapping:
+                                                properties:
+                                                    arguments:
+                                                        additionalProperties:
+                                                            properties:
+                                                                static:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                type: object
+                                        type: object
                                     type: object
                                 profile_pic:
                                     type: string
@@ -2803,8 +2794,6 @@ paths:
                                 resources:
                                     additionalProperties:
                                         properties:
-                                            id:
-                                                type: string
                                             key:
                                                 type: string
                                             name:
@@ -2859,7 +2848,19 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        def: {}
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2868,8 +2869,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2963,7 +2962,19 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        def: {}
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2972,8 +2983,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
