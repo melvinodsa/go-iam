@@ -6,6 +6,6 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
-type Service interface {
+type Store interface {
 	GetAll(ctx context.Context, query sdk.PolicyQuery) (*sdk.PolicyList, error)
 }

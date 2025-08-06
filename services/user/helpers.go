@@ -246,3 +246,14 @@ func addPoliciesToUserObj(user *sdk.User, policies map[string]sdk.UserPolicy) {
 		user.Policies[key] = policy
 	}
 }
+
+func removePoliciesFromUserObj(user *sdk.User, policyIds []string) {
+	// Initialize user's fields if nil
+	if user.Policies == nil {
+		user.Policies = make(map[string]sdk.UserPolicy)
+	}
+
+	for _, policyId := range policyIds {
+		delete(user.Policies, policyId)
+	}
+}

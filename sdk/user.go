@@ -100,3 +100,8 @@ type UserRoleUpdate struct {
 	ToBeAdded   []string `json:"to_be_added"`
 	ToBeRemoved []string `json:"to_be_removed"`
 }
+
+type UserPolicyUpdate struct {
+	ToBeAdded   map[string]UserPolicy `json:"to_be_added"`
+	ToBeRemoved []string              `json:"to_be_removed"`
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/user"
 	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type accessToCreatedResource struct {
@@ -42,4 +43,21 @@ func (a accessToCreatedResource) HandleEvent(event utils.Event[sdk.Resource]) {
 		return
 	}
 	log.Infow("successfully added created resource to user", "userId", userId, "resource_id", event.Payload().ID)
+}
+
+func (a accessToCreatedResource) PolicyDef() sdk.Policy {
+	return sdk.Policy{
+		Id:          a.id,
+		Name:        "User get access to the resource created by the user",
+		Description: "This policy grants the user access to the resource created by them.",
+		Definition: sdk.PolicyDefinition{
+			Arguments: []sdk.PolicyArgument{
+				{
+					Name:        "@userId",
+					Description: "The user to whom the resource access is granted.",
+					DataType:    goiamuniverse.User,
+				},
+			},
+		},
+	}
 }

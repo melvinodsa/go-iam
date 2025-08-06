@@ -375,3 +375,95 @@ func UpdateRoles(c *fiber.Ctx) error {
 		Message: "User roles updated successfully",
 	})
 }
+
+// UpdatePoliciesRoute registers the route for updating user policies
+func UpdatePoliciesRoute(router fiber.Router, basePath string) {
+	routePath := "/:id/policies"
+	path := basePath + routePath
+	router.Put(routePath, UpdatePolicies)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Update User Policies",
+		Description: "Update policies for a user by ID",
+		RequestBody: &docs.ApiRequestBody{
+			Description: "User policies update data",
+			Content:     new(sdk.UserPolicyUpdate),
+		},
+		Response: &docs.ApiResponse{
+			Description: "User policies updated successfully",
+			Content:     new(sdk.UserResponse),
+		},
+		// Parameters for the user ID in the path
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the user",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func UpdatePolicies(c *fiber.Ctx) error {
+	log.Debug("received update user policies request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid update user roles request. user id not found")
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: "Invalid request. User ID is required",
+		})
+	}
+
+	payload := new(sdk.UserPolicyUpdate)
+	if err := c.BodyParser(payload); err != nil {
+		log.Errorw("invalid update user roles request", "error", err)
+		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+			Success: false,
+			Message: fmt.Sprintf("invalid request. %v", err),
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	err := pr.S.User.RemovePolicyFromUser(c.Context(), id, payload.ToBeRemoved)
+	if err != nil {
+		if errors.Is(err, sdk.ErrUserNotFound) {
+			return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+				Success: false,
+				Message: fmt.Sprintf("User %s not found", id),
+			})
+		}
+		message := fmt.Sprintf("failed to remove policies from user %s. %v", id, err)
+		log.Errorw("failed to remove policy from user", "error", message)
+		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	err = pr.S.User.AddPolicyToUser(c.Context(), id, payload.ToBeAdded)
+	if err != nil {
+		if errors.Is(err, sdk.ErrUserNotFound) {
+			return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+				Success: false,
+				Message: fmt.Sprintf("User %s not found", id),
+			})
+		}
+
+		message := fmt.Sprintf("failed to add policies to user %s. %v", id, err)
+		log.Errorw("failed to add policy to user", "error", message)
+		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("user policies updated successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User policies updated successfully",
+	})
+}

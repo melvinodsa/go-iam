@@ -151,6 +151,22 @@ func (s *service) AddPolicyToUser(ctx context.Context, userId string, policies m
 	return nil
 }
 
+func (s *service) RemovePolicyFromUser(ctx context.Context, userId string, policyIds []string) error {
+	usr, err := s.store.GetById(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	removePoliciesFromUserObj(usr, policyIds)
+
+	// Update user in the database
+	err = s.store.Update(ctx, usr)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+	return nil
+}
+
 func (s service) Emit(event utils.Event[sdk.User]) {
 	if event == nil {
 		return

@@ -5,6 +5,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/user"
 	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type addResourcesToUser struct {
@@ -61,4 +62,21 @@ func (a addResourcesToUser) getTargetUserId(user *sdk.User) (string, bool) {
 		return "", false
 	}
 	return arg.Static, true
+}
+
+func (a addResourcesToUser) PolicyDef() sdk.Policy {
+	return sdk.Policy{
+		Id:          a.id,
+		Name:        "Add resources to user on resource creation",
+		Description: "This policy adds the created resource to the user specified in the user policy.",
+		Definition: sdk.PolicyDefinition{
+			Arguments: []sdk.PolicyArgument{
+				{
+					Name:        "@userId",
+					Description: "The user to whom the resource access is granted.",
+					DataType:    goiamuniverse.User,
+				},
+			},
+		},
+	}
 }
