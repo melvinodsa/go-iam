@@ -20,6 +20,14 @@ func NewService(s Store, p project.Service) Service {
 	return service{s: s, p: p, e: utils.NewEmitter[utils.Event[sdk.Client]]()}
 }
 
+func (s service) VerifySecret(plainSecret, hashedSecret string) bool {
+	hashedPlain, err := hashSecret(plainSecret)
+	if err != nil {
+		return false
+	}
+	return hashedPlain == hashedSecret
+}
+
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
 	queryParams.ProjectIds = projects.GetProjects(ctx)
 	return s.s.GetAll(ctx, queryParams)

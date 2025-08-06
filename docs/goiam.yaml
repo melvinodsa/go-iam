@@ -38,6 +38,46 @@ paths:
             summary: Redirect
             tags:
                 - Auth
+    /auth/v1/client:
+        post:
+            description: Authenticate using client credentials for service accounts
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                client_id:
+                                    type: string
+                                client_secret:
+                                    type: string
+                            type: object
+                description: Client credentials
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            access_token:
+                                                type: string
+                                            expires_in:
+                                                format: int64
+                                                type: integer
+                                            token_type:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Authentication successful
+            summary: Client Credentials
+            tags:
+                - Auth
     /auth/v1/login:
         get:
             description: Login to the application
@@ -506,6 +546,8 @@ paths:
                                                     type: boolean
                                                 id:
                                                     type: string
+                                                linked_user_id:
+                                                    type: string
                                                 name:
                                                     type: string
                                                 project_id:
@@ -573,6 +615,8 @@ paths:
                                     type: boolean
                                 id:
                                     type: string
+                                linked_user_id:
+                                    type: string
                                 name:
                                     type: string
                                 project_id:
@@ -623,6 +667,8 @@ paths:
                                             go_iam_client:
                                                 type: boolean
                                             id:
+                                                type: string
+                                            linked_user_id:
                                                 type: string
                                             name:
                                                 type: string
@@ -699,6 +745,8 @@ paths:
                                                 type: boolean
                                             id:
                                                 type: string
+                                            linked_user_id:
+                                                type: string
                                             name:
                                                 type: string
                                             project_id:
@@ -769,6 +817,8 @@ paths:
                                     type: boolean
                                 id:
                                     type: string
+                                linked_user_id:
+                                    type: string
                                 name:
                                     type: string
                                 project_id:
@@ -819,6 +869,8 @@ paths:
                                             go_iam_client:
                                                 type: boolean
                                             id:
+                                                type: string
+                                            linked_user_id:
                                                 type: string
                                             name:
                                                 type: string

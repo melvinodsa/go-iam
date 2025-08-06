@@ -523,3 +523,69 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 	}
 	return redirectUrl, nil
 }
+
+func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
+
+	// Get client details
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
+	if err != nil {
+		return nil, fmt.Errorf("invalid client_id: %w", err)
+	}
+
+	// Verify client is enabled
+	if !cl.Enabled {
+		return nil, errors.New("client is disabled")
+	}
+
+	// Verify client secret
+	if !s.clientSvc.VerifySecret(clientSecret, cl.Secret) {
+		return nil, errors.New("invalid client_secret")
+	}
+	// Check if client has a linked user
+	if cl.LinkedUserId == "" {
+		return nil, errors.New("client does not support client credentials flow")
+	}
+
+	// Get the linked user
+	user, err := s.usrSvc.GetById(ctx, cl.LinkedUserId)
+	if err != nil {
+		return nil, fmt.Errorf("linked user not found: %w", err)
+	}
+
+	// Verify user is enabled
+	if !user.Enabled {
+		return nil, errors.New("linked user is disabled")
+	}
+
+	// Check user expiry
+	if user.Expiry != nil && user.Expiry.Before(time.Now()) {
+		return nil, errors.New("linked user has expired")
+	}
+
+	// Generate access token ID and cache user details
+	accessTokenId := uuid.New().String()
+
+	expiryTime := time.Now().AddDate(0, 0, 1)
+	claims := map[string]interface{}{
+		"id":         accessTokenId,
+		"grant_type": "client_credentials",
+		"client_id":  clientId,
+	}
+
+	accessToken, err := s.jwtSvc.GenerateToken(claims, expiryTime.Unix())
+	if err != nil {
+		return nil, fmt.Errorf("error generating access token: %w", err)
+	}
+	err = s.cacheUserDetails(ctx, accessToken, *user)
+	if err != nil {
+		return nil, fmt.Errorf("error caching user details: %w", err)
+	}
+
+	log.Debugf("client credentials authentication successful for client %s as user %s", clientId, user.Id)
+
+	return &sdk.ClientCredentialsDataResponse{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   86400, // 24 hours in seconds
+	}, nil
+}
