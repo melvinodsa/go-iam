@@ -6,6 +6,8 @@ import (
 
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
+
+	_ "github.com/melvinodsa/go-iam/db/migrations"
 )
 
 func NewDBConnection(cnf config.AppConfig) (db.DB, error) {
