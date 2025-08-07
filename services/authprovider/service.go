@@ -11,5 +11,5 @@ type Service interface {
 	Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.AuthProvider, error)
 	Create(ctx context.Context, provider *sdk.AuthProvider) error
 	Update(ctx context.Context, provider *sdk.AuthProvider) error
-	GetProvider(v sdk.AuthProvider) (sdk.ServiceProvider, error)
+	GetProvider(ctx context.Context, v sdk.AuthProvider) (sdk.ServiceProvider, error)
 }

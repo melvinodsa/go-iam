@@ -951,7 +951,20 @@ paths:
                                                         type: string
                                                     policies:
                                                         additionalProperties:
-                                                            type: string
+                                                            properties:
+                                                                mapping:
+                                                                    properties:
+                                                                        arguments:
+                                                                            additionalProperties:
+                                                                                properties:
+                                                                                    static:
+                                                                                        type: string
+                                                                                type: object
+                                                                            type: object
+                                                                    type: object
+                                                                name:
+                                                                    type: string
+                                                            type: object
                                                         type: object
                                                     profile_pic:
                                                         type: string
@@ -960,8 +973,6 @@ paths:
                                                     resources:
                                                         additionalProperties:
                                                             properties:
-                                                                id:
-                                                                    type: string
                                                                 key:
                                                                     type: string
                                                                 name:
@@ -1030,7 +1041,20 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -1039,8 +1063,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -1078,6 +1100,15 @@ paths:
         get:
             description: Fetch all policies
             parameters:
+                - description: Search query for roles
+                  in: query
+                  name: query
+                - description: Number of records to skip for pagination. Default is 0
+                  in: query
+                  name: skip
+                - description: Maximum number of records to return. Default is 10
+                  in: query
+                  name: limit
                 - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
                   in: header
                   name: X-Project-Ids
@@ -1091,26 +1122,41 @@ paths:
                             schema:
                                 properties:
                                     data:
-                                        items:
-                                            properties:
-                                                created_at:
-                                                    format: date-time
-                                                    nullable: true
-                                                    type: string
-                                                created_by:
-                                                    type: string
-                                                description:
-                                                    type: string
-                                                id:
-                                                    type: string
-                                                name:
-                                                    type: string
-                                                roles:
-                                                    additionalProperties:
-                                                        type: string
+                                        properties:
+                                            limit:
+                                                format: int64
+                                                type: integer
+                                            policies:
+                                                items:
+                                                    properties:
+                                                        definition:
+                                                            properties:
+                                                                arguments:
+                                                                    items:
+                                                                        properties:
+                                                                            data_type:
+                                                                                type: string
+                                                                            description:
+                                                                                type: string
+                                                                            name:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: array
+                                                            type: object
+                                                        description:
+                                                            type: string
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
                                                     type: object
-                                            type: object
-                                        type: array
+                                                type: array
+                                            skip:
+                                                format: int64
+                                                type: integer
+                                            total:
+                                                type: integer
+                                        type: object
                                     message:
                                         type: string
                                     success:
@@ -1120,363 +1166,6 @@ paths:
             security:
                 - BearerAuth: []
             summary: Fetch All Policies
-            tags:
-                - Policy
-        post:
-            description: Create a new policy
-            parameters:
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            properties:
-                                created_at:
-                                    format: date-time
-                                    nullable: true
-                                    type: string
-                                created_by:
-                                    type: string
-                                description:
-                                    type: string
-                                id:
-                                    type: string
-                                name:
-                                    type: string
-                                roles:
-                                    additionalProperties:
-                                        type: string
-                                    type: object
-                            type: object
-                description: Policy data
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            description:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Policy created successfully
-            security:
-                - BearerAuth: []
-            summary: Create Policy
-            tags:
-                - Policy
-    /policy/v1/{id}:
-        delete:
-            description: Delete a policy by ID
-            parameters:
-                - description: The ID of the policy
-                  in: path
-                  name: id
-                  required: true
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            description:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Policy deleted successfully
-            security:
-                - BearerAuth: []
-            summary: Delete Policy
-            tags:
-                - Policy
-        get:
-            description: Get a policy by ID
-            parameters:
-                - description: The ID of the policy
-                  in: path
-                  name: id
-                  required: true
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            description:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Policy fetched successfully
-            security:
-                - BearerAuth: []
-            summary: Get Policy
-            tags:
-                - Policy
-        put:
-            description: Update a policy by ID
-            parameters:
-                - description: The ID of the policy
-                  in: path
-                  name: id
-                  required: true
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            properties:
-                                created_at:
-                                    format: date-time
-                                    nullable: true
-                                    type: string
-                                created_by:
-                                    type: string
-                                description:
-                                    type: string
-                                id:
-                                    type: string
-                                name:
-                                    type: string
-                                roles:
-                                    additionalProperties:
-                                        type: string
-                                    type: object
-                            type: object
-                description: Updated policy data
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            description:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Policy updated successfully
-            security:
-                - BearerAuth: []
-            summary: Update Policy
-            tags:
-                - Policy
-    /policy/v1/role/{id}:
-        get:
-            description: Fetch policies associated with a specific role ID
-            parameters:
-                - description: The ID of the role
-                  in: path
-                  name: id
-                  required: true
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        items:
-                                            properties:
-                                                created_at:
-                                                    format: date-time
-                                                    nullable: true
-                                                    type: string
-                                                created_by:
-                                                    type: string
-                                                description:
-                                                    type: string
-                                                id:
-                                                    type: string
-                                                name:
-                                                    type: string
-                                                roles:
-                                                    additionalProperties:
-                                                        type: string
-                                                    type: object
-                                            type: object
-                                        type: array
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Policies fetched successfully
-            security:
-                - BearerAuth: []
-            summary: Get Policies by Role ID
-            tags:
-                - Policy
-    /policy/v1/sync:
-        post:
-            description: Sync resources by policy ID
-            parameters:
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            properties:
-                                name:
-                                    type: string
-                                policies:
-                                    additionalProperties:
-                                        type: string
-                                    type: object
-                                resourceId:
-                                    type: string
-                            type: object
-                description: Sync resources request
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            description:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            roles:
-                                                additionalProperties:
-                                                    type: string
-                                                type: object
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Resources synced successfully
-            security:
-                - BearerAuth: []
-            summary: Sync Resources
             tags:
                 - Policy
     /project/v1/:
@@ -2526,7 +2215,20 @@ paths:
                                                             type: string
                                                         policies:
                                                             additionalProperties:
-                                                                type: string
+                                                                properties:
+                                                                    mapping:
+                                                                        properties:
+                                                                            arguments:
+                                                                                additionalProperties:
+                                                                                    properties:
+                                                                                        static:
+                                                                                            type: string
+                                                                                    type: object
+                                                                                type: object
+                                                                        type: object
+                                                                    name:
+                                                                        type: string
+                                                                type: object
                                                             type: object
                                                         profile_pic:
                                                             type: string
@@ -2535,8 +2237,6 @@ paths:
                                                         resources:
                                                             additionalProperties:
                                                                 properties:
-                                                                    id:
-                                                                        type: string
                                                                     key:
                                                                         type: string
                                                                     name:
@@ -2608,7 +2308,20 @@ paths:
                                     type: string
                                 policies:
                                     additionalProperties:
-                                        type: string
+                                        properties:
+                                            mapping:
+                                                properties:
+                                                    arguments:
+                                                        additionalProperties:
+                                                            properties:
+                                                                static:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                type: object
+                                            name:
+                                                type: string
+                                        type: object
                                     type: object
                                 profile_pic:
                                     type: string
@@ -2617,8 +2330,6 @@ paths:
                                 resources:
                                     additionalProperties:
                                         properties:
-                                            id:
-                                                type: string
                                             key:
                                                 type: string
                                             name:
@@ -2673,7 +2384,20 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2682,8 +2406,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2762,7 +2484,20 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2771,8 +2506,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2846,7 +2579,20 @@ paths:
                                     type: string
                                 policies:
                                     additionalProperties:
-                                        type: string
+                                        properties:
+                                            mapping:
+                                                properties:
+                                                    arguments:
+                                                        additionalProperties:
+                                                            properties:
+                                                                static:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                type: object
+                                            name:
+                                                type: string
+                                        type: object
                                     type: object
                                 profile_pic:
                                     type: string
@@ -2855,8 +2601,6 @@ paths:
                                 resources:
                                     additionalProperties:
                                         properties:
-                                            id:
-                                                type: string
                                             key:
                                                 type: string
                                             name:
@@ -2911,7 +2655,20 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -2920,8 +2677,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:
@@ -2953,6 +2708,134 @@ paths:
             security:
                 - BearerAuth: []
             summary: Update User
+            tags:
+                - User
+    /user/v1/{id}/policies:
+        put:
+            description: Update policies for a user by ID
+            parameters:
+                - description: The ID of the user
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                to_be_added:
+                                    additionalProperties:
+                                        properties:
+                                            mapping:
+                                                properties:
+                                                    arguments:
+                                                        additionalProperties:
+                                                            properties:
+                                                                static:
+                                                                    type: string
+                                                            type: object
+                                                        type: object
+                                                type: object
+                                            name:
+                                                type: string
+                                        type: object
+                                    type: object
+                                to_be_removed:
+                                    items:
+                                        type: string
+                                    type: array
+                            type: object
+                description: User policies update data
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User policies updated successfully
+            security:
+                - BearerAuth: []
+            summary: Update User Policies
             tags:
                 - User
     /user/v1/{id}/roles:
@@ -3015,7 +2898,20 @@ paths:
                                                 type: string
                                             policies:
                                                 additionalProperties:
-                                                    type: string
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
                                                 type: object
                                             profile_pic:
                                                 type: string
@@ -3024,8 +2920,6 @@ paths:
                                             resources:
                                                 additionalProperties:
                                                     properties:
-                                                        id:
-                                                            type: string
                                                         key:
                                                             type: string
                                                         name:

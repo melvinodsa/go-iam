@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -106,6 +107,7 @@ func (s *store) GetByPhone(ctx context.Context, phone string, projectId string) 
 }
 
 func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error) {
+	query.ProjectIds = middlewares.GetProjects(ctx)
 	md := models.GetUserModel()
 	filter := bson.A{}
 	var users []models.User
@@ -119,6 +121,10 @@ func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList,
 	}
 	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIDKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
 
+	if len(query.RoleId) > 0 {
+		cond = append(cond, bson.E{Key: fmt.Sprintf("%s.%s", md.RolesIdKey, query.RoleId), Value: bson.D{{Key: "$exists", Value: true}}})
+	}
+
 	if len(filter) > 0 {
 		cond = append(cond, bson.E{Key: "$or", Value: filter})
 	}
@@ -126,7 +132,7 @@ func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList,
 	// Get total count
 	total, err := s.db.CountDocuments(ctx, md, cond)
 	if err != nil {
-		return nil, fmt.Errorf("error counting resources: %w", err)
+		return nil, fmt.Errorf("error counting users: %w", err)
 	}
 
 	opts := options.Find().

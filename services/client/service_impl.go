@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/melvinodsa/go-iam/middlewares/projects"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type service struct {
@@ -29,7 +30,7 @@ func (s service) VerifySecret(plainSecret, hashedSecret string) bool {
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	queryParams.ProjectIds = projects.GetProjects(ctx)
+	queryParams.ProjectIds = middlewares.GetProjects(ctx)
 	return s.s.GetAll(ctx, queryParams)
 }
 
@@ -52,7 +53,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 		return cl, nil
 	}
 
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[cl.ProjectId]; !ok {
 		return nil, ErrClientNotFound
 	}
@@ -60,7 +61,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 }
 func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -74,12 +75,12 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientCreated, *client))
+	s.Emit(newEvent(ctx, goiamuniverse.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
-	projectIdsMap := utils.Reduce(projects.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
+	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
 	}
@@ -87,7 +88,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while updating client: %w", err)
 	}
-	s.Emit(newEvent(sdk.EventClientUpdated, *client))
+	s.Emit(newEvent(ctx, goiamuniverse.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -98,16 +99,18 @@ func (s service) Emit(event utils.Event[sdk.Client]) {
 	s.e.Emit(event)
 }
 
-func (s service) Subscribe(eventName string, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
+func (s service) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
 	s.e.Subscribe(eventName, subscriber)
 }
 
 type event struct {
-	name    string
-	payload sdk.Client
+	name     goiamuniverse.Event
+	payload  sdk.Client
+	metadata sdk.Metadata
+	ctx      context.Context
 }
 
-func (e event) Name() string {
+func (e event) Name() goiamuniverse.Event {
 	return e.name
 }
 
@@ -115,6 +118,14 @@ func (e event) Payload() sdk.Client {
 	return e.payload
 }
 
-func newEvent(name string, payload sdk.Client) utils.Event[sdk.Client] {
-	return event{name: name, payload: payload}
+func (e event) Metadata() sdk.Metadata {
+	return e.metadata
+}
+
+func (e event) Context() context.Context {
+	return e.ctx
+}
+
+func newEvent(ctx context.Context, name goiamuniverse.Event, payload sdk.Client, metadata sdk.Metadata) utils.Event[sdk.Client] {
+	return event{ctx: ctx, name: name, payload: payload, metadata: metadata}
 }

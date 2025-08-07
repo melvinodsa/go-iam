@@ -69,8 +69,3 @@ type ClientQueryParams struct {
 	GoIamClient     bool     `json:"go_iam_client"`
 	SortByUpdatedAt bool     `json:"sort_by_updated_at"`
 }
-
-const (
-	EventClientCreated = "client:created"
-	EventClientUpdated = "client:updated"
-)

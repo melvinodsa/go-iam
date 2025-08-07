@@ -13,17 +13,31 @@ type User struct {
 	Expiry     *time.Time              `bson:"expiry"`
 	Roles      map[string]UserRoles    `bson:"roles"`
 	Resources  map[string]UserResource `bson:"resources"`
-	Policies   map[string]string       `bson:"policies"`
+	Policies   map[string]UserPolicy   `bson:"policies"`
 	CreatedAt  *time.Time              `bson:"created_at"`
 	CreatedBy  string                  `bson:"created_by"`
 	UpdatedAt  *time.Time              `bson:"updated_at"`
 	UpdatedBy  string                  `bson:"updated_by"`
 }
 
+type UserPolicy struct {
+	Name    string            `bson:"name,omitempty"`
+	Mapping UserPolicyMapping `bson:"mapping,omitempty"`
+}
+
+type UserPolicyMapping struct {
+	Arguments map[string]UserPolicyMappingValue `bson:"arguments,omitempty"`
+}
+
+type UserPolicyMappingValue struct {
+	Static string `bson:"static,omitempty"`
+}
+
 type UserResource struct {
-	Id   string `bson:"id"`
-	Key  string `bson:"key"`
-	Name string `bson:"name"`
+	RoleIds   map[string]bool `bson:"role_ids"`
+	PolicyIds map[string]bool `bson:"policy_ids"`
+	Key       string          `bson:"key"`
+	Name      string          `bson:"name"`
 }
 
 type UserRoles struct {
