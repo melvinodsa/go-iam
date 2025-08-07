@@ -177,7 +177,6 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	}
 	
 	// For service accounts, the identity already contains the user ID
-	// For OAuth, we need to get or create the user
 	if token.AuthProviderID == "@internal/service-account" {
 		// Service account - fetch the complete user from database
 		usr, err = s.usrSvc.GetById(ctx, identity.Id)
@@ -260,9 +259,8 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 			Name:      "Internal Service Account",
 			Provider:  sdk.AuthProviderType("@internal/service-account"),
 			Enabled:   true,
-			// No params needed for internal service accounts
 			Params:    []sdk.AuthProviderParam{},
-			ProjectId: "", // Will be set from the user
+			ProjectId: "", 
 		}
 		
 		// Get the service provider implementation
@@ -284,11 +282,9 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 		}
 		
 		// For service accounts, we return the user with just the ID set
-		// The complete user details will be fetched from database in GetIdentity
 		return &user, nil
 	}
 	
-	// Regular OAuth flow
 	p, err := s.authP.Get(ctx, token.AuthProviderID, true)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching auth provider details %w", err)
@@ -351,33 +347,6 @@ func (s service) cacheUserDetails(ctx context.Context, accessToken string, user 
 		return fmt.Errorf("error saving the user %w", err)
 	}
 	return nil
-}
-
-func (s service) cacheServiceAccountUser(ctx context.Context, accessToken string, user sdk.User, ttl time.Duration) error {
-    /*
-     * Cache the user with the JWT token as the key
-     * This allows GetIdentity to retrieve the user using the token
-     * TTL matches token expiry for service accounts
-     */
-    
-    b := bytes.NewBuffer([]byte{})
-    err := json.NewEncoder(b).Encode(user)
-    if err != nil {
-        return fmt.Errorf("error encoding user: %w", err)
-    }
-    
-	userEnc, err := s.encSvc.Encrypt(b.String())
-    if err != nil {
-        return fmt.Errorf("error encrypting user: %w", err)
-    }
-    
-    cacheKey := fmt.Sprintf("token-%s", accessToken)
-    err = s.cacheSvc.Set(ctx, cacheKey, userEnc, ttl)
-    if err != nil {
-        return fmt.Errorf("error saving user to cache: %w", err)
-    }
-    
-    return nil
 }
 
 func (s service) getUserFromCache(ctx context.Context, accessToken string) (*sdk.User, error) {
@@ -671,10 +640,10 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 
 	// Create a synthetic AuthToken to maintain consistency with OAuth flow
 	syntheticToken := sdk.AuthToken{
-		AccessToken:    "service-account:" + user.Id, // Internal identifier with user ID
-		RefreshToken:   "",                           // Service accounts don't use refresh tokens
+		AccessToken:    "service-account:" + user.Id, 
+		RefreshToken:   "",                           
 		ExpiresAt:      expiryTime,
-		AuthProviderID: "@internal/service-account",  // Special provider ID for service accounts
+		AuthProviderID: "@internal/service-account",  
 	}
 
 	// This ensures GetIdentity can retrieve it the same way
