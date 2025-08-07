@@ -75,7 +75,7 @@ paths:
                                         type: boolean
                                 type: object
                     description: Authentication successful
-            summary: Client Credentials
+            summary: Client
             tags:
                 - Auth
     /auth/v1/login:
