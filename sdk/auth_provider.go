@@ -12,6 +12,7 @@ type AuthProviderType string
 
 const (
 	AuthProviderTypeGoogle AuthProviderType = "GOOGLE"
+	AuthProviderTypeServiceAccount AuthProviderType = "@internal/service-account"
 )
 
 type AuthProvider struct {

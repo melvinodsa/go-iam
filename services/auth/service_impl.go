@@ -159,35 +159,52 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if !ok {
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
-	// Check if this is a service account token
-    grantType, _ := claims["grant_type"].(string)
-    isServiceAccount := grantType == "client_credentials"
 
 	usr, err := s.getUserFromCache(ctx, accessToken)
 	if err == nil && usr != nil {
 		log.Debugf("fetched user records from cache - %s", usr.Id)
 		return usr, nil
 	}
-	 if isServiceAccount {
-        // For service accounts, cache miss after JWT validation success
-        // shouldn't happen (both expire at same time)
-        // But if it does (cache eviction, Redis restart)
-        return nil, fmt.Errorf("service account session expired, please re-authenticate using client credentials")
-    }
 
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
 	}
+
 	identity, err := s.getAuthProivderIdentity(ctx, token, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
 	}
-	usr, err = s.getOrCreateUser(ctx, *identity)
-	if err != nil {
-		return nil, fmt.Errorf("error getting or creating the user %w", err)
+	
+	// For service accounts, the identity already contains the user ID
+	// For OAuth, we need to get or create the user
+	if token.AuthProviderID == "@internal/service-account" {
+		// Service account - fetch the complete user from database
+		usr, err = s.usrSvc.GetById(ctx, identity.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching service account user: %w", err)
+		}
+		
+		// Verify the user is still valid
+		if !usr.Enabled {
+			return nil, errors.New("service account user is disabled")
+		}
+		
+		if usr.Expiry != nil && usr.Expiry.Before(time.Now()) {
+			return nil, errors.New("service account user has expired")
+		}
+		
+		log.Debugf("fetched service account user from database - %s", usr.Id)
+	} else {
+
+		usr, err = s.getOrCreateUser(ctx, *identity)
+		if err != nil {
+			return nil, fmt.Errorf("error getting or creating the user %w", err)
+		}
+		log.Debugf("fetched user records from auth provider - %s", usr.Id)
 	}
-	log.Debugf("fetched user records from auth provider - %s", usr.Id)
+
+	// Cache the user details
 	err = s.cacheUserDetails(ctx, accessToken, *usr)
 	if err != nil {
 		return nil, fmt.Errorf("error caching the user details %w", err)
@@ -234,6 +251,44 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 	 * get the service provider
 	 * call the get identity method on the service provider
 	 */
+	
+	// For service accounts, create a synthetic auth provider
+	if token.AuthProviderID == "@internal/service-account" {
+		// Create a synthetic provider configuration for internal service accounts
+		syntheticProvider := &sdk.AuthProvider{
+			Id:        "@internal/service-account",
+			Name:      "Internal Service Account",
+			Provider:  sdk.AuthProviderType("@internal/service-account"),
+			Enabled:   true,
+			// No params needed for internal service accounts
+			Params:    []sdk.AuthProviderParam{},
+			ProjectId: "", // Will be set from the user
+		}
+		
+		// Get the service provider implementation
+		sp, err := s.authP.GetProvider(ctx, *syntheticProvider)
+		if err != nil {
+			return nil, fmt.Errorf("error getting internal service provider: %w", err)
+		}
+		
+		// Call GetIdentity on the internal provider
+		identity, err := sp.GetIdentity(token.AccessToken)
+		if err != nil {
+			return nil, fmt.Errorf("error getting service account identity: %w", err)
+		}
+		
+		// Convert identity to user object
+		user := sdk.User{}
+		for _, id := range identity {
+			id.UpdateUserDetails(&user)
+		}
+		
+		// For service accounts, we return the user with just the ID set
+		// The complete user details will be fetched from database in GetIdentity
+		return &user, nil
+	}
+	
+	// Regular OAuth flow
 	p, err := s.authP.Get(ctx, token.AuthProviderID, true)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching auth provider details %w", err)
@@ -261,7 +316,6 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 		id.UpdateUserDetails(&user)
 	}
 	return &user, nil
-
 }
 
 func (s service) refreshAuthToken(ctx context.Context, accessToken string, token sdk.AuthToken, sp sdk.ServiceProvider) (*sdk.AuthToken, error) {
@@ -563,14 +617,14 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 }
 
 func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
-
-	 /*
-     * 1. Validate client credentials
-     * 2. Get linked user
-     * 3. Generate JWT valid for 24 hours
-     * 4. Cache user for 24 hours (matching JWT expiry)
-     * 5. Return token
-     */
+	/*
+	 * 1. Validate client credentials
+	 * 2. Get linked user
+	 * 3. Create synthetic AuthToken (similar to OAuth flow)
+	 * 4. Cache the synthetic token
+	 * 5. Generate JWT and cache user
+	 * 6. Return token
+	 */
 
 	// Get client details
 	cl, err := s.clientSvc.Get(ctx, clientId, true)
@@ -588,9 +642,10 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
+
 	// Check if client has a linked user
 	if cl.LinkedUserId == "" {
-		return nil, errors.New("client does not support for service account flow")
+		return nil, errors.New("client does not support service account flow")
 	}
 
 	// Get the linked user
@@ -609,29 +664,45 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 		return nil, errors.New("linked user has expired")
 	}
 
-	// Generate access token ID and cache user details
+	// Generate token parameters
 	tokenDuration := time.Hour * 24
 	expiryTime := time.Now().Add(tokenDuration)
 	accessTokenId := uuid.New().String()
 
+	// Create a synthetic AuthToken to maintain consistency with OAuth flow
+	syntheticToken := sdk.AuthToken{
+		AccessToken:    "service-account:" + user.Id, // Internal identifier with user ID
+		RefreshToken:   "",                           // Service accounts don't use refresh tokens
+		ExpiresAt:      expiryTime,
+		AuthProviderID: "@internal/service-account",  // Special provider ID for service accounts
+	}
+
+	// This ensures GetIdentity can retrieve it the same way
+	_, err = s.cacheAccessToken(ctx, syntheticToken, accessTokenId)
+	if err != nil {
+		return nil, fmt.Errorf("error caching synthetic auth token: %w", err)
+	}
+
+	// Generate JWT with claims
 	claims := map[string]interface{}{
 		"id":         accessTokenId,
 		"grant_type": "client_credentials",
 		"client_id":  clientId,
 		"user_id":    user.Id,
-        "iat":        time.Now().Unix(),
-        "exp":        expiryTime.Unix(),
+		"iat":        time.Now().Unix(),
+		"exp":        expiryTime.Unix(),
 	}
 
 	accessToken, err := s.jwtSvc.GenerateToken(claims, expiryTime.Unix())
 	if err != nil {
 		return nil, fmt.Errorf("error generating access token: %w", err)
 	}
-	// Cache user details for service accounts with SAME duration as token
-    // This is different from regular users who have shorter cache TTL
-	err = s.cacheServiceAccountUser(ctx, accessToken, *user,tokenDuration)
+
+	// Cache user details with the JWT token as the key
+	// This provides a fast path for GetIdentity
+	err = s.cacheUserDetails(ctx, accessToken, *user)
 	if err != nil {
-		return nil, fmt.Errorf("error caching service account user: %w", err)
+		return nil, fmt.Errorf("error caching user details: %w", err)
 	}
 
 	return &sdk.ClientCredentialsDataResponse{
