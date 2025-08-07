@@ -168,7 +168,7 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
 	}
-	identity, err := s.getAuthProivderIdentity(ctx, *token, accessToken)
+	identity, err := s.getAuthProivderIdentity(ctx, token, accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
 	}
@@ -218,7 +218,7 @@ func (s service) getOrCreateUser(ctx context.Context, usr sdk.User) (*sdk.User, 
 	return u, nil
 }
 
-func (s service) getAuthProivderIdentity(ctx context.Context, token sdk.AuthToken, accessToken string) (*sdk.User, error) {
+func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthToken, accessToken string) (*sdk.User, error) {
 	/*
 	 * get the service provider
 	 * call the get identity method on the service provider
@@ -234,11 +234,11 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token sdk.AuthToke
 
 	// if the token is expired, we need to refresh the token
 	if token.ExpiresAt.Before(time.Now()) {
-		newToken, err := s.refreshAuthToken(ctx, accessToken, token, sp)
+		newToken, err := s.refreshAuthToken(ctx, accessToken, *token, sp)
 		if err != nil {
 			return nil, fmt.Errorf("error refreshing the token %w", err)
 		}
-		token = *newToken
+		*token = *newToken
 	}
 
 	identity, err := sp.GetIdentity(token.AccessToken)
