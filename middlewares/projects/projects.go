@@ -1,7 +1,6 @@
 package projects
 
 import (
-	"context"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,8 +26,4 @@ func (m Middlewares) Projects(c *fiber.Ctx) error {
 	}
 	c.Context().SetUserValue("projects", projectIds)
 	return c.Next()
-}
-
-func GetProjects(ctx context.Context) []string {
-	return ctx.Value("projects").([]string)
 }

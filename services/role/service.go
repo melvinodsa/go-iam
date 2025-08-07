@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils"
 )
 
 type Service interface {
@@ -11,6 +12,6 @@ type Service interface {
 	Update(ctx context.Context, role *sdk.Role) error
 	GetById(ctx context.Context, id string) (*sdk.Role, error)
 	GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error)
-	AddRoleToUser(ctx context.Context, userId, roleId string) error
-	RemoveRoleFromUser(ctx context.Context, userId, roleId string) error
+	AddResource(ctx context.Context, roleId string, resource sdk.Resources) error
+	utils.Emitter[utils.Event[sdk.Role], sdk.Role]
 }

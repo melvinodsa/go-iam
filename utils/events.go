@@ -1,8 +1,17 @@
 package utils
 
+import (
+	"context"
+
+	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+)
+
 type Event[T any] interface {
-	Name() string
+	Name() goiamuniverse.Event
 	Payload() T
+	Metadata() sdk.Metadata
+	Context() context.Context
 }
 
 type Subscriber[T Event[V], V any] interface {
@@ -11,11 +20,11 @@ type Subscriber[T Event[V], V any] interface {
 
 type Emitter[T Event[V], V any] interface {
 	Emit(event T)
-	Subscribe(eventName string, subscriber Subscriber[T, V])
+	Subscribe(eventName goiamuniverse.Event, subscriber Subscriber[T, V])
 }
 
 type emitter[T Event[V], V any] struct {
-	subscribers map[string][]Subscriber[T, V]
+	subscribers map[goiamuniverse.Event][]Subscriber[T, V]
 }
 
 func (e *emitter[T, V]) Emit(event T) {
@@ -26,13 +35,13 @@ func (e *emitter[T, V]) Emit(event T) {
 	}
 }
 
-func (e *emitter[T, V]) Subscribe(eventName string, subscriber Subscriber[T, V]) {
+func (e *emitter[T, V]) Subscribe(eventName goiamuniverse.Event, subscriber Subscriber[T, V]) {
 	e.subscribers[eventName] = append(e.subscribers[eventName], subscriber)
 }
 
 // NewEmitter creates a new Emitter instance for the specified event type.
 func NewEmitter[T Event[V], V any]() Emitter[T, V] {
 	return &emitter[T, V]{
-		subscribers: make(map[string][]Subscriber[T, V]),
+		subscribers: make(map[goiamuniverse.Event][]Subscriber[T, V]),
 	}
 }
