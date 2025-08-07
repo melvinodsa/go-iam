@@ -23,7 +23,8 @@ func (a defaultPoliciesOnUser) ID() string {
 func (a defaultPoliciesOnUser) HandleEvent(event utils.Event[sdk.User]) {
 	log.Debugw("received user event", "event", event.Name())
 	userId := event.Payload().Id
-	err := a.userSvc.AddPolicyToUser(event.Context(), userId, map[string]sdk.UserPolicy{NewAccessToCreatedResource(nil).ID(): {}})
+	pl := NewAccessToCreatedResource(nil)
+	err := a.userSvc.AddPolicyToUser(event.Context(), userId, map[string]sdk.UserPolicy{pl.ID(): {Name: pl.Name()}})
 	if err != nil {
 		log.Errorw("error updating user with default policies while handling user create event", "userId", userId, "error", err)
 		return

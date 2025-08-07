@@ -49,7 +49,7 @@ func fromSdkUserPoliciesToModel(policies map[string]sdk.UserPolicy) map[string]m
 	result := map[string]models.UserPolicy{}
 	for key, policy := range policies {
 		result[key] = models.UserPolicy{
-			Def:     policy.Def,
+			Name:    policy.Name,
 			Mapping: fromSdkUserPolicyMappingToModel(policy.Mapping),
 		}
 	}
@@ -70,7 +70,7 @@ func fromModelUserPoliciesToSdk(policies map[string]models.UserPolicy) map[strin
 	result := map[string]sdk.UserPolicy{}
 	for key, policy := range policies {
 		result[key] = sdk.UserPolicy{
-			Def:     policy.Def,
+			Name:    policy.Name,
 			Mapping: fromModelUserPolicyMappingToSdk(policy.Mapping),
 		}
 	}

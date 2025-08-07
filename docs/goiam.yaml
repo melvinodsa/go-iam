@@ -900,7 +900,6 @@ paths:
                                                     policies:
                                                         additionalProperties:
                                                             properties:
-                                                                def: {}
                                                                 mapping:
                                                                     properties:
                                                                         arguments:
@@ -911,6 +910,8 @@ paths:
                                                                                 type: object
                                                                             type: object
                                                                     type: object
+                                                                name:
+                                                                    type: string
                                                             type: object
                                                         type: object
                                                     profile_pic:
@@ -989,7 +990,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -1000,6 +1000,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:
@@ -1046,6 +1048,9 @@ paths:
         get:
             description: Fetch all policies
             parameters:
+                - description: Search query for roles
+                  in: query
+                  name: query
                 - description: Number of records to skip for pagination. Default is 0
                   in: query
                   name: skip
@@ -2159,7 +2164,6 @@ paths:
                                                         policies:
                                                             additionalProperties:
                                                                 properties:
-                                                                    def: {}
                                                                     mapping:
                                                                         properties:
                                                                             arguments:
@@ -2170,6 +2174,8 @@ paths:
                                                                                     type: object
                                                                                 type: object
                                                                         type: object
+                                                                    name:
+                                                                        type: string
                                                                 type: object
                                                             type: object
                                                         profile_pic:
@@ -2251,7 +2257,6 @@ paths:
                                 policies:
                                     additionalProperties:
                                         properties:
-                                            def: {}
                                             mapping:
                                                 properties:
                                                     arguments:
@@ -2262,6 +2267,8 @@ paths:
                                                             type: object
                                                         type: object
                                                 type: object
+                                            name:
+                                                type: string
                                         type: object
                                     type: object
                                 profile_pic:
@@ -2326,7 +2333,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -2337,6 +2343,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:
@@ -2425,7 +2433,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -2436,6 +2443,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:
@@ -2519,7 +2528,6 @@ paths:
                                 policies:
                                     additionalProperties:
                                         properties:
-                                            def: {}
                                             mapping:
                                                 properties:
                                                     arguments:
@@ -2530,6 +2538,8 @@ paths:
                                                             type: object
                                                         type: object
                                                 type: object
+                                            name:
+                                                type: string
                                         type: object
                                     type: object
                                 profile_pic:
@@ -2594,7 +2604,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -2605,6 +2614,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:
@@ -2669,7 +2680,6 @@ paths:
                                 to_be_added:
                                     additionalProperties:
                                         properties:
-                                            def: {}
                                             mapping:
                                                 properties:
                                                     arguments:
@@ -2680,6 +2690,8 @@ paths:
                                                             type: object
                                                         type: object
                                                 type: object
+                                            name:
+                                                type: string
                                         type: object
                                     type: object
                                 to_be_removed:
@@ -2720,7 +2732,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -2731,6 +2742,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:
@@ -2834,7 +2847,6 @@ paths:
                                             policies:
                                                 additionalProperties:
                                                     properties:
-                                                        def: {}
                                                         mapping:
                                                             properties:
                                                                 arguments:
@@ -2845,6 +2857,8 @@ paths:
                                                                         type: object
                                                                     type: object
                                                             type: object
+                                                        name:
+                                                            type: string
                                                     type: object
                                                 type: object
                                             profile_pic:

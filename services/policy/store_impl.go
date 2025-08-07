@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"strings"
 
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/policy/system"
@@ -36,12 +37,18 @@ func (s *storeImpl) GetAll(ctx context.Context, query sdk.PolicyQuery) (*sdk.Pol
 	if limit < 0 {
 		limit = 0 // Ensure limit is not negative
 	}
+	pls := make([]sdk.Policy, 0, len(policies))
+	for _, policy := range policies {
+		if query.Query == "" || (query.Query != "" && strings.Contains(strings.ToLower(policy.Name), strings.ToLower(query.Query))) {
+			pls = append(pls, policy)
+		}
+	}
 
-	result := policies[skip : limit+skip]
+	result := pls[skip : limit+skip]
 
 	return &sdk.PolicyList{
 		Policies: result,
-		Total:    len(policies),
+		Total:    len(pls),
 		Skip:     skip,
 		Limit:    limit,
 	}, nil

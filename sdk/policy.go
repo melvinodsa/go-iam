@@ -45,6 +45,7 @@ type PolicyList struct {
 }
 
 type PolicyQuery struct {
-	Skip  int64 `json:"skip,omitempty"`
-	Limit int64 `json:"limit,omitempty"`
+	Query string `json:"query,omitempty"`
+	Skip  int64  `json:"skip,omitempty"`
+	Limit int64  `json:"limit,omitempty"`
 }

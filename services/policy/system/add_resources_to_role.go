@@ -24,6 +24,10 @@ func (a addResourcesToRole) ID() string {
 	return a.id
 }
 
+func (a addResourcesToRole) Name() string {
+	return "Add resources to role specified in user policy"
+}
+
 func (a addResourcesToRole) HandleEvent(event utils.Event[sdk.Resource]) {
 	log.Debugw("received resource event", "event", event.Name())
 	userId := event.Metadata().User.Id
@@ -69,7 +73,7 @@ func (a addResourcesToRole) getTargetRoleId(user *sdk.User) (string, bool) {
 func (a addResourcesToRole) PolicyDef() sdk.Policy {
 	return sdk.Policy{
 		Id:          a.id,
-		Name:        "Add resources to role on resource creation",
+		Name:        a.Name(),
 		Description: "This policy adds the created resource to the role specified in the user policy.",
 		Definition: sdk.PolicyDefinition{
 			Arguments: []sdk.PolicyArgument{

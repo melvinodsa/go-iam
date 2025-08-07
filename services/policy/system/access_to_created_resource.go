@@ -22,6 +22,10 @@ func (a accessToCreatedResource) ID() string {
 	return a.id
 }
 
+func (a accessToCreatedResource) Name() string {
+	return "User get access to the resource created by the user"
+}
+
 func (a accessToCreatedResource) HandleEvent(event utils.Event[sdk.Resource]) {
 	log.Debugw("received resource event", "event", event.Name())
 	userId := event.Metadata().User.Id
@@ -48,7 +52,7 @@ func (a accessToCreatedResource) HandleEvent(event utils.Event[sdk.Resource]) {
 func (a accessToCreatedResource) PolicyDef() sdk.Policy {
 	return sdk.Policy{
 		Id:          a.id,
-		Name:        "User get access to the resource created by the user",
+		Name:        a.Name(),
 		Description: "This policy grants the user access to the resource created by them.",
 		Definition: sdk.PolicyDefinition{
 			Arguments: []sdk.PolicyArgument{

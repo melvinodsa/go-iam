@@ -27,6 +27,12 @@ func FetchAllRoute(router fiber.Router, basePath string) {
 		},
 		Parameters: []docs.ApiParameter{
 			{
+				Name:        "query",
+				In:          "query",
+				Description: "Search query for roles",
+				Required:    false,
+			},
+			{
 				Name:        "skip",
 				In:          "query",
 				Description: "Number of records to skip for pagination. Default is 0",
@@ -49,6 +55,7 @@ func FetchAll(c *fiber.Ctx) error {
 	pr := providers.GetProviders(c)
 
 	query := sdk.PolicyQuery{
+		Query: c.Query("query"),
 		Skip:  0,  // Default value
 		Limit: 10, // Default value
 	}

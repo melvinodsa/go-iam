@@ -21,7 +21,7 @@ type User struct {
 }
 
 type UserPolicy struct {
-	Def     interface{}       `bson:"def,omitempty"`
+	Name    string            `bson:"name,omitempty"`
 	Mapping UserPolicyMapping `bson:"mapping,omitempty"`
 }
 
