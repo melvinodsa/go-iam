@@ -159,11 +159,22 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if !ok {
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
+	// Check if this is a service account token
+    grantType, _ := claims["grant_type"].(string)
+    isServiceAccount := grantType == "client_credentials"
+
 	usr, err := s.getUserFromCache(ctx, accessToken)
 	if err == nil && usr != nil {
 		log.Debugf("fetched user records from cache - %s", usr.Id)
 		return usr, nil
 	}
+	 if isServiceAccount {
+        // For service accounts, cache miss after JWT validation success
+        // shouldn't happen (both expire at same time)
+        // But if it does (cache eviction, Redis restart)
+        return nil, fmt.Errorf("service account session expired, please re-authenticate using client credentials")
+    }
+
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
@@ -286,6 +297,33 @@ func (s service) cacheUserDetails(ctx context.Context, accessToken string, user 
 		return fmt.Errorf("error saving the user %w", err)
 	}
 	return nil
+}
+
+func (s service) cacheServiceAccountUser(ctx context.Context, accessToken string, user sdk.User, ttl time.Duration) error {
+    /*
+     * Cache the user with the JWT token as the key
+     * This allows GetIdentity to retrieve the user using the token
+     * TTL matches token expiry for service accounts
+     */
+    
+    b := bytes.NewBuffer([]byte{})
+    err := json.NewEncoder(b).Encode(user)
+    if err != nil {
+        return fmt.Errorf("error encoding user: %w", err)
+    }
+    
+	userEnc, err := s.encSvc.Encrypt(b.String())
+    if err != nil {
+        return fmt.Errorf("error encrypting user: %w", err)
+    }
+    
+    cacheKey := fmt.Sprintf("token-%s", accessToken)
+    err = s.cacheSvc.Set(ctx, cacheKey, userEnc, ttl)
+    if err != nil {
+        return fmt.Errorf("error saving user to cache: %w", err)
+    }
+    
+    return nil
 }
 
 func (s service) getUserFromCache(ctx context.Context, accessToken string) (*sdk.User, error) {
@@ -526,6 +564,14 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 
 func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
 
+	 /*
+     * 1. Validate client credentials
+     * 2. Get linked user
+     * 3. Generate JWT valid for 24 hours
+     * 4. Cache user for 24 hours (matching JWT expiry)
+     * 5. Return token
+     */
+
 	// Get client details
 	cl, err := s.clientSvc.Get(ctx, clientId, true)
 	if err != nil {
@@ -537,13 +583,14 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 		return nil, errors.New("client is disabled")
 	}
 
-	// Verify client secret
-	if !s.clientSvc.VerifySecret(clientSecret, cl.Secret) {
-		return nil, errors.New("invalid client_secret")
+	// Verify client secret using the service method
+	err = s.clientSvc.VerifySecret(clientSecret, cl.Secret)
+	if err != nil {
+		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	// Check if client has a linked user
 	if cl.LinkedUserId == "" {
-		return nil, errors.New("client does not support client credentials flow")
+		return nil, errors.New("client does not support for service account flow")
 	}
 
 	// Get the linked user
@@ -563,29 +610,33 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 	}
 
 	// Generate access token ID and cache user details
+	tokenDuration := time.Hour * 24
+	expiryTime := time.Now().Add(tokenDuration)
 	accessTokenId := uuid.New().String()
 
-	expiryTime := time.Now().AddDate(0, 0, 1)
 	claims := map[string]interface{}{
 		"id":         accessTokenId,
 		"grant_type": "client_credentials",
 		"client_id":  clientId,
+		"user_id":    user.Id,
+        "iat":        time.Now().Unix(),
+        "exp":        expiryTime.Unix(),
 	}
 
 	accessToken, err := s.jwtSvc.GenerateToken(claims, expiryTime.Unix())
 	if err != nil {
 		return nil, fmt.Errorf("error generating access token: %w", err)
 	}
-	err = s.cacheUserDetails(ctx, accessToken, *user)
+	// Cache user details for service accounts with SAME duration as token
+    // This is different from regular users who have shorter cache TTL
+	err = s.cacheServiceAccountUser(ctx, accessToken, *user,tokenDuration)
 	if err != nil {
-		return nil, fmt.Errorf("error caching user details: %w", err)
+		return nil, fmt.Errorf("error caching service account user: %w", err)
 	}
-
-	log.Debugf("client credentials authentication successful for client %s as user %s", clientId, user.Id)
 
 	return &sdk.ClientCredentialsDataResponse{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
-		ExpiresIn:   86400, // 24 hours in seconds
+		ExpiresIn:   int64(tokenDuration.Seconds()),
 	}, nil
 }

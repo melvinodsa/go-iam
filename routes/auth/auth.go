@@ -215,39 +215,56 @@ func ClientCredentialsRoute(router fiber.Router, basePath string) {
 }
 
 func ClientCredentials(c *fiber.Ctx) error {
-	log.Debug("received client credentials request")
-	
-	payload := new(sdk.ClientCredentialsRequest)
-	if err := c.BodyParser(payload); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
-			Success: false,
-			Message: fmt.Sprintf("invalid request: %v", err),
-		})
-	}
-	
-	// Validate required fields
-	if payload.ClientId == "" || payload.ClientSecret == "" {
-		return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
-			Success: false,
-			Message: "client_id and client_secret are required",
-		})
-	}
-	
-	pr := providers.GetProviders(c)
-	resp, err := pr.S.Auth.ClientCredentials(c.Context(), payload.ClientId, payload.ClientSecret)
-	if err != nil {
-		message := fmt.Sprintf("authentication failed: %v", err)
-		log.Errorw("client credentials authentication failed", "error", message)
-		return c.Status(http.StatusUnauthorized).JSON(sdk.ClientCredentialsResponse{
-			Success: false,
-			Message: message,
-		})
-	}
-	
-	log.Debug("client credentials authentication successful")
-	return c.Status(http.StatusOK).JSON(sdk.ClientCredentialsResponse{
-		Success: true,
-		Message: "Authentication successful",
-		Data:    resp,
-	})
+    log.Debug("received client credentials request")
+    
+    payload := new(sdk.ClientCredentialsRequest)
+    if err := c.BodyParser(payload); err != nil {
+        return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
+            Success: false,
+            Message: fmt.Sprintf("invalid request body: %v", err),
+        })
+    }
+    
+    // Validate required fields
+    if payload.ClientId == "" || payload.ClientSecret == "" {
+        return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
+            Success: false,
+            Message: "client_id and client_secret are required",
+        })
+    }
+    
+    pr := providers.GetProviders(c)
+    resp, err := pr.S.Auth.ClientCredentials(c.Context(), payload.ClientId, payload.ClientSecret)
+    if err != nil {
+        // Determine appropriate status code based on error
+        status := http.StatusUnauthorized
+        message := err.Error()
+        
+        // Check for specific error types
+		// this is because in case of unathorized access,server will retry to authenticate with service account
+        if strings.Contains(err.Error(), "invalid client_id") {
+            status = http.StatusNotFound
+        } else if strings.Contains(err.Error(), "disabled") {
+            status = http.StatusForbidden
+        }
+        
+        log.Errorw("client credentials authentication failed",
+            "client_id", payload.ClientId,
+            "error", message)
+        
+        return c.Status(status).JSON(sdk.ClientCredentialsResponse{
+            Success: false,
+            Message: fmt.Sprintf("authentication failed: %v", err),
+        })
+    }
+    
+    log.Debugw("client credentials authentication successful",
+        "client_id", payload.ClientId,
+        "expires_in", resp.ExpiresIn)
+    
+    return c.Status(http.StatusOK).JSON(sdk.ClientCredentialsResponse{
+        Success: true,
+        Message: "Authentication successful",
+        Data:    resp,
+    })
 }

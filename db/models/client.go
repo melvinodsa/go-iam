@@ -45,7 +45,7 @@ func GetClientModel() ClientModel {
 		DescriptionKey:  "description",
 		ProjectIdKey:    "project_id",
 		GoIamClientKey:  "go_iam_client",
-		LinkedUserIdKey: "linked_user_id", // Indicates if this is a Go-IAM client
+		LinkedUserIdKey: "linked_user_id",
 		UpdatedAtKey:    "updated_at",
 	}
 }

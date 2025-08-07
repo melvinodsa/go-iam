@@ -21,12 +21,23 @@ func NewService(s Store, p project.Service) Service {
 	return service{s: s, p: p, e: utils.NewEmitter[utils.Event[sdk.Client]]()}
 }
 
-func (s service) VerifySecret(plainSecret, hashedSecret string) bool {
+func (s service) VerifySecret(plainSecret, hashedSecret string) error {
+	if plainSecret == "" {
+		return fmt.Errorf("plain secret cannot be empty")
+	}
+	
+	// hashSecret function is defined in services/client/helpers.go
+	// It hashes the secret using SHA256 and encodes to base64
 	hashedPlain, err := hashSecret(plainSecret)
 	if err != nil {
-		return false
+		return fmt.Errorf("failed to hash secret for verification: %w", err)
 	}
-	return hashedPlain == hashedSecret
+	
+	if hashedPlain != hashedSecret {
+		return fmt.Errorf("secret verification failed: invalid secret")
+	}
+	
+	return nil // Verification successful
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
