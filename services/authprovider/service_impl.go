@@ -7,6 +7,7 @@ import (
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider/google"
+	"github.com/melvinodsa/go-iam/services/authprovider/internal"
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
 )
@@ -65,6 +66,9 @@ func (s service) GetProvider(ctx context.Context, v sdk.AuthProvider) (sdk.Servi
 	switch v.Provider {
 	case sdk.AuthProviderTypeGoogle:
 		return google.NewAuthProvider(v), nil
+	case sdk.AuthProviderType("@internal/service-account"):
+		// Internal provider for service accounts
+		return internal.NewServiceAccountProvider(v), nil
 	default:
 		return nil, fmt.Errorf("unknown auth provider: %s", v.Provider)
 	}
