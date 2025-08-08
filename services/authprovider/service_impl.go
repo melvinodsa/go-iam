@@ -66,9 +66,8 @@ func (s service) GetProvider(ctx context.Context, v sdk.AuthProvider) (sdk.Servi
 	switch v.Provider {
 	case sdk.AuthProviderTypeGoogle:
 		return google.NewAuthProvider(v), nil
-	case "@internal/service-account":
+	case sdk.AuthProviderType("@internal/service-account"):
 		// Internal provider for service accounts
-		// This is a dummy provider since service accounts are handled directly
 		return internal.NewServiceAccountProvider(v), nil
 	default:
 		return nil, fmt.Errorf("unknown auth provider: %s", v.Provider)

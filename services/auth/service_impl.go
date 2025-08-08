@@ -178,22 +178,33 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	
 	// For service accounts, the identity already contains the user ID
 	if token.AuthProviderID == "@internal/service-account" {
-		// Service account - fetch the complete user from database
-		usr, err = s.usrSvc.GetById(ctx, identity.Id)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching service account user: %w", err)
+		// For service accounts, extract client ID and get linked user
+		clientId := strings.TrimPrefix(token.AccessToken, "service-account:")
+		if clientId == "" {
+			return nil, fmt.Errorf("invalid service account token format")
 		}
 		
-		// Verify the user is still valid
+		// Get client to find linked user
+		client, err := s.clientSvc.Get(ctx, clientId, true)
+		if err != nil {
+			return nil, fmt.Errorf("service account client not found: %w", err)
+		}
+		
+		// Get the linked user
+		usr, err = s.usrSvc.GetById(ctx, client.LinkedUserId)
+		if err != nil {
+			return nil, fmt.Errorf("service account user not found: %w", err)
+		}
+		
+		// Validate user
 		if !usr.Enabled {
 			return nil, errors.New("service account user is disabled")
 		}
-		
 		if usr.Expiry != nil && usr.Expiry.Before(time.Now()) {
 			return nil, errors.New("service account user has expired")
 		}
 		
-		log.Debugf("fetched service account user from database - %s", usr.Id)
+		log.Debugf("fetched service account user - %s", usr.Id)
 	} else {
 
 		usr, err = s.getOrCreateUser(ctx, *identity)
@@ -254,7 +265,7 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 	// For service accounts, create a synthetic auth provider
 	if token.AuthProviderID == "@internal/service-account" {
 		// Create a synthetic provider configuration for internal service accounts
-		syntheticProvider := &sdk.AuthProvider{
+		syntheticProvider := sdk.AuthProvider{
 			Id:        "@internal/service-account",
 			Name:      "Internal Service Account",
 			Provider:  sdk.AuthProviderType("@internal/service-account"),
@@ -264,7 +275,7 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 		}
 		
 		// Get the service provider implementation
-		sp, err := s.authP.GetProvider(ctx, *syntheticProvider)
+		sp, err := s.authP.GetProvider(ctx, syntheticProvider)
 		if err != nil {
 			return nil, fmt.Errorf("error getting internal service provider: %w", err)
 		}
@@ -588,11 +599,10 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
 	/*
 	 * 1. Validate client credentials
-	 * 2. Get linked user
-	 * 3. Create synthetic AuthToken (similar to OAuth flow)
-	 * 4. Cache the synthetic token
-	 * 5. Generate JWT and cache user
-	 * 6. Return token
+	 * 2. Create synthetic AuthToken (like OAuth)
+	 * 3. Cache the token (like OAuth)
+	 * 4. Generate minimal JWT (like OAuth)
+	 * 5. Return token
 	 */
 
 	// Get client details
@@ -606,18 +616,18 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 		return nil, errors.New("client is disabled")
 	}
 
-	// Verify client secret using the service method
+	// Verify client secret
 	err = s.clientSvc.VerifySecret(clientSecret, cl.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
-	// Check if client has a linked user
+	// Check if client supports service account flow
 	if cl.LinkedUserId == "" {
 		return nil, errors.New("client does not support service account flow")
 	}
 
-	// Get the linked user
+	// Get the linked user to validate it exists and is enabled
 	user, err := s.usrSvc.GetById(ctx, cl.LinkedUserId)
 	if err != nil {
 		return nil, fmt.Errorf("linked user not found: %w", err)
@@ -636,30 +646,26 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 	// Generate token parameters
 	tokenDuration := time.Hour * 24
 	expiryTime := time.Now().Add(tokenDuration)
-	accessTokenId := uuid.New().String()
-
-	// Create a synthetic AuthToken to maintain consistency with OAuth flow
+	
+	// Create synthetic AuthToken (similar to OAuth token)
 	syntheticToken := sdk.AuthToken{
-		AccessToken:    "service-account:" + user.Id, 
-		RefreshToken:   "",                           
+		AccessToken:    fmt.Sprintf("service-account:%s", clientId), // Store client ID
+		RefreshToken:   "",                                           // No refresh for service accounts
 		ExpiresAt:      expiryTime,
-		AuthProviderID: "@internal/service-account",  
+		AuthProviderID: "@internal/service-account",
 	}
 
-	// This ensures GetIdentity can retrieve it the same way
-	_, err = s.cacheAccessToken(ctx, syntheticToken, accessTokenId)
+	// Cache the auth token (exactly like OAuth)
+	accessTokenId, err := s.cacheAccessToken(ctx, syntheticToken, "")
 	if err != nil {
-		return nil, fmt.Errorf("error caching synthetic auth token: %w", err)
+		return nil, fmt.Errorf("error caching auth token: %w", err)
 	}
 
-	// Generate JWT with claims
+	// Only contains reference ID, no user details
 	claims := map[string]interface{}{
-		"id":         accessTokenId,
-		"grant_type": "client_credentials",
-		"client_id":  clientId,
-		"user_id":    user.Id,
-		"iat":        time.Now().Unix(),
-		"exp":        expiryTime.Unix(),
+		"id":  accessTokenId,
+		"iat": time.Now().Unix(),
+		"exp": expiryTime.Unix(),
 	}
 
 	accessToken, err := s.jwtSvc.GenerateToken(claims, expiryTime.Unix())
@@ -667,11 +673,10 @@ func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret s
 		return nil, fmt.Errorf("error generating access token: %w", err)
 	}
 
-	// Cache user details with the JWT token as the key
-	// This provides a fast path for GetIdentity
+	// Cache user details (for performance, like OAuth)
 	err = s.cacheUserDetails(ctx, accessToken, *user)
 	if err != nil {
-		return nil, fmt.Errorf("error caching user details: %w", err)
+		log.Warnf("failed to cache user details: %v", err)
 	}
 
 	return &sdk.ClientCredentialsDataResponse{
