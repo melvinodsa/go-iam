@@ -66,6 +66,8 @@ paths:
                                             expires_in:
                                                 format: int64
                                                 type: integer
+                                            refresh_token:
+                                                type: string
                                             token_type:
                                                 type: string
                                         type: object
@@ -509,6 +511,81 @@ paths:
             security:
                 - BearerAuth: []
             summary: Update AuthProvider
+            tags:
+                - Auth Provider
+    /authprovider/v1/enable-service-account:
+        post:
+            description: Enable service account authentication for a project
+            parameters:
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            additionalProperties: {}
+                            type: object
+                description: Project ID
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            icon:
+                                                type: string
+                                            id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            params:
+                                                items:
+                                                    properties:
+                                                        is_secret:
+                                                            type: boolean
+                                                        key:
+                                                            type: string
+                                                        label:
+                                                            type: string
+                                                        value:
+                                                            type: string
+                                                    type: object
+                                                type: array
+                                            project_id:
+                                                type: string
+                                            provider:
+                                                type: string
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: Service account enabled successfully
+            security:
+                - BearerAuth: []
+            summary: Enable Service Account
             tags:
                 - Auth Provider
     /client/v1/:

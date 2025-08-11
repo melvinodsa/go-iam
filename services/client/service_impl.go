@@ -6,38 +6,48 @@ import (
 
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/services/authprovider"
 	"github.com/melvinodsa/go-iam/services/project"
+	"github.com/melvinodsa/go-iam/services/user"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
 type service struct {
-	s Store
-	p project.Service
-	e utils.Emitter[utils.Event[sdk.Client], sdk.Client]
+	s      Store
+	p      project.Service
+	e      utils.Emitter[utils.Event[sdk.Client], sdk.Client]
+	authP  authprovider.Service
+	usrSvc user.Service
 }
 
-func NewService(s Store, p project.Service) Service {
-	return service{s: s, p: p, e: utils.NewEmitter[utils.Event[sdk.Client]]()}
+func NewService(s Store, p project.Service, authP authprovider.Service, usrSvc user.Service) Service {
+	return service{
+		s:      s,
+		p:      p,
+		e:      utils.NewEmitter[utils.Event[sdk.Client]](),
+		authP:  authP,
+		usrSvc: usrSvc,
+	}
 }
 
 func (s service) VerifySecret(plainSecret, hashedSecret string) error {
 	if plainSecret == "" {
 		return fmt.Errorf("plain secret cannot be empty")
 	}
-	
+
 	// hashSecret function is defined in services/client/helpers.go
 	// It hashes the secret using SHA256 and encodes to base64
 	hashedPlain, err := hashSecret(plainSecret)
 	if err != nil {
 		return fmt.Errorf("failed to hash secret for verification: %w", err)
 	}
-	
+
 	if hashedPlain != hashedSecret {
 		return fmt.Errorf("secret verification failed: invalid secret")
 	}
-	
-	return nil // Verification successful
+
+	return nil 
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
@@ -75,6 +85,20 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
 		return project.ErrProjectNotFound
+	}
+	if client.DefaultAuthProviderId != "" {
+		authProvider, err := s.authP.Get(ctx, client.DefaultAuthProviderId, true)
+		if err == nil && authProvider.Provider == sdk.AuthProviderTypeGoIAMClient {
+			if client.LinkedUserId == "" {
+				return fmt.Errorf("linked_user_id is required when using GoIAM/CLIENT auth provider")
+			}
+
+			// Validate the user exists
+			_, err := s.usrSvc.GetById(ctx, client.LinkedUserId)
+			if err != nil {
+				return fmt.Errorf("linked user not found: %w", err)
+			}
+		}
 	}
 	// create a random string secret
 	sec, err := generateRandomSecret(32)

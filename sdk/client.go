@@ -69,3 +69,8 @@ type ClientQueryParams struct {
 	GoIamClient     bool     `json:"go_iam_client"`
 	SortByUpdatedAt bool     `json:"sort_by_updated_at"`
 }
+
+type ClientCreateRequest struct {
+	Client
+	LinkedUserEmail string `json:"linked_user_email,omitempty"`
+}

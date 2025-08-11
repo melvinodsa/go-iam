@@ -20,6 +20,7 @@ type AppConfig struct {
 	Encrypter  Encrypter
 	Redis      Redis
 	Jwt        Jwt
+	ServiceAccount ServiceAccount
 }
 
 func NewAppConfig() *AppConfig {
@@ -205,4 +206,21 @@ func (a *AppConfig) LoadJwtConfig() {
 		panic("JWT_SECRET is required")
 	}
 	a.Jwt.secret = sdk.MaskedBytes(secret)
+}
+
+func (a *AppConfig) LoadServiceAccountConfig() {
+	a.ServiceAccount.AccessTokenTTLInMinutes = 60 // Default 1 hour
+	a.ServiceAccount.RefreshTokenTTLInDays = 30   // Default 30 days
+
+	if val := os.Getenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES"); val != "" {
+		if ttl, err := strconv.ParseInt(val, 10, 64); err == nil {
+			a.ServiceAccount.AccessTokenTTLInMinutes = ttl
+		}
+	}
+
+	if val := os.Getenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS"); val != "" {
+		if ttl, err := strconv.ParseInt(val, 10, 64); err == nil {
+			a.ServiceAccount.RefreshTokenTTLInDays = ttl
+		}
+	}
 }
