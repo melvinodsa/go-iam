@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider"
+	"github.com/melvinodsa/go-iam/services/authprovider/goiamclient"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
@@ -159,24 +160,42 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if !ok {
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
+
 	usr, err := s.getUserFromCache(ctx, accessToken)
 	if err == nil && usr != nil {
 		log.Debugf("fetched user records from cache - %s", usr.Id)
 		return usr, nil
 	}
+
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
 	}
-	identity, err := s.getAuthProivderIdentity(ctx, token, accessTokenId)
+	authProvider, err := s.authP.Get(ctx, token.AuthProviderID, true)
 	if err != nil {
-		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
+		return nil, fmt.Errorf("error fetching auth provider: %w", err)
 	}
-	usr, err = s.getOrCreateUser(ctx, *identity)
-	if err != nil {
-		return nil, fmt.Errorf("error getting or creating the user %w", err)
+
+	// Handle based on provider type
+	if authProvider.Provider == sdk.AuthProviderTypeGoIAMClient {
+		// For GoIAM/CLIENT, extract user from token
+		usr, err = s.getServiceAccountUser(ctx, token, authProvider, accessTokenId)
+		if err != nil {
+			return nil, fmt.Errorf("error getting service account user: %w", err)
+		}
+	} else {
+		// For other providers (Google, etc), use standard flow
+		identity, err := s.getAuthProivderIdentity(ctx, token, accessTokenId)
+		if err != nil {
+			return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
+		}
+
+		usr, err = s.getOrCreateUser(ctx, *identity)
+		if err != nil {
+			return nil, fmt.Errorf("error getting or creating the user %w", err)
+		}
+
 	}
-	log.Debugf("fetched user records from auth provider - %s", usr.Id)
 	err = s.cacheUserDetails(ctx, accessToken, *usr)
 	if err != nil {
 		return nil, fmt.Errorf("error caching the user details %w", err)
@@ -250,7 +269,60 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 		id.UpdateUserDetails(&user)
 	}
 	return &user, nil
+}
 
+func (s service) getServiceAccountUser(ctx context.Context, token *sdk.AuthToken, authProvider *sdk.AuthProvider,accessTokenId string) (*sdk.User, error) {
+	// Get the service provider
+	sp, err := s.authP.GetProvider(ctx, *authProvider)
+	if err != nil {
+		return nil, fmt.Errorf("error getting service provider: %w", err)
+	}
+
+	if token.ExpiresAt.Before(time.Now()) {
+		// Refresh the token
+		newToken, err := sp.RefreshToken(token.RefreshToken)
+		if err != nil {
+			return nil, fmt.Errorf("error refreshing service account token: %w", err)
+		}
+		token.AccessToken = newToken.AccessToken
+		token.ExpiresAt = newToken.ExpiresAt
+		_, err = s.cacheAccessToken(ctx, *token, accessTokenId)
+		if err != nil {
+			log.Warnf("failed to update cached token after refresh: %v", err)
+		}
+	}
+
+	// Get identity from token
+	identities, err := sp.GetIdentity(token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error getting service account identity: %w", err)
+	}
+
+	if len(identities) == 0 {
+		return nil, fmt.Errorf("no identity found in service account token")
+	}
+
+	// Extract user ID from identity
+	identity := identities[0]
+	if goiamIdentity, ok := identity.Metadata.(goiamclient.GoIAMClientIdentity); ok {
+		// Get the actual user
+		user, err := s.usrSvc.GetById(ctx, goiamIdentity.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("service account user not found: %w", err)
+		}
+
+		// Validate user
+		if !user.Enabled {
+			return nil, errors.New("service account user is disabled")
+		}
+		if user.Expiry != nil && user.Expiry.Before(time.Now()) {
+			return nil, errors.New("service account user has expired")
+		}
+
+		return user, nil
+	}
+
+	return nil, fmt.Errorf("invalid service account identity format")
 }
 
 func (s service) refreshAuthToken(ctx context.Context, accessToken string, token sdk.AuthToken, sp sdk.ServiceProvider) (*sdk.AuthToken, error) {
@@ -522,4 +594,110 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 		redirectUrl = fmt.Sprintf("%s?code=%s&state=%s", redirectUrl, authCode, state)
 	}
 	return redirectUrl, nil
+}
+
+func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
+	// Step 1: Validate client credentials
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
+	if err != nil {
+		return nil, fmt.Errorf("invalid client_id: %w", err)
+	}
+
+	if !cl.Enabled {
+		return nil, errors.New("client is disabled")
+	}
+
+	err = s.clientSvc.VerifySecret(clientSecret, cl.Secret)
+	if err != nil {
+		return nil, fmt.Errorf("authentication failed: %w", err)
+	}
+
+
+	// Step 2: Check if client uses GoIAM/CLIENT auth provider
+	if cl.DefaultAuthProviderId == "" {
+		return nil, errors.New("client does not have an auth provider configured")
+	}
+
+	// Get the auth provider
+	authProvider, err := s.authP.Get(ctx, cl.DefaultAuthProviderId, true)
+	if err != nil {
+		return nil, fmt.Errorf("auth provider not found: %w", err)
+	}
+
+	// Verify it's a GoIAM/CLIENT provider
+	if authProvider.Provider != sdk.AuthProviderTypeGoIAMClient {
+		return nil, fmt.Errorf("client is not configured for service account authentication")
+	}
+
+	// Step 3: Validate linked user
+	if cl.LinkedUserId == "" {
+		return nil, errors.New("client does not have a linked user for service account flow")
+	}
+
+	user, err := s.usrSvc.GetById(ctx, cl.LinkedUserId)
+	if err != nil {
+		return nil, fmt.Errorf("linked user not found: %w", err)
+	}
+
+	if !user.Enabled {
+		return nil, errors.New("linked user is disabled")
+	}
+
+	if user.Expiry != nil && user.Expiry.Before(time.Now()) {
+		return nil, errors.New("linked user has expired")
+	}
+
+	// Step 4: Create synthetic authorization code for the OAuth-like flow
+	codeData := goiamclient.ServiceAccountCode{
+		ClientID: clientId,
+		UserID:   user.Id,
+	}
+	codeJSON, _ := json.Marshal(codeData)
+
+	// Step 5: Use the standard OAuth flow with synthetic code
+	// Get the service provider
+	sp, err := s.authP.GetProvider(ctx, *authProvider)
+	if err != nil {
+		return nil, fmt.Errorf("error getting service provider: %w", err)
+	}
+
+	// Generate tokens using the provider (following OAuth pattern)
+	token, err := sp.VerifyCode(ctx, string(codeJSON))
+	if err != nil {
+		return nil, fmt.Errorf("error generating tokens: %w", err)
+	}
+	token.AuthProviderID = authProvider.Id
+
+	// Step 6: Cache the token (same as OAuth flow)
+	accessTokenId, err := s.cacheAccessToken(ctx, *token, "")
+	if err != nil {
+		return nil, fmt.Errorf("error caching access token: %w", err)
+	}
+
+	// Step 7: Generate JWT (same as OAuth flow)
+	tokenDuration := time.Hour * 24
+	expiryTime := time.Now().Add(tokenDuration)
+
+	claims := map[string]interface{}{
+		"id":  accessTokenId,
+		"iat": time.Now().Unix(),
+		"exp": expiryTime.Unix(),
+	}
+
+	accessToken, err := s.jwtSvc.GenerateToken(claims, expiryTime.Unix())
+	if err != nil {
+		return nil, fmt.Errorf("error generating JWT token: %w", err)
+	}
+
+	// Step 8: Cache user details for performance
+	err = s.cacheUserDetails(ctx, accessToken, *user)
+	if err != nil {
+		log.Warnf("failed to cache user details: %v", err)
+	}
+
+	return &sdk.ClientCredentialsDataResponse{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   int64(tokenDuration.Seconds()),
+	}, nil
 }

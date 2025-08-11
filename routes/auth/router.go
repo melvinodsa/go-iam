@@ -8,6 +8,7 @@ func RegisterRoutes(router fiber.Router, path string) {
 	LoginRoute(v1, v1Path)
 	RedirectRoute(v1, v1Path)
 	VerifyRoute(v1, v1Path)
+	ClientCredentialsRoute(v1, v1Path)
 }
 
 var routeTags = []string{"Auth"}
