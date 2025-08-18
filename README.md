@@ -115,3 +115,7 @@ Some important environment variables used in `.env`:
 | `ENCRYPTER_KEY`                                | Optional symmetric key for encrypting sensitive fields - change this  |
 | `AUTH_PROVIDER_REFETCH_INTERVAL_IN_MINUTES`    | Interval in minutes to refetch and sync third-party auth providers    |
 | `TOKEN_CACHE_TTL_IN_MINUTES`                   | Interval for which the authentication token should be valid           |
+
+## License
+
+- Community Edition: [Apache 2.0](./LICENSE) (Open Source, free to use)
