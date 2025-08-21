@@ -206,3 +206,86 @@ func Update(c *fiber.Ctx) error {
 		Data:    payload,
 	})
 }
+
+func EnableServiceAccountRoute(router fiber.Router, basePath string) {
+	routePath := "/enable-service-account"
+	path := basePath + routePath
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPost,
+		Name:        "Enable Service Account",
+		Description: "Enable service account authentication for a project",
+		Tags:        routeTags,
+		RequestBody: &docs.ApiRequestBody{
+			Description: "Project ID",
+			Content: map[string]interface{}{
+				"project_id": "string",
+			},
+		},
+		Response: &docs.ApiResponse{
+			Description: "Service account enabled successfully",
+			Content:     new(sdk.AuthProviderResponse),
+		},
+	})
+	router.Post(routePath, EnableServiceAccount)
+}
+
+func EnableServiceAccount(c *fiber.Ctx) error {
+	log.Debug("received enable service account request")
+	
+	payload := struct {
+		ProjectId string `json:"project_id"`
+	}{}
+	
+	if err := c.BodyParser(&payload); err != nil {
+		return sdk.AuthProviderBadRequest(fmt.Errorf("invalid request. %w", err).Error(), c)
+	}
+	
+	if payload.ProjectId == "" {
+		return sdk.AuthProviderBadRequest("project_id is required", c)
+	}
+	
+	pr := providers.GetProviders(c)
+	
+	// Check if service account auth provider already exists for this project
+	existingProviders, err := pr.S.AuthProviders.GetAll(c.Context(), sdk.AuthProviderQueryParams{
+		ProjectIds: []string{payload.ProjectId},
+	})
+	if err != nil {
+		return sdk.AuthProviderInternalServerError(fmt.Errorf("failed to check existing providers. %w", err).Error(), c)
+	}
+	
+	for _, provider := range existingProviders {
+		if provider.Provider == sdk.AuthProviderTypeGoIAMClient {
+			return c.Status(http.StatusOK).JSON(sdk.AuthProviderResponse{
+				Success: true,
+				Message: "Service account already enabled for this project",
+				Data:    &provider,
+			})
+		}
+	}
+	
+	// Create GOIAM/CLIENT auth provider
+	authProvider := &sdk.AuthProvider{
+		Name:      "GOIAM/CLIENT",
+		Icon:      "key",
+		Provider:  sdk.AuthProviderTypeGoIAMClient,
+		ProjectId: payload.ProjectId,
+		Params:    []sdk.AuthProviderParam{},
+		Enabled:   true,
+	}
+	
+	err = pr.S.AuthProviders.Create(c.Context(), authProvider)
+	if err != nil {
+		message := fmt.Errorf("failed to enable service account. %w", err).Error()
+		log.Errorw("failed to enable service account", "error", message)
+		return sdk.AuthProviderInternalServerError(message, c)
+	}
+	
+	log.Debug("service account enabled successfully")
+	return c.Status(http.StatusOK).JSON(sdk.AuthProviderResponse{
+		Success: true,
+		Message: "Service account enabled successfully",
+		Data:    authProvider,
+	})
+}

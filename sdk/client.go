@@ -18,6 +18,7 @@ type Client struct {
 	ProjectId             string     `json:"project_id"`
 	DefaultAuthProviderId string     `json:"default_auth_provider_id"`
 	GoIamClient           bool       `json:"go_iam_client"` // Indicates if this is a Go-IAM client
+	LinkedUserId          string     `json:"linked_user_id"`
 	Enabled               bool       `json:"enabled"`
 	CreatedAt             *time.Time `json:"created_at"`
 	CreatedBy             string     `json:"created_by"`
@@ -67,4 +68,9 @@ type ClientQueryParams struct {
 	ProjectIds      []string `json:"project_id"`
 	GoIamClient     bool     `json:"go_iam_client"`
 	SortByUpdatedAt bool     `json:"sort_by_updated_at"`
+}
+
+type ClientCreateRequest struct {
+	Client
+	LinkedUserEmail string `json:"linked_user_email,omitempty"`
 }
