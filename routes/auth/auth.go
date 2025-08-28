@@ -54,7 +54,7 @@ func LoginRoute(router fiber.Router, basePath string) {
 				Required:    false,
 			},
 			{
-				Name:        "code_challenge",
+				Name:        "code_challenge_method",
 				In:          "query",
 				Description: "Code challenge for PKCE. This required for public clients. For security reasons, only S256 is supported.",
 				Required:    false,
@@ -76,13 +76,13 @@ func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
 
-	codeChallenge := c.Query("code_challenge", "")
+	codeChallengeMethod := c.Query("code_challenge_method", "")
 	// Might have to revisit this when the standards change.
-	if len(codeChallenge) != 0 && strings.Compare(codeChallenge, "S256") != 0 {
-		log.Debugw("invalid code challenge", "code_challenge", codeChallenge)
+	if len(codeChallengeMethod) != 0 && strings.Compare(codeChallengeMethod, "S256") != 0 {
+		log.Debugw("invalid code challenge", "code_challenge_method", codeChallengeMethod)
 		return sdk.AuthProviderBadRequest("invalid code challenge. Only S256 is supported", c)
 	}
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge", ""), c.Query("code_verifier", ""))
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge_method", ""), c.Query("code_verifier", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to get login url", "error", message)
