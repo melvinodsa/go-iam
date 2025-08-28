@@ -55,12 +55,12 @@ paths:
         - description: The URL to redirect to after login
           in: query
           name: redirect_url
-        - description: Code challenge for PKCE. This required for public clients. For security reasons, only S256 is supported.
+        - description: Code challenge method for PKCE. This required for public clients. For security reasons, only S256 is supported.
           in: query
           name: code_challenge_method
-        - description: Code verifier for PKCE. This required for public clients
+        - description: Code challenge for PKCE. This required for public clients
           in: query
-          name: code_verifier
+          name: code_challenge
       responses:
         default:
           content:
@@ -91,7 +91,7 @@ paths:
           required: true
         - description: The code verifier
           in: query
-          name: code_verifier
+          name: code_challenge
         - description: The client ID to be provided if code verifier is provided
           in: query
           name: client_id
