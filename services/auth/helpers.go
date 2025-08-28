@@ -42,7 +42,7 @@ func (s *service) handlePrivateClient(ctx context.Context, clientId, clientSecre
 
 func (s *service) handlePublicClient(clientId, codeVerifier string, token sdk.AuthToken) error {
 	// Implement public client handling logic here
-	if token.CodeChallenge != "S256" {
+	if token.CodeChallengeMethod != "S256" {
 		return fmt.Errorf("invalid code challenge")
 	}
 	calculatedVerifier := generateCodeChallengeS256(token.CodeVerifier)
