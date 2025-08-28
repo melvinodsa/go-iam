@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -51,6 +53,18 @@ func LoginRoute(router fiber.Router, basePath string) {
 				Description: "The URL to redirect to after login",
 				Required:    false,
 			},
+			{
+				Name:        "code_challenge",
+				In:          "query",
+				Description: "Code challenge for PKCE. This required for public clients. For security reasons, only S256 is supported.",
+				Required:    false,
+			},
+			{
+				Name:        "code_verifier",
+				In:          "query",
+				Description: "Code verifier for PKCE. This required for public clients",
+				Required:    false,
+			},
 		},
 		UnAuthenticated:      true,
 		ProjectIDNotRequired: true,
@@ -62,7 +76,13 @@ func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
 
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
+	codeChallenge := c.Query("code_challenge", "")
+	// Might have to revisit this when the standards change.
+	if len(codeChallenge) != 0 && strings.Compare(codeChallenge, "S256") != 0 {
+		log.Debugw("invalid code challenge", "code_challenge", codeChallenge)
+		return sdk.AuthProviderBadRequest("invalid code challenge. Only S256 is supported", c)
+	}
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge", ""), c.Query("code_verifier", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to get login url", "error", message)
@@ -166,6 +186,18 @@ func VerifyRoute(router fiber.Router, basePath string) {
 				Description: "The authentication code",
 				Required:    true,
 			},
+			{
+				Name:        "code_verifier",
+				In:          "query",
+				Description: "The code verifier",
+				Required:    false,
+			},
+			{
+				Name:        "client_id",
+				In:          "query",
+				Description: "The client ID to be provided if code verifier is provided",
+				Required:    false,
+			},
 		},
 		UnAuthenticated:      true,
 		ProjectIDNotRequired: true,
@@ -177,7 +209,21 @@ func Verify(c *fiber.Ctx) error {
 	log.Debug("received callback request")
 	pr := providers.GetProviders(c)
 	code := c.Query("code")
-	resp, err := pr.S.Auth.ClientCallback(c.Context(), code)
+	var clientId, clientSecret string
+	// get code verifier from query params
+	codeVerifier := c.Query("code_verifier")
+	clientId = c.Query("client_id")
+
+	if len(codeVerifier) == 0 || len(clientId) == 0 {
+		// get client id and secret from authorization header with basic auth
+		clId, clSec, ok := getClientDetails(c)
+		if !ok {
+			return sdk.AuthProviderBadRequest("missing or invalid authorization header", c)
+		}
+		clientId = clId
+		clientSecret = clSec
+	}
+	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, codeVerifier, clientId, clientSecret)
 	if err != nil {
 		message := fmt.Errorf("failed to get callback. %w", err).Error()
 		return sdk.AuthProviderInternalServerError(message, c)
@@ -189,4 +235,26 @@ func Verify(c *fiber.Ctx) error {
 		Message: "Callback successful",
 		Data:    resp,
 	})
+}
+
+func getClientDetails(c *fiber.Ctx) (string, string, bool) {
+	headers := c.GetReqHeaders()
+	authHeaders := headers["Authorization"]
+	if len(authHeaders) == 0 {
+		return "", "", false
+	}
+	// extract client id and secret from basic auth
+	parts := strings.SplitN(authHeaders[0], " ", 2)
+	if len(parts) != 2 || parts[0] != "Basic" {
+		return "", "", false
+	}
+	credentials, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", false
+	}
+	creds := strings.SplitN(string(credentials), ":", 2)
+	if len(creds) != 2 {
+		return "", "", false
+	}
+	return creds[0], creds[1], true
 }

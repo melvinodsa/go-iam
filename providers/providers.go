@@ -62,6 +62,8 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	// subscribe to client events for checking auth client
 	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, pvd)
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, pvd)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, svcs.Auth)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, svcs.Auth)
 
 	// creating default project if it doesn't exist
 	err = checkAndAddDefaultProject(svcs.Projects)

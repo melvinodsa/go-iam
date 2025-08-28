@@ -45,7 +45,7 @@ func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc c
 	}
 }
 
-func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, state, redirectUrl string) (string, error) {
+func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, state, redirectUrl, codeChallenge, codeVerifier string) (string, error) {
 	/*
 	 * We first get the client details from the client service if authproviderid is not provided
 	 * Then we will get the auth provider details from the auth provider service for the default auth provider
@@ -68,7 +68,7 @@ func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, stat
 		return "", fmt.Errorf("error getting service provider %w", err)
 	}
 	// it is important to note that we are combining the state with the client id
-	newState, err := s.cacheState(ctx, state, clientId, p.Id, redirectUrl)
+	newState, err := s.cacheState(ctx, state, clientId, p.Id, redirectUrl, codeChallenge, codeVerifier)
 	if err != nil {
 		return "", fmt.Errorf("error caching the state %w", err)
 	}
@@ -82,22 +82,29 @@ func (s service) Redirect(ctx context.Context, code, state string) (*sdk.AuthRed
 	 * get the callback details from client service
 	 * return the callback details
 	 */
-	clientId, oState, authProviderId, redirectUrl, err := s.getCacheState(ctx, state)
+	clientId, oState, authProviderId, redirectUrl, codeChallenge, codeVerifier, err := s.getCacheState(ctx, state)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the state from cache %w", err)
+	}
+
+	if len(codeChallenge) != 0 && strings.Compare(codeChallenge, "S256") != 0 {
+		return nil, fmt.Errorf("invalid code challenge")
 	}
 
 	token, err := s.getToken(ctx, authProviderId, code)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token %w", err)
 	}
+	token.CodeChallenge = codeChallenge
+	token.CodeVerifier = codeVerifier
+	token.ClientId = clientId
 
 	authCode, err := s.cacheAuthToken(ctx, *token)
 	if err != nil {
 		return nil, fmt.Errorf("error caching the token %w", err)
 	}
 
-	redirectUrl, err = s.getRedirectUrl(ctx, clientId, redirectUrl, authCode, oState)
+	redirectUrl, err = s.getRedirectUrl(ctx, clientId, redirectUrl, authCode, oState, codeVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the callback url %w", err)
 	}
@@ -110,7 +117,7 @@ func (s service) Redirect(ctx context.Context, code, state string) (*sdk.AuthRed
 	return &sdk.AuthRedirectResponse{RedirectUrl: redirectUrl}, nil
 }
 
-func (s service) ClientCallback(ctx context.Context, code string) (*sdk.AuthVerifyCodeResponse, error) {
+func (s service) ClientCallback(ctx context.Context, code, codeVerifier, clientId, clientSecret string) (*sdk.AuthVerifyCodeResponse, error) {
 	/*
 	 * get the code from the cache
 	 * generate the access token and store the original token in cache
@@ -120,9 +127,25 @@ func (s service) ClientCallback(ctx context.Context, code string) (*sdk.AuthVeri
 
 	// get the auth token from cache
 
+	isPublicClient := len(codeVerifier) != 0
+	isPrivateClient := len(clientSecret) != 0
 	token, err := s.getAuthTokenFromCache(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
+	}
+
+	if isPrivateClient {
+		err = s.handlePrivateClient(ctx, clientId, clientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error handling private client %w", err)
+		}
+	}
+
+	if isPublicClient {
+		err = s.handlePublicClient(clientId, codeVerifier, *token)
+		if err != nil {
+			return nil, fmt.Errorf("error handling public client %w", err)
+		}
 	}
 
 	accessTokenId, err := s.cacheAccessToken(ctx, *token, "")
@@ -436,13 +459,13 @@ func (s service) invalidateAuthToken(ctx context.Context, authCode string) error
 	return nil
 }
 
-func (s service) cacheState(ctx context.Context, state, clientId, providerId, redirectUrl string) (string, error) {
+func (s service) cacheState(ctx context.Context, state, clientId, providerId, redirectUrl, codeChallenge, codeVerifier string) (string, error) {
 	/*
 	 * add the extra info required in cache
 	 * generate a new state id
 	 * save the state in cache
 	 */
-	newState := fmt.Sprintf("%s:%s:%s:%s", state, clientId, providerId, url.QueryEscape(redirectUrl))
+	newState := fmt.Sprintf("%s:%s:%s:%s:%s:%s", state, clientId, providerId, url.QueryEscape(redirectUrl), codeChallenge, codeVerifier)
 	st, err := s.encSvc.Encrypt(newState)
 	if err != nil {
 		return "", fmt.Errorf("error encrypting the state %w", err)
@@ -455,33 +478,35 @@ func (s service) cacheState(ctx context.Context, state, clientId, providerId, re
 	return stateId, nil
 }
 
-func (s service) getCacheState(ctx context.Context, stateId string) (string, string, string, string, error) {
+func (s service) getCacheState(ctx context.Context, stateId string) (string, string, string, string, string, string, error) {
 	/*
 	 * get the state from cache
 	 */
 	val, err := s.cacheSvc.Get(ctx, fmt.Sprintf("state-%s", stateId))
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("error fetching the state from cache %w", err)
+		return "", "", "", "", "", "", fmt.Errorf("error fetching the state from cache %w", err)
 	}
 
 	state, err := s.encSvc.Decrypt(val)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("error decrypting the state %w", err)
+		return "", "", "", "", "", "", fmt.Errorf("error decrypting the state %w", err)
 	}
 	stateParts := strings.Split(state, ":")
-	if len(stateParts) != 4 {
-		return "", "", "", "", fmt.Errorf("invalid state. expected to have 4 parts but got %d", len(stateParts))
+	if len(stateParts) != 6 {
+		return "", "", "", "", "", "", fmt.Errorf("invalid state. expected to have 6 parts but got %d", len(stateParts))
 	}
 	clientId := stateParts[1]
 	oState := stateParts[0]
 	authProviderId := stateParts[2]
 	redirectUrl := stateParts[3]
+	codeChallenge := stateParts[4]
+	codeVerifier := stateParts[5]
 
 	urlDecoded, err := url.QueryUnescape(redirectUrl)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("error decoding the redirect url %w", err)
+		return "", "", "", "", "", "", fmt.Errorf("error decoding the redirect url %w", err)
 	}
-	return clientId, oState, authProviderId, urlDecoded, nil
+	return clientId, oState, authProviderId, urlDecoded, codeChallenge, codeVerifier, nil
 }
 
 func (s service) invalidateState(ctx context.Context, stateId string) error {
@@ -495,7 +520,7 @@ func (s service) invalidateState(ctx context.Context, stateId string) error {
 	return nil
 }
 
-func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, authCode, state string) (string, error) {
+func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, authCode, state, codeVerifier string) (string, error) {
 	/*
 	 * get the client details
 	 * get the auth provider details
@@ -520,6 +545,10 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 		redirectUrl = fmt.Sprintf("%s&code=%s&state=%s", redirectUrl, authCode, state)
 	} else {
 		redirectUrl = fmt.Sprintf("%s?code=%s&state=%s", redirectUrl, authCode, state)
+	}
+
+	if len(codeVerifier) != 0 {
+		redirectUrl = fmt.Sprintf("%s&code_verifier=%s", redirectUrl, generateCodeChallengeS256(codeVerifier))
 	}
 	return redirectUrl, nil
 }
