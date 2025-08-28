@@ -8,6 +8,6 @@ type AuthToken struct {
 	ExpiresAt           time.Time `json:"expires_at"`
 	AuthProviderID      string    `json:"auth_provider_id"`
 	CodeChallengeMethod string    `json:"code_challenge_method"`
-	CodeVerifier        string    `json:"code_verifier"`
+	CodeChallenge       string    `json:"code_challenge"`
 	ClientId            string    `json:"client_id"`
 }

@@ -40,15 +40,15 @@ func (s *service) handlePrivateClient(ctx context.Context, clientId, clientSecre
 	return nil
 }
 
-func (s *service) handlePublicClient(clientId, codeVerifier string, token sdk.AuthToken) error {
+func (s *service) handlePublicClient(clientId, codeChallenge string, token sdk.AuthToken) error {
 	// Implement public client handling logic here
 	if token.CodeChallengeMethod != "S256" {
 		return fmt.Errorf("invalid code challenge")
 	}
-	calculatedVerifier := generateCodeChallengeS256(token.CodeVerifier)
+	calculatedVerifier := generateCodeChallengeS256(token.CodeChallenge)
 	// Verify the code verifier
-	if strings.Compare(calculatedVerifier, codeVerifier) != 0 {
-		log.Debugw("invalid code verifier", "calculated_verifier", calculatedVerifier, "code_verifier", codeVerifier)
+	if strings.Compare(calculatedVerifier, codeChallenge) != 0 {
+		log.Debugw("invalid code verifier", "calculated_verifier", calculatedVerifier, "code_challenge", codeChallenge)
 		return fmt.Errorf("invalid code verifier")
 	}
 	if strings.Compare(token.ClientId, clientId) != 0 {
@@ -57,7 +57,7 @@ func (s *service) handlePublicClient(clientId, codeVerifier string, token sdk.Au
 	return nil
 }
 
-func generateCodeChallengeS256(codeVerifier string) string {
-	hash := sha256.Sum256([]byte(codeVerifier))
+func generateCodeChallengeS256(codeChallenge string) string {
+	hash := sha256.Sum256([]byte(codeChallenge))
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }

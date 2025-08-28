@@ -56,13 +56,13 @@ func LoginRoute(router fiber.Router, basePath string) {
 			{
 				Name:        "code_challenge_method",
 				In:          "query",
-				Description: "Code challenge for PKCE. This required for public clients. For security reasons, only S256 is supported.",
+				Description: "Code challenge method for PKCE. This required for public clients. For security reasons, only S256 is supported.",
 				Required:    false,
 			},
 			{
-				Name:        "code_verifier",
+				Name:        "code_challenge",
 				In:          "query",
-				Description: "Code verifier for PKCE. This required for public clients",
+				Description: "Code challenge for PKCE. This required for public clients",
 				Required:    false,
 			},
 		},
@@ -82,7 +82,7 @@ func Login(c *fiber.Ctx) error {
 		log.Debugw("invalid code challenge", "code_challenge_method", codeChallengeMethod)
 		return sdk.AuthProviderBadRequest("invalid code challenge. Only S256 is supported", c)
 	}
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge_method", ""), c.Query("code_verifier", ""))
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge_method", ""), c.Query("code_challenge", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to get login url", "error", message)
@@ -187,7 +187,7 @@ func VerifyRoute(router fiber.Router, basePath string) {
 				Required:    true,
 			},
 			{
-				Name:        "code_verifier",
+				Name:        "code_challenge",
 				In:          "query",
 				Description: "The code verifier",
 				Required:    false,
@@ -211,10 +211,10 @@ func Verify(c *fiber.Ctx) error {
 	code := c.Query("code")
 	var clientId, clientSecret string
 	// get code verifier from query params
-	codeVerifier := c.Query("code_verifier")
+	codeChallenge := c.Query("code_challenge")
 	clientId = c.Query("client_id")
 
-	if len(codeVerifier) == 0 || len(clientId) == 0 {
+	if len(codeChallenge) == 0 || len(clientId) == 0 {
 		// get client id and secret from authorization header with basic auth
 		clId, clSec, ok := getClientDetails(c)
 		if !ok {
@@ -223,7 +223,7 @@ func Verify(c *fiber.Ctx) error {
 		clientId = clId
 		clientSecret = clSec
 	}
-	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, codeVerifier, clientId, clientSecret)
+	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, codeChallenge, clientId, clientSecret)
 	if err != nil {
 		message := fmt.Errorf("failed to get callback. %w", err).Error()
 		return sdk.AuthProviderInternalServerError(message, c)
