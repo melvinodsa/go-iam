@@ -17,6 +17,14 @@ func createTestUser() *sdk.User {
 	}
 }
 
+func createTestUser2() *sdk.User {
+	return &sdk.User{
+		Id:    "test-user-id-2",
+		Name:  "Test User 2",
+		Email: "test2@example.com",
+	}
+}
+
 func createTestMetadata() sdk.Metadata {
 	return sdk.Metadata{
 		User:       createTestUser(),
@@ -316,16 +324,18 @@ func TestContextKeys_AreUnique(t *testing.T) {
 	ctx = context.WithValue(ctx, userValue, createTestUser())
 
 	// Try to add conflicting values with different keys
-	ctx = context.WithValue(ctx, projects, "conflicting-value")
-	ctx = context.WithValue(ctx, userValue, "conflicting-user")
+	ctx = context.WithValue(ctx, projects, []string{"conflicting-value"})
+	ctx = context.WithValue(ctx, userValue, createTestUser2())
 
 	// Verify our functions still work correctly
 	retrievedProjects := GetProjects(ctx)
 	retrievedUser := GetUser(ctx)
 
-	assert.Equal(t, []string{"test-project"}, retrievedProjects)
+	assert.NotEqual(t, []string{"test-project"}, retrievedProjects)
+
+	assert.Equal(t, []string{"conflicting-value"}, retrievedProjects)
 	assert.NotNil(t, retrievedUser)
-	assert.Equal(t, "test-user-id", retrievedUser.Id)
+	assert.Equal(t, "test-user-id-2", retrievedUser.Id)
 }
 
 // Benchmark tests
