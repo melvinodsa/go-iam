@@ -28,9 +28,12 @@ func main() {
 		log.Infof("%s %s", route.Method, route.Path)
 	}
 
-	docs.CreateOpenApiDoc("docs/goiam.yaml")
+	err := docs.CreateOpenApiDoc("docs/goiam.yaml")
+	if err != nil {
+		log.Fatal("failed to create OpenAPI doc: %w", err)
+	}
 
-	err := app.Listen(":" + cnf.Server.Port)
+	err = app.Listen(":" + cnf.Server.Port)
 	if err != nil {
 		log.Fatal(err)
 		return
