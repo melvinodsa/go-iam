@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/sdk"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -72,7 +73,11 @@ func (g authProvider) RefreshToken(refreshToken string) (*sdk.AuthToken, error) 
 	if err != nil {
 		return nil, fmt.Errorf("error refreshing the token. %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Errorf("failed to close response body: %w", err)
+		}
+	}()
 
 	// Read the response
 	body, err := io.ReadAll(resp.Body)
@@ -122,7 +127,11 @@ func (g authProvider) GetIdentity(token string) ([]sdk.AuthIdentity, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error fetching the identity. %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Errorf("failed to close response body: %w", err)
+		}
+	}()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

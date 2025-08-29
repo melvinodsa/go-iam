@@ -13,7 +13,10 @@ import (
 )
 
 func (s *service) cacheClientSecret(ctx context.Context, clientId string, secret string) {
-	s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s", clientId), secret, time.Hour*24*365)
+	err := s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s", clientId), secret, time.Hour*24*365)
+	if err != nil {
+		log.Errorf("failed to cache client secret: %w", err)
+	}
 }
 
 func (s *service) getClientSecret(ctx context.Context, clientId string) (string, error) {
@@ -25,7 +28,10 @@ func (s *service) getClientSecret(ctx context.Context, clientId string) (string,
 	if err != nil {
 		return "", fmt.Errorf("couldn't get the client even from db: %w", err)
 	}
-	s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s", clientId), cl.Secret, time.Hour*24*365)
+	err = s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s", clientId), cl.Secret, time.Hour*24*365)
+	if err != nil {
+		log.Errorf("failed to cache client secret: %w", err)
+	}
 	return cl.Secret, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
@@ -120,7 +121,11 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList,
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch roles: %w", err)
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		if err := cursor.Close(ctx); err != nil {
+			log.Errorf("failed to close cursor: %w", err)
+		}
+	}()
 
 	if err := cursor.All(ctx, &roles); err != nil {
 		return nil, fmt.Errorf("failed to read roles: %w", err)

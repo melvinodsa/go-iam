@@ -67,13 +67,16 @@ func updateUserPoliciesUp(ctx context.Context, dbConn db.DB) error {
 		if err != nil {
 			return fmt.Errorf("failed to find users: %w", err)
 		}
+		defer func() {
+			if err := cursor.Close(context.Background()); err != nil {
+				log.Errorf("failed to close cursor: %w", err)
+			}
+		}()
 
 		var users []OldUser
 		if err := cursor.All(ctx, &users); err != nil {
-			cursor.Close(ctx)
 			return fmt.Errorf("failed to decode users: %w", err)
 		}
-		cursor.Close(ctx)
 
 		// Break if no more users
 		if len(users) == 0 {
@@ -136,13 +139,16 @@ func updateUserPoliciesDown(ctx context.Context, dbConn db.DB) error {
 		if err != nil {
 			return fmt.Errorf("failed to find users: %w", err)
 		}
+		defer func() {
+			if err := cursor.Close(context.Background()); err != nil {
+				log.Errorf("failed to close cursor: %w", err)
+			}
+		}()
 
 		var users []models.User
 		if err := cursor.All(ctx, &users); err != nil {
-			cursor.Close(ctx)
 			return fmt.Errorf("failed to decode users: %w", err)
 		}
-		cursor.Close(ctx)
 
 		// Break if no more users
 		if len(users) == 0 {
