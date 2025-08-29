@@ -239,10 +239,12 @@ func TestMockDB_UpdateMany(t *testing.T) {
 	mockDB.AssertExpectations(t)
 }
 
+type mockDbContextKey struct{}
+
 func TestMockDB_SetDbInContext(t *testing.T) {
 	mockDB := new(MockDB)
 	ctx := context.Background()
-	expectedCtx := context.WithValue(ctx, "key", "value")
+	expectedCtx := context.WithValue(ctx, mockDbContextKey{}, mockDB)
 
 	mockDB.On("SetDbInContext", ctx).Return(expectedCtx)
 
