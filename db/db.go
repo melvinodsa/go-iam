@@ -52,7 +52,7 @@ func GetDbFromContext(ctx context.Context) DB {
 	vl := ctx.Value(dbCtxKey{})
 	db, ok := vl.(*MongoConnection)
 	if !ok {
-		log.Fatal("db not found in context")
+		panic("db not found in context")
 	}
 	return db
 }

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -44,7 +45,7 @@ func CheckAndRunMigrations(ctx context.Context, db DB) error {
 		var existingMigration models.Migration
 		err := result.Decode(&existingMigration)
 
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			// Migration not found, need to apply it
 			log.Infof("Applying migration %s: %s", migration.Version, migration.Name)
 
