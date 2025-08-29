@@ -383,6 +383,8 @@ func BenchmarkIsMigrationApplied(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		IsMigrationApplied(ctx, mockDB, version)
+		ok, err := IsMigrationApplied(ctx, mockDB, version)
+		assert.NoError(b, err, "unexpected error")
+		assert.True(b, ok, "expected migration to be applied")
 	}
 }
