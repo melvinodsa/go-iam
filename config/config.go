@@ -35,7 +35,7 @@ type keyType struct {
 var configKey = keyType{"config"}
 
 func (a *AppConfig) Handle(c *fiber.Ctx) error {
-	c.Locals(configKey, a)
+	c.Locals(configKey, *a)
 	return c.Next()
 }
 

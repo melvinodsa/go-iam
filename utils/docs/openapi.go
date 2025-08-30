@@ -107,7 +107,7 @@ func extractPathParams(path string) string {
 }
 
 func generateDocsForApi(apiss []ApiWrapper) (*openapi3.PathItem, error) {
-	if len(apis) == 0 {
+	if len(apiss) == 0 {
 		return nil, errors.New("API path and method must be specified")
 	}
 
