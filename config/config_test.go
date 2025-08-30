@@ -620,13 +620,17 @@ func cleanEnv() {
 
 	for _, env := range envVars {
 		err := os.Unsetenv(env)
-		log.Error(err)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 }
 
 func setEnvVars(envVars map[string]string) {
 	for key, value := range envVars {
 		err := os.Setenv(key, value)
-		log.Error(err)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 }
