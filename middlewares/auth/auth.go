@@ -20,10 +20,15 @@ type Middlewares struct {
 }
 
 func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) *Middlewares {
+	authClient, err := goaiamclient.GetGoIamClient(clientSvc)
+	if err != nil {
+		log.Errorw("failed to get Go IAM client", "error", err)
+		return nil
+	}
 	return &Middlewares{
 		authSvc:    authSvc,
 		clientSvc:  clientSvc,
-		AuthClient: goaiamclient.GetGoIamClient(clientSvc),
+		AuthClient: authClient,
 	}
 }
 

@@ -82,9 +82,10 @@ func TestGetGoIamClient_Success(t *testing.T) {
 	}).Return([]sdk.Client{expectedClient}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, expectedClient.Id, result.Id)
 	assert.Equal(t, expectedClient.Name, result.Name)
@@ -132,9 +133,10 @@ func TestGetGoIamClient_MultipleClients(t *testing.T) {
 	}).Return([]sdk.Client{client1, client2}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions - should return the first client
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, client1.Id, result.Id)
 	assert.Equal(t, client1.Name, result.Name)
@@ -154,10 +156,11 @@ func TestGetGoIamClient_ServiceError(t *testing.T) {
 	}).Return([]sdk.Client{}, expectedError)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
 	assert.Nil(t, result)
+	assert.Error(t, err)
 
 	// Verify mock expectations
 	mockService.AssertExpectations(t)
@@ -173,10 +176,11 @@ func TestGetGoIamClient_NoClientsFound(t *testing.T) {
 	}).Return([]sdk.Client{}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
 	assert.Nil(t, result)
+	assert.NoError(t, err)
 
 	// Verify mock expectations
 	mockService.AssertExpectations(t)
@@ -200,9 +204,10 @@ func TestGetGoIamClient_EmptyClient(t *testing.T) {
 	}).Return([]sdk.Client{emptyClient}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "", result.Id)
 	assert.Equal(t, "", result.Name)
@@ -232,9 +237,10 @@ func TestGetGoIamClient_NilFields(t *testing.T) {
 	}).Return([]sdk.Client{clientWithNilFields}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "test-id", result.Id)
 	assert.Equal(t, "Test Client", result.Name)
@@ -263,9 +269,10 @@ func TestGetGoIamClient_CorrectQueryParams(t *testing.T) {
 	mockService.On("GetGoIamClients", mock.AnythingOfType("context.backgroundCtx"), expectedParams).Return([]sdk.Client{testClient}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "test-id", result.Id)
 
@@ -301,10 +308,11 @@ func TestGetGoIamClient_ContextPassing(t *testing.T) {
 	}), mock.AnythingOfType("sdk.ClientQueryParams")).Return([]sdk.Client{testClient}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Assertions
 	assert.NotNil(t, result)
+	assert.NoError(t, err)
 
 	// Verify mock expectations
 	mockService.AssertExpectations(t)
@@ -340,9 +348,10 @@ func TestGetGoIamClient_ClientWithAllFields(t *testing.T) {
 	}).Return([]sdk.Client{fullClient}, nil)
 
 	// Call the function
-	result := GetGoIamClient(mockService)
+	result, err := GetGoIamClient(mockService)
 
 	// Comprehensive assertions
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, fullClient.Id, result.Id)
 	assert.Equal(t, fullClient.Name, result.Name)
@@ -415,10 +424,11 @@ func TestGetGoIamClient_ErrorTypes(t *testing.T) {
 			}).Return([]sdk.Client{}, tc.serviceError)
 
 			// Call the function
-			result := GetGoIamClient(mockService)
+			result, err := GetGoIamClient(mockService)
 
 			// Assertions
 			assert.Equal(t, tc.expectedResult, result)
+			assert.Error(t, err)
 
 			// Verify mock expectations
 			mockService.AssertExpectations(t)

@@ -49,6 +49,10 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
 	am := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
+	authClient, err := goaiamclient.GetGoIamClient(svcs.Clients)
+	if err != nil {
+		return nil, nil
+	}
 
 	pvd := &Provider{
 		S:          svcs,
@@ -56,7 +60,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 		C:          cS,
 		PM:         pm,
 		AM:         am,
-		AuthClient: goaiamclient.GetGoIamClient(svcs.Clients),
+		AuthClient: authClient,
 	}
 
 	// subscribe to client events for checking auth client
@@ -99,6 +103,11 @@ func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
 	if !e.Payload().GoIamClient {
 		return
 	}
-	p.AuthClient = goaiamclient.GetGoIamClient(p.S.Clients)
+	var err error
+	p.AuthClient, err = goaiamclient.GetGoIamClient(p.S.Clients)
+	if err != nil {
+		log.Errorw("failed to get Go IAM client", "error", err)
+		return
+	}
 	p.AM.AuthClient = p.AuthClient
 }
