@@ -39,7 +39,7 @@ func (m *Middlewares) User(c *fiber.Ctx) error {
 	// This middleware can be used to check if the user is authenticated
 	user, err := m.GetUser(c)
 	if err != nil {
-		log.Errorw("failed to fetch user", "error", err)
+		log.Warnw("failed to fetch user", "error", err)
 		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
 			Success: false,
 			Message: err.Error(),
@@ -62,7 +62,7 @@ func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
 	// This middleware can be used to check if the user is authenticated
 	user, err := m.GetUser(c)
 	if err != nil {
-		log.Errorw("failed to fetch user", "error", err)
+		log.Warnw("failed to fetch user", "error", err)
 		res.Message = err.Error()
 		return c.Status(http.StatusUnauthorized).JSON(res)
 	}
