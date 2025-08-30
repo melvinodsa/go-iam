@@ -19,17 +19,16 @@ type Middlewares struct {
 	AuthClient *sdk.Client
 }
 
-func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) *Middlewares {
+func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) (*Middlewares, error) {
 	authClient, err := goaiamclient.GetGoIamClient(clientSvc)
 	if err != nil {
-		log.Errorw("failed to get Go IAM client", "error", err)
-		return nil
+		return nil, err
 	}
 	return &Middlewares{
 		authSvc:    authSvc,
 		clientSvc:  clientSvc,
 		AuthClient: authClient,
-	}
+	}, nil
 }
 
 func (m *Middlewares) User(c *fiber.Ctx) error {

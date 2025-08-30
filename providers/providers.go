@@ -48,7 +48,10 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
-	am := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
+	am, err := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
+	if err != nil {
+		return nil, err
+	}
 	authClient, err := goaiamclient.GetGoIamClient(svcs.Clients)
 	if err != nil {
 		return nil, nil

@@ -116,7 +116,10 @@ func setupTestAppWithAuthClient() (*fiber.App, *MockAuthService, *MockClientServ
 		return params.GoIamClient == true
 	})).Return([]sdk.Client{*testClient}, nil)
 
-	middlewares := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	middlewares, err := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	if err != nil {
+		return app, mockAuthSvc, mockClientSvc, nil
+	}
 	return app, mockAuthSvc, mockClientSvc, middlewares
 }
 
@@ -128,7 +131,10 @@ func setupTestAppWithoutAuthClient() (*fiber.App, *MockAuthService, *MockClientS
 		return params.GoIamClient == true
 	})).Return([]sdk.Client{}, nil)
 
-	middlewares := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	middlewares, err := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	if err != nil {
+		return app, mockAuthSvc, mockClientSvc, nil
+	}
 	return app, mockAuthSvc, mockClientSvc, middlewares
 }
 
@@ -156,7 +162,8 @@ func TestNewMiddlewares(t *testing.T) {
 		return params.GoIamClient == true
 	})).Return([]sdk.Client{*testClient}, nil)
 
-	middlewares := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	middlewares, err := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	assert.NoError(t, err)
 
 	assert.NotNil(t, middlewares)
 	assert.Equal(t, mockAuthSvc, middlewares.authSvc)
@@ -175,7 +182,8 @@ func TestNewMiddlewares_NoAuthClient(t *testing.T) {
 		return params.GoIamClient == true
 	})).Return([]sdk.Client{}, nil)
 
-	middlewares := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	middlewares, err := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	assert.NoError(t, err)
 
 	assert.NotNil(t, middlewares)
 	assert.Equal(t, mockAuthSvc, middlewares.authSvc)
@@ -193,12 +201,10 @@ func TestNewMiddlewares_GetGoIamClientsError(t *testing.T) {
 		return params.GoIamClient == true
 	})).Return(nil, errors.New("database error"))
 
-	middlewares := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	middlewares, err := NewMiddlewares(mockAuthSvc, mockClientSvc)
+	assert.Error(t, err)
 
-	assert.NotNil(t, middlewares)
-	assert.Equal(t, mockAuthSvc, middlewares.authSvc)
-	assert.Equal(t, mockClientSvc, middlewares.clientSvc)
-	assert.Nil(t, middlewares.AuthClient) // No auth client when error occurs
+	assert.Nil(t, middlewares)
 
 	mockClientSvc.AssertExpectations(t)
 }
