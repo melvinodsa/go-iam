@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/melvinodsa/go-iam/sdk"
@@ -62,12 +63,15 @@ func (e *TestEvent) Context() context.Context {
 // Mock Subscriber implementation
 type MockSubscriber struct {
 	mock.Mock
+	sync.Mutex
 	events []Event[string]
 }
 
 func (m *MockSubscriber) HandleEvent(event Event[string]) {
 	m.Called(event)
+	m.Lock()
 	m.events = append(m.events, event)
+	m.Unlock()
 }
 
 func TestNewEmitter(t *testing.T) {
