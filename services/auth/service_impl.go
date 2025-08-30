@@ -229,6 +229,9 @@ func (s service) getOrCreateUser(ctx context.Context, usr sdk.User) (*sdk.User, 
 			return nil, fmt.Errorf("error creating the user %w", err)
 		}
 		u = &usr
+	} else if err != nil {
+		// other error occurred during user lookup
+		return nil, fmt.Errorf("error fetching user %w", err)
 	}
 	if !u.Enabled {
 		return nil, errors.New("user is disabled")
