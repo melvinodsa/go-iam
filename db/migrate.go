@@ -95,3 +95,11 @@ func IsMigrationApplied(ctx context.Context, db DB, version string) (bool, error
 
 	return count > 0, nil
 }
+
+func GetMigrations() []MigrationInfo {
+	return registeredMigrations
+}
+
+func ResetMigrations() {
+	registeredMigrations = []MigrationInfo{}
+}

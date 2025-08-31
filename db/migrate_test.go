@@ -1,34 +1,31 @@
-package db
+package db_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/utils/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Test helper functions
-func setupMockDB() *MockDB {
-	return new(MockDB)
-}
-
-func createTestMigration(version, name string, shouldFail bool) MigrationInfo {
-	return MigrationInfo{
+func createTestMigration(version, name string, shouldFail bool) db.MigrationInfo {
+	return db.MigrationInfo{
 		Version:     version,
 		Name:        name,
 		Description: "Test migration " + version,
-		Up: func(ctx context.Context, db DB) error {
+		Up: func(ctx context.Context, db db.DB) error {
 			if shouldFail {
 				return errors.New("migration failed")
 			}
 			return nil
 		},
-		Down: func(ctx context.Context, db DB) error {
+		Down: func(ctx context.Context, db db.DB) error {
 			if shouldFail {
 				return errors.New("rollback failed")
 			}
@@ -39,38 +36,47 @@ func createTestMigration(version, name string, shouldFail bool) MigrationInfo {
 
 func TestRegisterMigration(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
 	// Reset migrations for test
-	registeredMigrations = []MigrationInfo{}
+	db.ResetMigrations()
 
 	migration := createTestMigration("001", "test_migration", false)
-	RegisterMigration(migration)
+	db.RegisterMigration(migration)
 
-	assert.Len(t, registeredMigrations, 1)
-	assert.Equal(t, "001", registeredMigrations[0].Version)
-	assert.Equal(t, "test_migration", registeredMigrations[0].Name)
+	existingMigrations := db.GetMigrations()
+
+	assert.Len(t, existingMigrations, 1)
+	assert.Equal(t, "001", existingMigrations[0].Version)
+	assert.Equal(t, "test_migration", existingMigrations[0].Name)
 }
 
 func TestCheckAndRunMigrations_NewMigration(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register test migration
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "test_migration", false),
-	}
+	db.RegisterMigration(createTestMigration("001", "test_migration", false))
 
 	// Mock FindOne to return ErrNoDocuments (migration not found)
 	mockResult := mongo.NewSingleResultFromDocument(bson.D{}, mongo.ErrNoDocuments, nil)
@@ -81,7 +87,7 @@ func TestCheckAndRunMigrations_NewMigration(t *testing.T) {
 	mockDB.On("InsertOne", ctx, migrationModel, mock.AnythingOfType("models.Migration"), mock.Anything).Return(insertResult, nil)
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.NoError(t, err)
@@ -90,27 +96,31 @@ func TestCheckAndRunMigrations_NewMigration(t *testing.T) {
 
 func TestCheckAndRunMigrations_ExistingMigration(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register test migration
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "test_migration", false),
-	}
+	db.RegisterMigration(createTestMigration("001", "test_migration", false))
 
 	// Mock FindOne to return existing migration (no error)
 	mockResult := mongo.NewSingleResultFromDocument(bson.D{}, nil, nil)
 	mockDB.On("FindOne", ctx, migrationModel, bson.M{migrationModel.VersionKey: "001"}, mock.Anything).Return(mockResult)
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.NoError(t, err)
@@ -121,27 +131,31 @@ func TestCheckAndRunMigrations_ExistingMigration(t *testing.T) {
 
 func TestCheckAndRunMigrations_MigrationUpFails(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register test migration that fails
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "failing_migration", true),
-	}
+	db.RegisterMigration(createTestMigration("001", "test_migration", true))
 
 	// Mock FindOne to return ErrNoDocuments (migration not found)
 	mockResult := mongo.NewSingleResultFromDocument(bson.D{}, mongo.ErrNoDocuments, nil)
 	mockDB.On("FindOne", ctx, migrationModel, bson.M{migrationModel.VersionKey: "001"}, mock.Anything).Return(mockResult)
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.Error(t, err)
@@ -153,27 +167,31 @@ func TestCheckAndRunMigrations_MigrationUpFails(t *testing.T) {
 
 func TestCheckAndRunMigrations_FindOneFails(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register test migration
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "test_migration", false),
-	}
+	db.RegisterMigration(createTestMigration("001", "test_migration", false))
 
 	// Mock FindOne to return a different error
 	mockResult := mongo.NewSingleResultFromDocument(bson.D{}, errors.New("database error"), nil)
 	mockDB.On("FindOne", ctx, migrationModel, bson.M{migrationModel.VersionKey: "001"}, mock.Anything).Return(mockResult)
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.Error(t, err)
@@ -183,20 +201,24 @@ func TestCheckAndRunMigrations_FindOneFails(t *testing.T) {
 
 func TestCheckAndRunMigrations_InsertOneFails(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register test migration
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "test_migration", false),
-	}
+	db.RegisterMigration(createTestMigration("001", "test_migration", false))
 
 	// Mock FindOne to return ErrNoDocuments (migration not found)
 	mockResult := mongo.NewSingleResultFromDocument(bson.D{}, mongo.ErrNoDocuments, nil)
@@ -206,7 +228,7 @@ func TestCheckAndRunMigrations_InsertOneFails(t *testing.T) {
 	mockDB.On("InsertOne", ctx, migrationModel, mock.AnythingOfType("models.Migration"), mock.Anything).Return((*mongo.InsertOneResult)(nil), errors.New("insert failed"))
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.Error(t, err)
@@ -216,21 +238,25 @@ func TestCheckAndRunMigrations_InsertOneFails(t *testing.T) {
 
 func TestCheckAndRunMigrations_MultipleMigrations(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	migrationModel := models.GetMigrationModel()
 
 	// Register multiple test migrations
-	registeredMigrations = []MigrationInfo{
-		createTestMigration("001", "first_migration", false),
-		createTestMigration("002", "second_migration", false),
-	}
+	db.RegisterMigration(createTestMigration("001", "first_migration", false))
+	db.RegisterMigration(createTestMigration("002", "second_migration", false))
 
 	// Mock FindOne for first migration (not found)
 	mockResult1 := mongo.NewSingleResultFromDocument(bson.D{}, mongo.ErrNoDocuments, nil)
@@ -245,7 +271,7 @@ func TestCheckAndRunMigrations_MultipleMigrations(t *testing.T) {
 	mockDB.On("InsertOne", ctx, migrationModel, mock.AnythingOfType("models.Migration"), mock.Anything).Return(insertResult, nil)
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.NoError(t, err)
@@ -253,7 +279,7 @@ func TestCheckAndRunMigrations_MultipleMigrations(t *testing.T) {
 }
 
 func TestIsMigrationApplied_Exists(t *testing.T) {
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	version := "001"
 	migrationModel := models.GetMigrationModel()
@@ -262,7 +288,7 @@ func TestIsMigrationApplied_Exists(t *testing.T) {
 	mockDB.On("CountDocuments", ctx, migrationModel, bson.M{migrationModel.VersionKey: version}, mock.Anything).Return(int64(1), nil)
 
 	// Execute
-	applied, err := IsMigrationApplied(ctx, mockDB, version)
+	applied, err := db.IsMigrationApplied(ctx, mockDB, version)
 
 	// Assert
 	assert.NoError(t, err)
@@ -271,7 +297,7 @@ func TestIsMigrationApplied_Exists(t *testing.T) {
 }
 
 func TestIsMigrationApplied_NotExists(t *testing.T) {
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	version := "001"
 	migrationModel := models.GetMigrationModel()
@@ -280,7 +306,7 @@ func TestIsMigrationApplied_NotExists(t *testing.T) {
 	mockDB.On("CountDocuments", ctx, migrationModel, bson.M{migrationModel.VersionKey: version}, mock.Anything).Return(int64(0), nil)
 
 	// Execute
-	applied, err := IsMigrationApplied(ctx, mockDB, version)
+	applied, err := db.IsMigrationApplied(ctx, mockDB, version)
 
 	// Assert
 	assert.NoError(t, err)
@@ -289,7 +315,7 @@ func TestIsMigrationApplied_NotExists(t *testing.T) {
 }
 
 func TestIsMigrationApplied_Error(t *testing.T) {
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	version := "001"
 	migrationModel := models.GetMigrationModel()
@@ -298,7 +324,7 @@ func TestIsMigrationApplied_Error(t *testing.T) {
 	mockDB.On("CountDocuments", ctx, migrationModel, bson.M{migrationModel.VersionKey: version}, mock.Anything).Return(int64(0), errors.New("database error"))
 
 	// Execute
-	applied, err := IsMigrationApplied(ctx, mockDB, version)
+	applied, err := db.IsMigrationApplied(ctx, mockDB, version)
 
 	// Assert
 	assert.Error(t, err)
@@ -309,18 +335,23 @@ func TestIsMigrationApplied_Error(t *testing.T) {
 
 func TestCheckAndRunMigrations_EmptyMigrations(t *testing.T) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
 
+	// Reset migrations for test
+	db.ResetMigrations()
+
 	// Setup test with no migrations
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
-	registeredMigrations = []MigrationInfo{}
 
 	// Execute
-	err := CheckAndRunMigrations(ctx, mockDB)
+	err := db.CheckAndRunMigrations(ctx, mockDB)
 
 	// Assert
 	assert.NoError(t, err)
@@ -330,14 +361,14 @@ func TestCheckAndRunMigrations_EmptyMigrations(t *testing.T) {
 }
 
 func TestMigrationInfo_Structure(t *testing.T) {
-	migration := MigrationInfo{
+	migration := db.MigrationInfo{
 		Version:     "001",
 		Name:        "test_migration",
 		Description: "A test migration",
-		Up: func(ctx context.Context, db DB) error {
+		Up: func(ctx context.Context, db db.DB) error {
 			return nil
 		},
-		Down: func(ctx context.Context, db DB) error {
+		Down: func(ctx context.Context, db db.DB) error {
 			return nil
 		},
 	}
@@ -359,22 +390,28 @@ func TestMigrationInfo_Structure(t *testing.T) {
 // Benchmark tests
 func BenchmarkRegisterMigration(b *testing.B) {
 	// Save original state
-	originalMigrations := registeredMigrations
+	originalMigrations := db.GetMigrations()
 	defer func() {
-		registeredMigrations = originalMigrations
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
 	}()
+
+	// Reset migrations for test
+	db.ResetMigrations()
 
 	migration := createTestMigration("001", "benchmark_migration", false)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		registeredMigrations = []MigrationInfo{} // Reset for each iteration
-		RegisterMigration(migration)
+		db.ResetMigrations()
+		db.RegisterMigration(migration)
 	}
 }
 
 func BenchmarkIsMigrationApplied(b *testing.B) {
-	mockDB := setupMockDB()
+	mockDB := test.SetupMockDB()
 	ctx := context.Background()
 	version := "001"
 	migrationModel := models.GetMigrationModel()
@@ -383,7 +420,7 @@ func BenchmarkIsMigrationApplied(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ok, err := IsMigrationApplied(ctx, mockDB, version)
+		ok, err := db.IsMigrationApplied(ctx, mockDB, version)
 		assert.NoError(b, err, "unexpected error")
 		assert.True(b, ok, "expected migration to be applied")
 	}

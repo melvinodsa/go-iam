@@ -1,108 +1,35 @@
-package db
+package db_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/utils/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// MockCollection implements DbCollection interface for testing
-type MockCollection struct {
-	name   string
-	dbName string
-}
-
-func (m MockCollection) Name() string {
-	return m.name
-}
-
-func (m MockCollection) DbName() string {
-	return m.dbName
-}
-
-// MockDB is a mock implementation of the DB interface
-type MockDB struct {
-	mock.Mock
-}
-
-func (m *MockDB) FindOne(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult {
-	args := m.Called(ctx, col, filter, opts)
-	return args.Get(0).(*mongo.SingleResult)
-}
-
-func (m *MockDB) Find(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
-	args := m.Called(ctx, col, filter, opts)
-	return args.Get(0).(*mongo.Cursor), args.Error(1)
-}
-
-func (m *MockDB) InsertOne(ctx context.Context, col DbCollection, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
-	args := m.Called(ctx, col, document, opts)
-	return args.Get(0).(*mongo.InsertOneResult), args.Error(1)
-}
-
-func (m *MockDB) UpdateOne(ctx context.Context, col DbCollection, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
-	args := m.Called(ctx, col, filter, update, opts)
-	return args.Get(0).(*mongo.UpdateResult), args.Error(1)
-}
-
-func (m *MockDB) DeleteOne(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
-	args := m.Called(ctx, col, filter, opts)
-	return args.Get(0).(*mongo.DeleteResult), args.Error(1)
-}
-
-func (m *MockDB) Aggregate(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.AggregateOptions) (*mongo.Cursor, error) {
-	args := m.Called(ctx, col, filter, opts)
-	return args.Get(0).(*mongo.Cursor), args.Error(1)
-}
-
-func (m *MockDB) CountDocuments(ctx context.Context, col DbCollection, filter interface{}, opts ...*options.CountOptions) (int64, error) {
-	args := m.Called(ctx, col, filter, opts)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockDB) BulkWrite(ctx context.Context, col DbCollection, models []mongo.WriteModel, opts ...*options.BulkWriteOptions) (*mongo.BulkWriteResult, error) {
-	args := m.Called(ctx, col, models, opts)
-	return args.Get(0).(*mongo.BulkWriteResult), args.Error(1)
-}
-
-func (m *MockDB) UpdateMany(ctx context.Context, col DbCollection, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
-	args := m.Called(ctx, col, filter, update, opts)
-	return args.Get(0).(*mongo.UpdateResult), args.Error(1)
-}
-
-func (m *MockDB) SetDbInContext(ctx context.Context) context.Context {
-	args := m.Called(ctx)
-	return args.Get(0).(context.Context)
-}
-
-func (m *MockDB) Disconnect(ctx context.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
-}
-
 func TestMongoConnection_SetDbInContext(t *testing.T) {
-	conn := &MongoConnection{}
+	conn := &db.MongoConnection{}
 	ctx := context.Background()
 
 	resultCtx := conn.SetDbInContext(ctx)
 
 	// Verify that the context contains the connection
-	retrievedDB := GetDbFromContext(resultCtx)
+	retrievedDB := db.GetDbFromContext(resultCtx)
 	assert.NotNil(t, retrievedDB)
 	assert.Equal(t, conn, retrievedDB)
 }
 
 func TestGetDbFromContext_Success(t *testing.T) {
-	conn := &MongoConnection{}
-	ctx := context.WithValue(context.Background(), dbCtxKey{}, conn)
+	conn := &db.MongoConnection{}
+	ctx := context.WithValue(context.Background(), db.DbCtxKey{}, conn)
 
-	db := GetDbFromContext(ctx)
+	db := db.GetDbFromContext(ctx)
 
 	assert.NotNil(t, db)
 	assert.Equal(t, conn, db)
@@ -119,7 +46,7 @@ func TestGetDbFromContext_Panic(t *testing.T) {
 	}()
 
 	ctx := context.Background()
-	GetDbFromContext(ctx)
+	db.GetDbFromContext(ctx)
 
 	t.Error("Expected panic but didn't get one")
 }
@@ -127,25 +54,22 @@ func TestGetDbFromContext_Panic(t *testing.T) {
 func TestMongoConnection_Disconnect(t *testing.T) {
 	// This is an integration test that would require a real MongoDB connection
 	// For unit testing, we'll test the interface compliance
-	var _ DB = (*MongoConnection)(nil)
-	var _ DbClient = (*MongoConnection)(nil)
-	var _ DbQuerier = (*MongoConnection)(nil)
+	var _ db.DB = (*db.MongoConnection)(nil)
+	var _ db.DbClient = (*db.MongoConnection)(nil)
+	var _ db.DbQuerier = (*db.MongoConnection)(nil)
 }
 
 func TestMockCollection(t *testing.T) {
-	col := MockCollection{
-		name:   "test_collection",
-		dbName: "test_db",
-	}
+	col := test.NewMockCollection("test_collection", "test_db")
 
 	assert.Equal(t, "test_collection", col.Name())
 	assert.Equal(t, "test_db", col.DbName())
 }
 
 func TestMockDB_InsertOne(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
-	col := MockCollection{name: "test", dbName: "testdb"}
+	col := test.NewMockCollection("test", "testdb")
 	doc := bson.M{"name": "test"}
 
 	expectedResult := &mongo.InsertOneResult{
@@ -162,9 +86,9 @@ func TestMockDB_InsertOne(t *testing.T) {
 }
 
 func TestMockDB_UpdateOne(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
-	col := MockCollection{name: "test", dbName: "testdb"}
+	col := test.NewMockCollection("test", "testdb")
 	filter := bson.M{"_id": "test-id"}
 	update := bson.M{"$set": bson.M{"name": "updated"}}
 
@@ -183,9 +107,9 @@ func TestMockDB_UpdateOne(t *testing.T) {
 }
 
 func TestMockDB_DeleteOne(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
-	col := MockCollection{name: "test", dbName: "testdb"}
+	col := test.NewMockCollection("test", "testdb")
 	filter := bson.M{"_id": "test-id"}
 
 	expectedResult := &mongo.DeleteResult{
@@ -202,9 +126,9 @@ func TestMockDB_DeleteOne(t *testing.T) {
 }
 
 func TestMockDB_CountDocuments(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
-	col := MockCollection{name: "test", dbName: "testdb"}
+	col := test.NewMockCollection("test", "testdb")
 	filter := bson.M{"status": "active"}
 
 	expectedCount := int64(5)
@@ -219,9 +143,9 @@ func TestMockDB_CountDocuments(t *testing.T) {
 }
 
 func TestMockDB_UpdateMany(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
-	col := MockCollection{name: "test", dbName: "testdb"}
+	col := test.NewMockCollection("test", "testdb")
 	filter := bson.M{"status": "pending"}
 	update := bson.M{"$set": bson.M{"status": "processed"}}
 
@@ -242,7 +166,7 @@ func TestMockDB_UpdateMany(t *testing.T) {
 type mockDbContextKey struct{}
 
 func TestMockDB_SetDbInContext(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx := context.Background()
 	expectedCtx := context.WithValue(ctx, mockDbContextKey{}, mockDB)
 
@@ -255,7 +179,7 @@ func TestMockDB_SetDbInContext(t *testing.T) {
 }
 
 func TestMockDB_Disconnect(t *testing.T) {
-	mockDB := new(MockDB)
+	mockDB := new(test.MockDB)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -269,7 +193,7 @@ func TestMockDB_Disconnect(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkSetDbInContext(b *testing.B) {
-	conn := &MongoConnection{}
+	conn := &db.MongoConnection{}
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -279,11 +203,11 @@ func BenchmarkSetDbInContext(b *testing.B) {
 }
 
 func BenchmarkGetDbFromContext(b *testing.B) {
-	conn := &MongoConnection{}
+	conn := &db.MongoConnection{}
 	ctx := conn.SetDbInContext(context.Background())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		GetDbFromContext(ctx)
+		db.GetDbFromContext(ctx)
 	}
 }
