@@ -9,3 +9,5 @@ coverage.out
 coverage.html
 
 bin
+
+go-iam
