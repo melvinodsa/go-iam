@@ -98,10 +98,10 @@ func TestService_Encrypt(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, encryptedMessage)
 		assert.NotEqual(t, rawMessage, encryptedMessage)
-		
+
 		// Verify it's hex encoded
 		assert.True(t, isHexString(encryptedMessage))
-		
+
 		// Verify the encrypted message is longer than original (due to nonce + tag)
 		assert.Greater(t, len(encryptedMessage), len(rawMessage)*2) // hex encoding doubles length
 	})
@@ -176,11 +176,11 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("successful_decryption", func(t *testing.T) {
 		rawMessage := "Hello, World!"
-		
+
 		// First encrypt the message
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		// Then decrypt it
 		decryptedMessage, err := service.Decrypt(encryptedMessage)
 
@@ -190,10 +190,10 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("decrypt_empty_string_encryption", func(t *testing.T) {
 		rawMessage := ""
-		
+
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		decryptedMessage, err := service.Decrypt(encryptedMessage)
 
 		assert.NoError(t, err)
@@ -202,10 +202,10 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("decrypt_long_message", func(t *testing.T) {
 		rawMessage := strings.Repeat("This is a long message for testing encryption and decryption. ", 50)
-		
+
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		decryptedMessage, err := service.Decrypt(encryptedMessage)
 
 		assert.NoError(t, err)
@@ -214,10 +214,10 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("decrypt_special_characters", func(t *testing.T) {
 		rawMessage := "Special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?`~\n\t\r"
-		
+
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		decryptedMessage, err := service.Decrypt(encryptedMessage)
 
 		assert.NoError(t, err)
@@ -226,10 +226,10 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("decrypt_unicode_characters", func(t *testing.T) {
 		rawMessage := "Unicode: 🔒🗝️🛡️ 中文 العربية русский"
-		
+
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		decryptedMessage, err := service.Decrypt(encryptedMessage)
 
 		assert.NoError(t, err)
@@ -253,7 +253,7 @@ func TestService_Decrypt(t *testing.T) {
 		// We need to recover from panic if it happens
 		var decryptedMessage string
 		var err error
-		
+
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -274,7 +274,7 @@ func TestService_Decrypt(t *testing.T) {
 
 		var decryptedMessage string
 		var err error
-		
+
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -304,7 +304,7 @@ func TestService_Decrypt(t *testing.T) {
 		rawMessage := "Test message"
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		// Truncate the encrypted message to make it invalid
 		truncatedMessage := encryptedMessage[:len(encryptedMessage)/2]
 
@@ -317,11 +317,11 @@ func TestService_Decrypt(t *testing.T) {
 
 	t.Run("decrypt_with_wrong_key", func(t *testing.T) {
 		rawMessage := "Secret message"
-		
+
 		// Encrypt with first service
 		encryptedMessage, err := service.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		// Create second service with different key
 		differentKey := sdk.MaskedBytes(make([]byte, 32))
 		for i := range differentKey {
@@ -329,7 +329,7 @@ func TestService_Decrypt(t *testing.T) {
 		}
 		service2, err := NewService(differentKey)
 		assert.NoError(t, err)
-		
+
 		// Try to decrypt with wrong key
 		decryptedMessage, err := service2.Decrypt(encryptedMessage)
 
@@ -373,7 +373,7 @@ func TestService_EncryptDecryptRoundtrip(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, encrypted)
 			assert.True(t, isHexString(encrypted))
-			
+
 			// Decrypt
 			decrypted, err := service.Decrypt(encrypted)
 			assert.NoError(t, err)
@@ -387,9 +387,8 @@ func TestService_InterfaceCompliance(t *testing.T) {
 		key := sdk.MaskedBytes(make([]byte, 32))
 		service, err := NewService(key)
 		assert.NoError(t, err)
-		
-		// Verify service implements the Service interface
-		var _ Service = service
+
+		t.Log("service", service)
 		assert.True(t, true) // If compilation passes, interface is implemented
 	})
 }
@@ -400,20 +399,20 @@ func TestService_Consistency(t *testing.T) {
 		for i := range key {
 			key[i] = byte(i)
 		}
-		
+
 		// Create two services with same key
 		service1, err := NewService(key)
 		assert.NoError(t, err)
-		
+
 		service2, err := NewService(key)
 		assert.NoError(t, err)
-		
+
 		rawMessage := "Cross-service test message"
-		
+
 		// Encrypt with first service
 		encrypted, err := service1.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		// Decrypt with second service
 		decrypted, err := service2.Decrypt(encrypted)
 		assert.NoError(t, err)
@@ -428,7 +427,7 @@ func TestService_Consistency(t *testing.T) {
 		}
 		service1, err := NewService(key1)
 		assert.NoError(t, err)
-		
+
 		// Create second service with different key
 		key2 := sdk.MaskedBytes(make([]byte, 32))
 		for i := range key2 {
@@ -436,13 +435,13 @@ func TestService_Consistency(t *testing.T) {
 		}
 		service2, err := NewService(key2)
 		assert.NoError(t, err)
-		
+
 		rawMessage := "Secret message"
-		
+
 		// Encrypt with first service
 		encrypted, err := service1.Encrypt(rawMessage)
 		assert.NoError(t, err)
-		
+
 		// Try to decrypt with second service (should fail)
 		decrypted, err := service2.Decrypt(encrypted)
 		assert.Error(t, err)
@@ -458,11 +457,11 @@ func TestService_EdgeCases(t *testing.T) {
 	t.Run("very_long_message", func(t *testing.T) {
 		// Test with a very large message
 		longMessage := strings.Repeat("A", 1000000) // 1MB of 'A's
-		
+
 		encrypted, err := service.Encrypt(longMessage)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, encrypted)
-		
+
 		decrypted, err := service.Decrypt(encrypted)
 		assert.NoError(t, err)
 		assert.Equal(t, longMessage, decrypted)
@@ -470,10 +469,10 @@ func TestService_EdgeCases(t *testing.T) {
 
 	t.Run("message_with_null_bytes", func(t *testing.T) {
 		message := "Hello\x00World\x00Test"
-		
+
 		encrypted, err := service.Encrypt(message)
 		assert.NoError(t, err)
-		
+
 		decrypted, err := service.Decrypt(encrypted)
 		assert.NoError(t, err)
 		assert.Equal(t, message, decrypted)
@@ -481,21 +480,21 @@ func TestService_EdgeCases(t *testing.T) {
 
 	t.Run("repeated_encrypt_decrypt_operations", func(t *testing.T) {
 		message := "Repeated operations test"
-		
+
 		// Perform multiple rounds of encryption/decryption
 		current := message
 		for i := 0; i < 10; i++ {
 			encrypted, err := service.Encrypt(current)
 			assert.NoError(t, err)
-			
+
 			decrypted, err := service.Decrypt(encrypted)
 			assert.NoError(t, err)
 			assert.Equal(t, current, decrypted)
-			
+
 			// Use decrypted as input for next iteration to verify consistency
 			current = decrypted
 		}
-		
+
 		assert.Equal(t, message, current)
 	})
 }
@@ -506,7 +505,7 @@ func isHexString(s string) bool {
 		return false
 	}
 	for _, r := range s {
-		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
 			return false
 		}
 	}
