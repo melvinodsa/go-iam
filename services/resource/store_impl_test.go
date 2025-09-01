@@ -447,8 +447,6 @@ func TestNewStore(t *testing.T) {
 	store := NewStore(mockDB)
 
 	assert.NotNil(t, store)
-	// Verify it implements the Store interface
-	var _ Store = store
 }
 
 // Helper function tests
