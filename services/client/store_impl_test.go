@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
@@ -206,6 +207,92 @@ func TestStore_GetAll_Success_GoIamClient(t *testing.T) {
 	mockDB.AssertExpectations(t)
 }
 
+func TestStore_GetAll_Success_Sort(t *testing.T) {
+	mockDB := test.SetupMockDB()
+	ctx := context.Background()
+	md := models.GetClientModel()
+
+	now := time.Now()
+	updatedAt := now.AddDate(0, 0, -1)
+
+	// Create test data
+	// Create test data
+	record1 := sdk.Client{
+		Id:                    "1",
+		Name:                  "Client 1",
+		Description:           "First client",
+		Secret:                "secret1",
+		Tags:                  []string{"tag1", "tag2"},
+		RedirectURLs:          []string{"https://example.com/callback"},
+		DefaultAuthProviderId: "provider1",
+		GoIamClient:           true,
+		ProjectId:             "project1",
+		Scopes:                []string{"read", "write"},
+		Enabled:               true,
+		UpdatedAt:             &now,
+	}
+	record2 := sdk.Client{
+		Id:                    "2",
+		Name:                  "Client 2",
+		Description:           "Second client",
+		Secret:                "secret2",
+		Tags:                  []string{"tag3"},
+		RedirectURLs:          []string{"https://example.com/callback"},
+		DefaultAuthProviderId: "provider2",
+		GoIamClient:           false,
+		ProjectId:             "project2",
+		Scopes:                []string{"read", "write"},
+		Enabled:               false,
+		UpdatedAt:             &updatedAt,
+	}
+	record3 := sdk.Client{
+		Id:                    "3",
+		Name:                  "Client 3",
+		Description:           "Third client",
+		Secret:                "secret3",
+		Tags:                  []string{"tag4"},
+		RedirectURLs:          []string{"https://example.com/callback"},
+		DefaultAuthProviderId: "provider3",
+		GoIamClient:           true,
+		ProjectId:             "project1",
+		Scopes:                []string{"read", "write"},
+		Enabled:               true,
+		UpdatedAt:             &now,
+	}
+
+	// Create cursor from documents
+	clients := []models.Client{fromSdkToModel(record2), fromSdkToModel(record1), fromSdkToModel(record3)}
+	documents := make([]interface{}, len(clients))
+	for i, p := range clients {
+		documents[i] = p
+	}
+	cursor, _ := mongo.NewCursorFromDocuments(documents, nil, nil)
+
+	// Mock Find to return cursor
+	filter := bson.D{}
+	filter = append(filter, bson.E{Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: []string{"project1", "project2"}}}})
+	mockDB.On("Find", ctx, md, filter, mock.Anything).Return(cursor, nil)
+
+	store := NewStore(mockDB)
+
+	// Execute
+	params := sdk.ClientQueryParams{
+		ProjectIds:      []string{"project1", "project2"},
+		SortByUpdatedAt: true,
+	}
+	result, err := store.GetAll(ctx, params)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 3)
+
+	// Validate first client
+	assert.Equal(t, "2", result[0].Id)
+	assert.Equal(t, "Client 2", result[0].Name)
+
+	mockDB.AssertExpectations(t)
+}
+
 func TestStore_Get_Success(t *testing.T) {
 	mockDB := test.SetupMockDB()
 	store := NewStore(mockDB)
@@ -234,9 +321,9 @@ func TestStore_Get_NotFound(t *testing.T) {
 	clientId := "non-existent-id"
 
 	// Create a mock single result that returns ErrNoDocuments
-	mockSingleResult := mongo.NewSingleResultFromDocument(nil, mongo.ErrNoDocuments, nil)
+	mockSingleResult := mongo.NewSingleResultFromDocument(bson.D{}, mongo.ErrNoDocuments, nil)
 
-	mockDB.On("FindOne", ctx, mock.Anything, mock.Anything, mock.Anything).Return(mockSingleResult)
+	mockDB.On("FindOne", ctx, mock.Anything, mock.Anything, mock.Anything).Return(mockSingleResult, mongo.ErrNoDocuments)
 
 	// Execute
 	result, err := store.Get(ctx, clientId)

@@ -44,7 +44,7 @@ func (s store) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([
 		opts.SetSort(bson.D{{Key: md.UpdatedAtKey, Value: -1}})
 	}
 
-	cursor, err := s.db.Find(ctx, md, filter)
+	cursor, err := s.db.Find(ctx, md, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error finding all clients: %w", err)
 	}

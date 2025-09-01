@@ -8,6 +8,7 @@ import (
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
+	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -85,6 +86,35 @@ func TestNewService(t *testing.T) {
 
 	assert.NotNil(t, service)
 	assert.Implements(t, (*Service)(nil), service)
+}
+
+func TestService_Emit(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &MockProjectService{}
+	service := NewService(mockStore, mockProjectService)
+
+	service.Emit(nil)
+
+	mockStore.AssertExpectations(t)
+}
+
+type MockSubscriber struct {
+	mock.Mock
+}
+
+func (m *MockSubscriber) HandleEvent(event utils.Event[sdk.Client]) {
+	m.Called(event)
+}
+
+func TestService_Subscribe(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &MockProjectService{}
+	service := NewService(mockStore, mockProjectService)
+
+	m := &MockSubscriber{}
+	service.Subscribe(goiamuniverse.EventClientCreated, m)
+
+	mockStore.AssertExpectations(t)
 }
 
 func TestService_GetAll_Success(t *testing.T) {
