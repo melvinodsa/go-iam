@@ -84,19 +84,6 @@ func (r *RedisService) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// Exists checks if a key exists in the Redis service.
-func (r *RedisService) Exists(ctx context.Context, key string) bool {
-	if r == nil {
-		return false
-	}
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	_, exists := r.data[key]
-	return exists
-}
-
 // Expire sets a TTL (time-to-live) for a key.
 func (r *RedisService) Expire(ctx context.Context, key string, ttl time.Duration) error {
 	if r == nil {
@@ -111,25 +98,4 @@ func (r *RedisService) Expire(ctx context.Context, key string, ttl time.Duration
 	}
 	r.ttl[key] = time.Now().Add(ttl)
 	return nil
-}
-
-// TTL retrieves the remaining time-to-live for a key.
-func (r *RedisService) TTL(ctx context.Context, key string) (time.Duration, error) {
-	if r == nil {
-		return 0, errors.New("redis service is nil")
-	}
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	expiry, exists := r.ttl[key]
-	if !exists {
-		return 0, errors.New("key does not have a TTL")
-	}
-
-	remaining := time.Until(expiry)
-	if remaining <= 0 {
-		return 0, errors.New("key has expired")
-	}
-	return remaining, nil
 }
