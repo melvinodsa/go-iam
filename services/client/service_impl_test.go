@@ -606,6 +606,8 @@ func TestEvent_Metadata(t *testing.T) {
 	})
 }
 
+type ctxKeyType struct{}
+
 func TestEvent_Context(t *testing.T) {
 	client := sdk.Client{Id: "client1", Name: "Test Client"}
 	metadata := sdk.Metadata{User: &sdk.User{Id: "user1"}, ProjectIds: []string{"project1"}}
@@ -623,14 +625,15 @@ func TestEvent_Context(t *testing.T) {
 
 	t.Run("context_with_values", func(t *testing.T) {
 		baseCtx := context.Background()
-		ctx := context.WithValue(baseCtx, "testKey", "testValue")
+		val := ctxKeyType{}
+		ctx := context.WithValue(baseCtx, val, "testValue")
 
 		event := newEvent(ctx, goiamuniverse.EventClientUpdated, client, metadata)
 
 		result := event.Context()
 
 		assert.Equal(t, ctx, result)
-		assert.Equal(t, "testValue", result.Value("testKey"))
+		assert.Equal(t, "testValue", result.Value(val))
 	})
 
 	t.Run("context_with_metadata", func(t *testing.T) {
