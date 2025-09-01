@@ -12,18 +12,18 @@ import (
 func TestFromModelListToSdk(t *testing.T) {
 	t.Run("empty_list", func(t *testing.T) {
 		modelClients := []models.Client{}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Empty(t, result)
 		assert.Equal(t, 0, len(result))
 	})
-	
+
 	t.Run("single_client", func(t *testing.T) {
 		createdAt := time.Now()
 		updatedAt := time.Now().Add(time.Hour)
-		
+
 		modelClients := []models.Client{
 			{
 				Id:                    "client1",
@@ -43,12 +43,12 @@ func TestFromModelListToSdk(t *testing.T) {
 				UpdatedBy:             "user2",
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 1, len(result))
-		
+
 		client := result[0]
 		assert.Equal(t, "client1", client.Id)
 		assert.Equal(t, "Test Client", client.Name)
@@ -66,13 +66,13 @@ func TestFromModelListToSdk(t *testing.T) {
 		assert.Equal(t, &updatedAt, client.UpdatedAt)
 		assert.Equal(t, "user2", client.UpdatedBy)
 	})
-	
+
 	t.Run("multiple_clients", func(t *testing.T) {
 		createdAt1 := time.Now()
 		updatedAt1 := time.Now().Add(time.Hour)
 		createdAt2 := time.Now().Add(time.Minute)
 		updatedAt2 := time.Now().Add(2 * time.Hour)
-		
+
 		modelClients := []models.Client{
 			{
 				Id:                    "client1",
@@ -109,12 +109,12 @@ func TestFromModelListToSdk(t *testing.T) {
 				UpdatedBy:             "user3",
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 2, len(result))
-		
+
 		// Check first client
 		client1 := result[0]
 		assert.Equal(t, "client1", client1.Id)
@@ -132,7 +132,7 @@ func TestFromModelListToSdk(t *testing.T) {
 		assert.Equal(t, "user1", client1.CreatedBy)
 		assert.Equal(t, &updatedAt1, client1.UpdatedAt)
 		assert.Equal(t, "user1", client1.UpdatedBy)
-		
+
 		// Check second client
 		client2 := result[1]
 		assert.Equal(t, "client2", client2.Id)
@@ -151,7 +151,7 @@ func TestFromModelListToSdk(t *testing.T) {
 		assert.Equal(t, &updatedAt2, client2.UpdatedAt)
 		assert.Equal(t, "user3", client2.UpdatedBy)
 	})
-	
+
 	t.Run("clients_with_nil_timestamps", func(t *testing.T) {
 		modelClients := []models.Client{
 			{
@@ -163,19 +163,19 @@ func TestFromModelListToSdk(t *testing.T) {
 				UpdatedAt:   nil,
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 1, len(result))
-		
+
 		client := result[0]
 		assert.Equal(t, "client1", client.Id)
 		assert.Equal(t, "Client with nil timestamps", client.Name)
 		assert.Nil(t, client.CreatedAt)
 		assert.Nil(t, client.UpdatedAt)
 	})
-	
+
 	t.Run("clients_with_empty_arrays", func(t *testing.T) {
 		modelClients := []models.Client{
 			{
@@ -188,12 +188,12 @@ func TestFromModelListToSdk(t *testing.T) {
 				Scopes:       []string{},
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 1, len(result))
-		
+
 		client := result[0]
 		assert.Equal(t, "client1", client.Id)
 		assert.Equal(t, "Client with empty arrays", client.Name)
@@ -201,7 +201,7 @@ func TestFromModelListToSdk(t *testing.T) {
 		assert.Empty(t, client.RedirectURLs)
 		assert.Empty(t, client.Scopes)
 	})
-	
+
 	t.Run("clients_with_nil_arrays", func(t *testing.T) {
 		modelClients := []models.Client{
 			{
@@ -214,12 +214,12 @@ func TestFromModelListToSdk(t *testing.T) {
 				Scopes:       nil,
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 1, len(result))
-		
+
 		client := result[0]
 		assert.Equal(t, "client1", client.Id)
 		assert.Equal(t, "Client with nil arrays", client.Name)
@@ -227,7 +227,7 @@ func TestFromModelListToSdk(t *testing.T) {
 		assert.Nil(t, client.RedirectURLs)
 		assert.Nil(t, client.Scopes)
 	})
-	
+
 	t.Run("clients_with_default_values", func(t *testing.T) {
 		modelClients := []models.Client{
 			{
@@ -243,12 +243,12 @@ func TestFromModelListToSdk(t *testing.T) {
 				UpdatedBy:             "",
 			},
 		}
-		
+
 		result := fromModelListToSdk(modelClients)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, 1, len(result))
-		
+
 		client := result[0]
 		assert.Empty(t, client.Id)
 		assert.Empty(t, client.Name)
@@ -267,7 +267,7 @@ func TestFromModelToSdk(t *testing.T) {
 	t.Run("complete_client", func(t *testing.T) {
 		createdAt := time.Now()
 		updatedAt := time.Now().Add(time.Hour)
-		
+
 		modelClient := &models.Client{
 			Id:                    "client1",
 			Name:                  "Test Client",
@@ -285,9 +285,9 @@ func TestFromModelToSdk(t *testing.T) {
 			UpdatedAt:             &updatedAt,
 			UpdatedBy:             "user2",
 		}
-		
+
 		result := fromModelToSdk(modelClient)
-		
+
 		assert.NotNil(t, result)
 		assert.Equal(t, "client1", result.Id)
 		assert.Equal(t, "Test Client", result.Name)
@@ -305,22 +305,22 @@ func TestFromModelToSdk(t *testing.T) {
 		assert.Equal(t, &updatedAt, result.UpdatedAt)
 		assert.Equal(t, "user2", result.UpdatedBy)
 	})
-	
+
 	t.Run("nil_client", func(t *testing.T) {
 		var modelClient *models.Client = nil
-		
+
 		// This should panic or cause issues, but let's test the function behavior
 		// In a real scenario, this would be handled by validation before calling the function
 		assert.Panics(t, func() {
 			fromModelToSdk(modelClient)
 		})
 	})
-	
+
 	t.Run("empty_client", func(t *testing.T) {
 		modelClient := &models.Client{}
-		
+
 		result := fromModelToSdk(modelClient)
-		
+
 		assert.NotNil(t, result)
 		assert.Empty(t, result.Id)
 		assert.Empty(t, result.Name)
@@ -344,7 +344,7 @@ func TestFromSdkToModel(t *testing.T) {
 	t.Run("complete_client", func(t *testing.T) {
 		createdAt := time.Now()
 		updatedAt := time.Now().Add(time.Hour)
-		
+
 		sdkClient := sdk.Client{
 			Id:                    "client1",
 			Name:                  "Test Client",
@@ -362,9 +362,9 @@ func TestFromSdkToModel(t *testing.T) {
 			UpdatedAt:             &updatedAt,
 			UpdatedBy:             "user2",
 		}
-		
+
 		result := fromSdkToModel(sdkClient)
-		
+
 		assert.Equal(t, "client1", result.Id)
 		assert.Equal(t, "Test Client", result.Name)
 		assert.Equal(t, "A test client", result.Description)
@@ -381,12 +381,12 @@ func TestFromSdkToModel(t *testing.T) {
 		assert.Equal(t, &updatedAt, result.UpdatedAt)
 		assert.Equal(t, "user2", result.UpdatedBy)
 	})
-	
+
 	t.Run("empty_client", func(t *testing.T) {
 		sdkClient := sdk.Client{}
-		
+
 		result := fromSdkToModel(sdkClient)
-		
+
 		assert.Empty(t, result.Id)
 		assert.Empty(t, result.Name)
 		assert.Empty(t, result.Description)
@@ -408,54 +408,54 @@ func TestFromSdkToModel(t *testing.T) {
 func TestHashSecret(t *testing.T) {
 	t.Run("hash_simple_secret", func(t *testing.T) {
 		secret := "mysecret123"
-		
+
 		hashedSecret, err := hashSecret(secret)
-		
+
 		assert.NoError(t, err)
 		assert.NotEmpty(t, hashedSecret)
 		assert.NotEqual(t, secret, hashedSecret)
 		// SHA256 hash encoded in base64 should be 44 characters long
 		assert.Equal(t, 44, len(hashedSecret))
 	})
-	
+
 	t.Run("hash_empty_secret", func(t *testing.T) {
 		secret := ""
-		
+
 		hashedSecret, err := hashSecret(secret)
-		
+
 		assert.NoError(t, err)
 		assert.NotEmpty(t, hashedSecret)
 		assert.Equal(t, 44, len(hashedSecret))
 	})
-	
+
 	t.Run("hash_same_secret_produces_same_hash", func(t *testing.T) {
 		secret := "consistent_secret"
-		
+
 		hash1, err1 := hashSecret(secret)
 		hash2, err2 := hashSecret(secret)
-		
+
 		assert.NoError(t, err1)
 		assert.NoError(t, err2)
 		assert.Equal(t, hash1, hash2)
 	})
-	
+
 	t.Run("hash_different_secrets_produce_different_hashes", func(t *testing.T) {
 		secret1 := "secret1"
 		secret2 := "secret2"
-		
+
 		hash1, err1 := hashSecret(secret1)
 		hash2, err2 := hashSecret(secret2)
-		
+
 		assert.NoError(t, err1)
 		assert.NoError(t, err2)
 		assert.NotEqual(t, hash1, hash2)
 	})
-	
+
 	t.Run("hash_special_characters", func(t *testing.T) {
 		secret := "special!@#$%^&*()_+-={}[]|\\:;\"'<>,.?/~`"
-		
+
 		hashedSecret, err := hashSecret(secret)
-		
+
 		assert.NoError(t, err)
 		assert.NotEmpty(t, hashedSecret)
 		assert.Equal(t, 44, len(hashedSecret))
@@ -465,36 +465,36 @@ func TestHashSecret(t *testing.T) {
 func TestGenerateRandomSecret(t *testing.T) {
 	t.Run("generate_secret_with_specific_length", func(t *testing.T) {
 		length := 32
-		
+
 		secret, err := generateRandomSecret(length)
-		
+
 		assert.NoError(t, err)
 		assert.NotEmpty(t, secret)
 		assert.Equal(t, length, len(secret))
 	})
-	
+
 	t.Run("generate_secret_with_different_lengths", func(t *testing.T) {
 		lengths := []int{8, 16, 24, 32, 64}
-		
+
 		for _, length := range lengths {
 			secret, err := generateRandomSecret(length)
-			
+
 			assert.NoError(t, err, "Failed for length %d", length)
 			assert.NotEmpty(t, secret, "Secret empty for length %d", length)
 			assert.Equal(t, length, len(secret), "Wrong length for %d", length)
 		}
 	})
-	
+
 	t.Run("generate_multiple_secrets_are_different", func(t *testing.T) {
 		length := 32
 		secrets := make([]string, 10)
-		
+
 		for i := 0; i < 10; i++ {
 			secret, err := generateRandomSecret(length)
 			assert.NoError(t, err)
 			secrets[i] = secret
 		}
-		
+
 		// Check that all secrets are different
 		for i := 0; i < len(secrets); i++ {
 			for j := i + 1; j < len(secrets); j++ {
@@ -502,22 +502,22 @@ func TestGenerateRandomSecret(t *testing.T) {
 			}
 		}
 	})
-	
+
 	t.Run("generate_secret_with_zero_length", func(t *testing.T) {
 		length := 0
-		
+
 		secret, err := generateRandomSecret(length)
-		
+
 		assert.NoError(t, err)
 		assert.Empty(t, secret)
 		assert.Equal(t, 0, len(secret))
 	})
-	
+
 	t.Run("generate_secret_with_small_length", func(t *testing.T) {
 		length := 1
-		
+
 		secret, err := generateRandomSecret(length)
-		
+
 		assert.NoError(t, err)
 		assert.NotEmpty(t, secret)
 		assert.Equal(t, length, len(secret))
