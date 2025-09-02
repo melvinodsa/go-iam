@@ -45,7 +45,7 @@ func (m *Middlewares) User(c *fiber.Ctx) error {
 			Message: err.Error(),
 		})
 	}
-	c.Context().SetUserValue("user", user)
+	c.Context().SetUserValue(sdk.UserTypeVal, user)
 	return c.Next()
 }
 
@@ -67,7 +67,7 @@ func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).JSON(res)
 	}
 
-	c.Context().SetUserValue("user", user)
+	c.Context().SetUserValue(sdk.UserTypeVal, user)
 	return c.Next()
 }
 

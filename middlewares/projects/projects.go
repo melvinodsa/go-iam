@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/project"
 )
 
@@ -24,6 +25,6 @@ func (m Middlewares) Projects(c *fiber.Ctx) error {
 	if ok && len(projectIdsCsv) > 0 {
 		projectIds = strings.Split(projectIdsCsv[0], ",")
 	}
-	c.Context().SetUserValue("projects", projectIds)
+	c.Context().SetUserValue(sdk.ProjectsTypeVal, projectIds)
 	return c.Next()
 }

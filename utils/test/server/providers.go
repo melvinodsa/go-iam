@@ -1,43 +1,26 @@
-package providers
+package server
 
 import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/middlewares/auth"
 	"github.com/melvinodsa/go-iam/middlewares/projects"
-	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
-	"github.com/melvinodsa/go-iam/utils"
 	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
-type Provider struct {
-	S          *Service
-	D          db.DB
-	C          cache.Service
-	PM         *projects.Middlewares
-	AM         *auth.Middlewares
-	AuthClient *sdk.Client
-}
-
-func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
-	d, err := NewDBConnection(cnf)
-	if err != nil {
-		return nil, err
-	}
+func InjectTestProviders(cnf config.AppConfig, d db.DB) (*providers.Provider, error) {
 
 	var cS cache.Service = cache.NewMockService()
-
-	if cnf.Server.EnableRedis {
-		cS = cache.NewRedisService(cnf.Redis.Host, cnf.Redis.Password)
-	}
 
 	enc, err := encrypt.NewService(cnf.Encrypter.Key())
 	if err != nil {
@@ -46,7 +29,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	jwtSvc := jwt.NewService(cnf.Jwt.Secret())
 
-	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
+	svcs := providers.NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
 	am, err := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
 	if err != nil {
@@ -57,7 +40,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 		return nil, err
 	}
 
-	pvd := &Provider{
+	pvd := &providers.Provider{
 		S:          svcs,
 		D:          d,
 		C:          cS,
@@ -73,7 +56,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, svcs.Auth)
 
 	// creating default project if it doesn't exist
-	err = CheckAndAddDefaultProject(svcs.Projects)
+	err = providers.CheckAndAddDefaultProject(svcs.Projects)
 	if err != nil {
 		log.Errorw("error checking and adding default project", "error", err)
 		return nil, fmt.Errorf("error checking and adding default project: %w", err)
@@ -82,35 +65,23 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	return pvd, nil
 }
 
-type keyType struct {
-	key string
-}
-
-var providerKey = keyType{"providers"}
-
-func Handle(p *Provider) func(c *fiber.Ctx) error {
-	return func(c *fiber.Ctx) error {
-		c.Locals(providerKey, p)
-		return c.Next()
-	}
-}
-
-func GetProviders(c *fiber.Ctx) *Provider {
-	return c.Locals(providerKey).(*Provider)
-}
-
-func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
-	if e.Name() != goiamuniverse.EventClientCreated && e.Name() != goiamuniverse.EventClientUpdated {
-		return
-	}
-	if !e.Payload().GoIamClient {
-		return
-	}
-	var err error
-	p.AuthClient, err = goaiamclient.GetGoIamClient(p.S.Clients)
+func SetupTestServer(app *fiber.App, db db.DB) *providers.Provider {
+	cnf := config.NewAppConfig()
+	log.Infow("Loaded Configurations",
+		"host", cnf.Server.Host,
+		"port", cnf.Server.Port,
+		"env", cnf.Deployment.Environment,
+		"app_name", cnf.Deployment.Name,
+	)
+	prv, err := InjectTestProviders(*cnf, db)
 	if err != nil {
-		log.Errorw("failed to get Go IAM client", "error", err)
-		return
+		log.Fatalf("error injecting providers %s", err)
 	}
-	p.AM.AuthClient = p.AuthClient
+	app.Use((*cnf).Handle)
+	app.Use(providers.Handle(prv))
+	app.Use(cors.New())
+
+	app.Use(prv.PM.Projects)
+
+	return prv
 }

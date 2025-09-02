@@ -35,7 +35,7 @@ func createTestMetadata() sdk.Metadata {
 func TestGetProjects_WithProjects(t *testing.T) {
 	// Create context with projects
 	projectList := []string{"project1", "project2", "project3"}
-	ctx := context.WithValue(context.Background(), projects, projectList)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, projectList)
 
 	result := GetProjects(ctx)
 
@@ -49,7 +49,7 @@ func TestGetProjects_WithProjects(t *testing.T) {
 func TestGetProjects_EmptyProjects(t *testing.T) {
 	// Create context with empty projects
 	projectList := []string{}
-	ctx := context.WithValue(context.Background(), projects, projectList)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, projectList)
 
 	result := GetProjects(ctx)
 
@@ -60,7 +60,7 @@ func TestGetProjects_EmptyProjects(t *testing.T) {
 func TestGetProjects_SingleProject(t *testing.T) {
 	// Create context with single project
 	projectList := []string{"single-project"}
-	ctx := context.WithValue(context.Background(), projects, projectList)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, projectList)
 
 	result := GetProjects(ctx)
 
@@ -69,28 +69,19 @@ func TestGetProjects_SingleProject(t *testing.T) {
 	assert.Equal(t, "single-project", result[0])
 }
 
-func TestGetProjects_PanicsOnWrongType(t *testing.T) {
-	// Create context with wrong type (should panic on type assertion)
-	ctx := context.WithValue(context.Background(), projects, "not-a-slice")
+func TestGetProjects_ReturnsNilForWrongType(t *testing.T) {
+	// Create context with wrong type (should return nil)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, "not-a-slice")
 
-	assert.Panics(t, func() {
-		GetProjects(ctx)
-	})
-}
+	result := GetProjects(ctx)
 
-func TestGetProjects_PanicsOnMissingValue(t *testing.T) {
-	// Create context without projects value (should panic on type assertion)
-	ctx := context.Background()
-
-	assert.Panics(t, func() {
-		GetProjects(ctx)
-	})
+	assert.Nil(t, result)
 }
 
 func TestGetUser_WithUser(t *testing.T) {
 	// Create context with user
 	testUser := createTestUser()
-	ctx := context.WithValue(context.Background(), userValue, testUser)
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, testUser)
 
 	result := GetUser(ctx)
 
@@ -112,7 +103,7 @@ func TestGetUser_NoUser(t *testing.T) {
 
 func TestGetUser_NilUser(t *testing.T) {
 	// Create context with explicit nil user
-	ctx := context.WithValue(context.Background(), userValue, nil)
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, nil)
 
 	result := GetUser(ctx)
 
@@ -121,7 +112,7 @@ func TestGetUser_NilUser(t *testing.T) {
 
 func TestGetUser_WrongType(t *testing.T) {
 	// Create context with wrong type for user
-	ctx := context.WithValue(context.Background(), userValue, "not-a-user")
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, "not-a-user")
 
 	result := GetUser(ctx)
 
@@ -131,7 +122,7 @@ func TestGetUser_WrongType(t *testing.T) {
 func TestGetUser_EmptyUser(t *testing.T) {
 	// Create context with empty user struct
 	emptyUser := &sdk.User{}
-	ctx := context.WithValue(context.Background(), userValue, emptyUser)
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, emptyUser)
 
 	result := GetUser(ctx)
 
@@ -147,8 +138,8 @@ func TestGetMetadata_WithFullMetadata(t *testing.T) {
 	testUser := createTestUser()
 	projectList := []string{"project1", "project2"}
 	ctx := context.WithValue(
-		context.WithValue(context.Background(), userValue, testUser),
-		projects, projectList,
+		context.WithValue(context.Background(), sdk.UserTypeVal, testUser),
+		sdk.ProjectsTypeVal, projectList,
 	)
 
 	result := GetMetadata(ctx)
@@ -162,17 +153,17 @@ func TestGetMetadata_WithFullMetadata(t *testing.T) {
 func TestGetMetadata_WithUserOnly(t *testing.T) {
 	// Create context with user but without projects (should panic on GetProjects)
 	testUser := createTestUser()
-	ctx := context.WithValue(context.Background(), userValue, testUser)
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, testUser)
 
-	assert.Panics(t, func() {
-		GetMetadata(ctx)
-	})
+	v := GetMetadata(ctx)
+
+	assert.Nil(t, v.ProjectIds)
 }
 
 func TestGetMetadata_WithProjectsOnly(t *testing.T) {
 	// Create context with projects but without user
 	projectList := []string{"project1", "project2"}
-	ctx := context.WithValue(context.Background(), projects, projectList)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, projectList)
 
 	result := GetMetadata(ctx)
 
@@ -185,17 +176,17 @@ func TestGetMetadata_EmptyContext(t *testing.T) {
 	// Create empty context (should panic on GetProjects)
 	ctx := context.Background()
 
-	assert.Panics(t, func() {
-		GetMetadata(ctx)
-	})
+	v := GetMetadata(ctx)
+
+	assert.Nil(t, v.ProjectIds)
 }
 
 func TestGetMetadata_EmptyValues(t *testing.T) {
 	// Create context with empty user and projects
 	projectList := []string{}
 	ctx := context.WithValue(
-		context.WithValue(context.Background(), userValue, nil),
-		projects, projectList,
+		context.WithValue(context.Background(), sdk.UserTypeVal, nil),
+		sdk.ProjectsTypeVal, projectList,
 	)
 
 	result := GetMetadata(ctx)
@@ -280,8 +271,8 @@ func TestAddMetadata_OverwriteExisting(t *testing.T) {
 
 	// Create context with existing values
 	existingCtx := context.WithValue(
-		context.WithValue(context.Background(), userValue, originalUser),
-		projects, originalProjects,
+		context.WithValue(context.Background(), sdk.UserTypeVal, originalUser),
+		sdk.ProjectsTypeVal, originalProjects,
 	)
 
 	// Add new metadata that should overwrite
@@ -320,12 +311,12 @@ func TestContextKeys_AreUnique(t *testing.T) {
 	ctx := context.Background()
 
 	// Add some values using our keys
-	ctx = context.WithValue(ctx, projects, []string{"test-project"})
-	ctx = context.WithValue(ctx, userValue, createTestUser())
+	ctx = context.WithValue(ctx, sdk.ProjectsTypeVal, []string{"test-project"})
+	ctx = context.WithValue(ctx, sdk.UserTypeVal, createTestUser())
 
 	// Try to add conflicting values with different keys
-	ctx = context.WithValue(ctx, projects, []string{"conflicting-value"})
-	ctx = context.WithValue(ctx, userValue, createTestUser2())
+	ctx = context.WithValue(ctx, sdk.ProjectsTypeVal, []string{"conflicting-value"})
+	ctx = context.WithValue(ctx, sdk.UserTypeVal, createTestUser2())
 
 	// Verify our functions still work correctly
 	retrievedProjects := GetProjects(ctx)
@@ -341,7 +332,7 @@ func TestContextKeys_AreUnique(t *testing.T) {
 // Benchmark tests
 func BenchmarkGetProjects(b *testing.B) {
 	projectList := []string{"project1", "project2", "project3", "project4", "project5"}
-	ctx := context.WithValue(context.Background(), projects, projectList)
+	ctx := context.WithValue(context.Background(), sdk.ProjectsTypeVal, projectList)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -351,7 +342,7 @@ func BenchmarkGetProjects(b *testing.B) {
 
 func BenchmarkGetUser(b *testing.B) {
 	testUser := createTestUser()
-	ctx := context.WithValue(context.Background(), userValue, testUser)
+	ctx := context.WithValue(context.Background(), sdk.UserTypeVal, testUser)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -363,8 +354,8 @@ func BenchmarkGetMetadata(b *testing.B) {
 	testUser := createTestUser()
 	projectList := []string{"project1", "project2", "project3"}
 	ctx := context.WithValue(
-		context.WithValue(context.Background(), userValue, testUser),
-		projects, projectList,
+		context.WithValue(context.Background(), sdk.UserTypeVal, testUser),
+		sdk.ProjectsTypeVal, projectList,
 	)
 
 	b.ResetTimer()

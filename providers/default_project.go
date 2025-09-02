@@ -10,7 +10,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/project"
 )
 
-func checkAndAddDefaultProject(svc project.Service) error {
+func CheckAndAddDefaultProject(svc project.Service) error {
 	_, err := svc.GetByName(context.Background(), "Default Project")
 	if err != nil && err != project.ErrProjectNotFound {
 		return fmt.Errorf("error fetching default project: %w", err)

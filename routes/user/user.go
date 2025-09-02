@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -58,7 +59,7 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("user created successfully")
 
-	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.UserResponse{
 		Success: true,
 		Message: "User created successfully",
 		Data:    payload,
@@ -106,7 +107,7 @@ func GetById(c *fiber.Ctx) error {
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.User.GetById(c.Context(), id)
 	if err != nil {
-		if errors.Is(err, sdk.ErrUserNotFound) {
+		if strings.Contains(err.Error(), sdk.ErrUserNotFound.Error()) {
 			return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
 				Success: false,
 				Message: "User not found",
