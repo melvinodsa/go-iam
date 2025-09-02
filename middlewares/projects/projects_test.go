@@ -75,7 +75,7 @@ func TestMiddlewares_Projects_WithProjectIds(t *testing.T) {
 	// Test with single project ID
 	t.Run("Single Project ID", func(t *testing.T) {
 		app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-			projects := c.Context().UserValue("projects").([]string)
+			projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 			return c.JSON(fiber.Map{"projects": projects})
 		})
 
@@ -90,7 +90,7 @@ func TestMiddlewares_Projects_WithProjectIds(t *testing.T) {
 	// Test with multiple project IDs
 	t.Run("Multiple Project IDs", func(t *testing.T) {
 		app.Get("/test-multi", middlewares.Projects, func(c *fiber.Ctx) error {
-			projects := c.Context().UserValue("projects").([]string)
+			projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 			return c.JSON(fiber.Map{"projects": projects, "count": len(projects)})
 		})
 
@@ -108,7 +108,7 @@ func TestMiddlewares_Projects_WithoutProjectIds(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"projects": projects, "isEmpty": len(projects) == 0})
 	})
 
@@ -139,7 +139,7 @@ func TestMiddlewares_Projects_WithEmptyProjectIds(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			app.Get("/test-empty", middlewares.Projects, func(c *fiber.Ctx) error {
-				projects := c.Context().UserValue("projects").([]string)
+				projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 				return c.JSON(fiber.Map{"projects": projects, "count": len(projects)})
 			})
 
@@ -158,7 +158,7 @@ func TestMiddlewares_Projects_ProjectIdsWithSpaces(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"projects": projects})
 	})
 
@@ -189,7 +189,7 @@ func TestMiddlewares_Projects_HeaderCaseInsensitive(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			app.Get("/test-case", middlewares.Projects, func(c *fiber.Ctx) error {
-				projects := c.Context().UserValue("projects").([]string)
+				projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 				return c.JSON(fiber.Map{"projects": projects})
 			})
 
@@ -208,7 +208,7 @@ func TestMiddlewares_Projects_MultipleHeaderValues(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"projects": projects})
 	})
 
@@ -230,7 +230,7 @@ func TestMiddlewares_Projects_ContextIntegration(t *testing.T) {
 	var capturedProjects []string
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		capturedProjects = projects
 		return c.JSON(fiber.Map{"status": "success"})
 	})
@@ -252,7 +252,7 @@ func TestMiddlewares_Projects_SpecialCharacters(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"projects": projects})
 	})
 
@@ -270,7 +270,7 @@ func TestMiddlewares_Projects_UnicodeCharacters(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"projects": projects})
 	})
 
@@ -350,7 +350,7 @@ func TestMiddlewares_Projects_ManyProjects(t *testing.T) {
 	middlewares := NewMiddlewares(mockProjectSvc)
 
 	app.Get("/test", middlewares.Projects, func(c *fiber.Ctx) error {
-		projects := c.Context().UserValue("projects").([]string)
+		projects := c.Context().UserValue(sdk.ProjectsTypeVal).([]string)
 		return c.JSON(fiber.Map{"count": len(projects)})
 	})
 

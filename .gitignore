@@ -11,3 +11,4 @@ coverage.html
 bin
 
 go-iam
+test.out

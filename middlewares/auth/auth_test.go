@@ -217,7 +217,7 @@ func TestMiddlewares_User_Success(t *testing.T) {
 
 	// Create a test route
 	app.Get("/test", middlewares.User, func(c *fiber.Ctx) error {
-		user := c.Context().UserValue("user").(*sdk.User)
+		user := c.Context().UserValue(sdk.UserTypeVal).(*sdk.User)
 		return c.JSON(user)
 	})
 
@@ -278,7 +278,7 @@ func TestMiddlewares_DashboardUser_Success(t *testing.T) {
 	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
 
 	app.Get("/dashboard", middlewares.DashboardUser, func(c *fiber.Ctx) error {
-		user := c.Context().UserValue("user").(*sdk.User)
+		user := c.Context().UserValue(sdk.UserTypeVal).(*sdk.User)
 		return c.JSON(user)
 	})
 
