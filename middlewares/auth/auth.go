@@ -19,12 +19,16 @@ type Middlewares struct {
 	AuthClient *sdk.Client
 }
 
-func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) *Middlewares {
+func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) (*Middlewares, error) {
+	authClient, err := goaiamclient.GetGoIamClient(clientSvc)
+	if err != nil {
+		return nil, err
+	}
 	return &Middlewares{
 		authSvc:    authSvc,
 		clientSvc:  clientSvc,
-		AuthClient: goaiamclient.GetGoIamClient(clientSvc),
-	}
+		AuthClient: authClient,
+	}, nil
 }
 
 func (m *Middlewares) User(c *fiber.Ctx) error {
@@ -35,13 +39,13 @@ func (m *Middlewares) User(c *fiber.Ctx) error {
 	// This middleware can be used to check if the user is authenticated
 	user, err := m.GetUser(c)
 	if err != nil {
-		log.Errorw("failed to fetch user", "error", err)
+		log.Warnw("failed to fetch user", "error", err)
 		return c.Status(http.StatusUnauthorized).JSON(sdk.UserResponse{
 			Success: false,
 			Message: err.Error(),
 		})
 	}
-	c.Context().SetUserValue("user", user)
+	c.Context().SetUserValue(sdk.UserTypeVal, user)
 	return c.Next()
 }
 
@@ -58,12 +62,12 @@ func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
 	// This middleware can be used to check if the user is authenticated
 	user, err := m.GetUser(c)
 	if err != nil {
-		log.Errorw("failed to fetch user", "error", err)
+		log.Warnw("failed to fetch user", "error", err)
 		res.Message = err.Error()
 		return c.Status(http.StatusUnauthorized).JSON(res)
 	}
 
-	c.Context().SetUserValue("user", user)
+	c.Context().SetUserValue(sdk.UserTypeVal, user)
 	return c.Next()
 }
 

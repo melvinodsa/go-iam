@@ -42,17 +42,17 @@ type MongoConnection struct {
 	client *mongo.Client
 }
 
-type dbCtxKey struct{}
+type DbCtxKey struct{}
 
 func (m MongoConnection) SetDbInContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, dbCtxKey{}, &m)
+	return context.WithValue(ctx, DbCtxKey{}, &m)
 }
 
 func GetDbFromContext(ctx context.Context) DB {
-	vl := ctx.Value(dbCtxKey{})
+	vl := ctx.Value(DbCtxKey{})
 	db, ok := vl.(*MongoConnection)
 	if !ok {
-		log.Fatal("db not found in context")
+		panic("db not found in context")
 	}
 	return db
 }

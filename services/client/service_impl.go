@@ -78,7 +78,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 	if _, ok := projectIdsMap[cl.ProjectId]; !ok {
 		return nil, ErrClientNotFound
 	}
-	return nil, fmt.Errorf("client not found")
+	return cl, nil
 }
 func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists

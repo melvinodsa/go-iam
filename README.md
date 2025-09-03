@@ -1,5 +1,9 @@
 # go-iam
 
+[![codecov](https://codecov.io/github/melvinodsa/go-iam/graph/badge.svg?token=TWJXNBHTQL)](https://codecov.io/github/melvinodsa/go-iam)
+[![Go Report Card](https://goreportcard.com/badge/github.com/melvinodsa/go-iam)](https://goreportcard.com/report/github.com/melvinodsa/go-iam)
+[![GoDoc](https://godoc.org/github.com/melvinodsa/go-iam?status.svg)](https://godoc.org/github.com/melvinodsa/go-iam)
+
 **go-iam** is a lightweight, multi-tenant Identity and Access Management (IAM) server built in **Golang**. It provides robust authentication and fine-grained authorization for modern applications. With support for custom roles, third-party auth providers, and multi-client setups, `go-iam` gives you full control over access management in a scalable and modular way.
 
 > ✅ Admin UI: [go-iam-ui](https://github.com/melvinodsa/go-iam-ui)  
@@ -115,3 +119,7 @@ Some important environment variables used in `.env`:
 | `ENCRYPTER_KEY`                                | Optional symmetric key for encrypting sensitive fields - change this  |
 | `AUTH_PROVIDER_REFETCH_INTERVAL_IN_MINUTES`    | Interval in minutes to refetch and sync third-party auth providers    |
 | `TOKEN_CACHE_TTL_IN_MINUTES`                   | Interval for which the authentication token should be valid           |
+
+## License
+
+- Community Edition: [Apache 2.0](./LICENSE) (Open Source, free to use)

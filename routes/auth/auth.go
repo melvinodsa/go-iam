@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -52,6 +53,18 @@ func LoginRoute(router fiber.Router, basePath string) {
 				Description: "The URL to redirect to after login",
 				Required:    false,
 			},
+			{
+				Name:        "code_challenge_method",
+				In:          "query",
+				Description: "Code challenge method for PKCE. This required for public clients. For security reasons, only S256 is supported.",
+				Required:    false,
+			},
+			{
+				Name:        "code_challenge",
+				In:          "query",
+				Description: "Code challenge for PKCE. This required for public clients",
+				Required:    false,
+			},
 		},
 		UnAuthenticated:      true,
 		ProjectIDNotRequired: true,
@@ -63,7 +76,13 @@ func Login(c *fiber.Ctx) error {
 	log.Debug("received login request")
 	pr := providers.GetProviders(c)
 
-	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""))
+	codeChallengeMethod := c.Query("code_challenge_method", "")
+	// Might have to revisit this when the standards change.
+	if len(codeChallengeMethod) != 0 && strings.Compare(codeChallengeMethod, "S256") != 0 {
+		log.Debugw("invalid code challenge", "code_challenge_method", codeChallengeMethod)
+		return sdk.AuthProviderBadRequest("invalid code challenge. Only S256 is supported", c)
+	}
+	url, err := pr.S.Auth.GetLoginUrl(c.Context(), c.Query("client_id", ""), c.Query("auth_provider", ""), c.Query("state", ""), c.Query("redirect_url", ""), c.Query("code_challenge_method", ""), c.Query("code_challenge", ""))
 	if err != nil {
 		message := fmt.Errorf("failed to get login url. %w", err).Error()
 		log.Errorw("failed to get login url", "error", message)
@@ -167,6 +186,18 @@ func VerifyRoute(router fiber.Router, basePath string) {
 				Description: "The authentication code",
 				Required:    true,
 			},
+			{
+				Name:        "code_challenge",
+				In:          "query",
+				Description: "The code verifier",
+				Required:    false,
+			},
+			{
+				Name:        "client_id",
+				In:          "query",
+				Description: "The client ID to be provided if code verifier is provided",
+				Required:    false,
+			},
 		},
 		UnAuthenticated:      true,
 		ProjectIDNotRequired: true,
@@ -178,7 +209,21 @@ func Verify(c *fiber.Ctx) error {
 	log.Debug("received callback request")
 	pr := providers.GetProviders(c)
 	code := c.Query("code")
-	resp, err := pr.S.Auth.ClientCallback(c.Context(), code)
+	var clientId, clientSecret string
+	// get code verifier from query params
+	codeChallenge := c.Query("code_challenge")
+	clientId = c.Query("client_id")
+
+	if len(codeChallenge) == 0 || len(clientId) == 0 {
+		// get client id and secret from authorization header with basic auth
+		clId, clSec, ok := getClientDetails(c)
+		if !ok {
+			return sdk.AuthProviderBadRequest("missing or invalid authorization header", c)
+		}
+		clientId = clId
+		clientSecret = clSec
+	}
+	resp, err := pr.S.Auth.ClientCallback(c.Context(), code, codeChallenge, clientId, clientSecret)
 	if err != nil {
 		message := fmt.Errorf("failed to get callback. %w", err).Error()
 		return sdk.AuthProviderInternalServerError(message, c)
@@ -216,56 +261,78 @@ func ClientCredentialsRoute(router fiber.Router, basePath string) {
 }
 
 func ClientCredentials(c *fiber.Ctx) error {
-    log.Debug("received client credentials request")
-    
-    payload := new(sdk.ClientCredentialsRequest)
-    if err := c.BodyParser(payload); err != nil {
-        return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
-            Success: false,
-            Message: fmt.Sprintf("invalid request body: %v", err),
-        })
-    }
-    
-    // Validate required fields
-    if payload.ClientId == "" || payload.ClientSecret == "" {
-        return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
-            Success: false,
-            Message: "client_id and client_secret are required",
-        })
-    }
-    
-    pr := providers.GetProviders(c)
-    resp, err := pr.S.Auth.ClientCredentials(c.Context(), payload.ClientId, payload.ClientSecret)
-    if err != nil {
-        // Determine appropriate status code based on error
-        status := http.StatusUnauthorized
-        message := err.Error()
-        
-        // Check for specific error types
+	log.Debug("received client credentials request")
+
+	payload := new(sdk.ClientCredentialsRequest)
+	if err := c.BodyParser(payload); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
+			Success: false,
+			Message: fmt.Sprintf("invalid request body: %v", err),
+		})
+	}
+
+	// Validate required fields
+	if payload.ClientId == "" || payload.ClientSecret == "" {
+		return c.Status(http.StatusBadRequest).JSON(sdk.ClientCredentialsResponse{
+			Success: false,
+			Message: "client_id and client_secret are required",
+		})
+	}
+
+	pr := providers.GetProviders(c)
+	resp, err := pr.S.Auth.ClientCredentials(c.Context(), payload.ClientId, payload.ClientSecret)
+	if err != nil {
+		// Determine appropriate status code based on error
+		status := http.StatusUnauthorized
+		message := err.Error()
+
+		// Check for specific error types
 		// this is because in case of unathorized access,server will retry to authenticate with service account
-        if strings.Contains(err.Error(), "invalid client_id") {
-            status = http.StatusNotFound
-        } else if strings.Contains(err.Error(), "disabled") {
-            status = http.StatusForbidden
-        }
-        
-        log.Errorw("client credentials authentication failed",
-            "client_id", payload.ClientId,
-            "error", message)
-        
-        return c.Status(status).JSON(sdk.ClientCredentialsResponse{
-            Success: false,
-            Message: fmt.Sprintf("authentication failed: %v", err),
-        })
-    }
-    
-    log.Debugw("client credentials authentication successful",
-        "client_id", payload.ClientId,
-        "expires_in", resp.ExpiresIn)
-    
-    return c.Status(http.StatusOK).JSON(sdk.ClientCredentialsResponse{
-        Success: true,
-        Message: "Authentication successful",
-        Data:    resp,
-    })
+		if strings.Contains(err.Error(), "invalid client_id") {
+			status = http.StatusNotFound
+		} else if strings.Contains(err.Error(), "disabled") {
+			status = http.StatusForbidden
+		}
+
+		log.Errorw("client credentials authentication failed",
+			"client_id", payload.ClientId,
+			"error", message)
+
+		return c.Status(status).JSON(sdk.ClientCredentialsResponse{
+			Success: false,
+			Message: fmt.Sprintf("authentication failed: %v", err),
+		})
+	}
+
+	log.Debugw("client credentials authentication successful",
+		"client_id", payload.ClientId,
+		"expires_in", resp.ExpiresIn)
+
+	return c.Status(http.StatusOK).JSON(sdk.ClientCredentialsResponse{
+		Success: true,
+		Message: "Authentication successful",
+		Data:    resp,
+	})
+}
+
+func getClientDetails(c *fiber.Ctx) (string, string, bool) {
+	headers := c.GetReqHeaders()
+	authHeaders := headers["Authorization"]
+	if len(authHeaders) == 0 {
+		return "", "", false
+	}
+	// extract client id and secret from basic auth
+	parts := strings.SplitN(authHeaders[0], " ", 2)
+	if len(parts) != 2 || parts[0] != "Basic" {
+		return "", "", false
+	}
+	credentials, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", false
+	}
+	creds := strings.SplitN(string(credentials), ":", 2)
+	if len(creds) != 2 {
+		return "", "", false
+	}
+	return creds[0], creds[1], true
 }

@@ -7,11 +7,15 @@ import (
 )
 
 func GetProjects(ctx context.Context) []string {
-	return ctx.Value("projects").([]string)
+	val, ok := ctx.Value(sdk.ProjectsTypeVal).([]string)
+	if !ok {
+		return nil
+	}
+	return val
 }
 
 func GetUser(ctx context.Context) *sdk.User {
-	user := ctx.Value("user")
+	user := ctx.Value(sdk.UserTypeVal)
 	if user == nil {
 		return nil
 	}
@@ -30,5 +34,5 @@ func GetMetadata(ctx context.Context) sdk.Metadata {
 }
 
 func AddMetadata(ctx context.Context, metadata sdk.Metadata) context.Context {
-	return context.WithValue(context.WithValue(ctx, "projects", metadata.ProjectIds), "user", metadata.User)
+	return context.WithValue(context.WithValue(ctx, sdk.ProjectsTypeVal, metadata.ProjectIds), sdk.UserTypeVal, metadata.User)
 }

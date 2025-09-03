@@ -48,7 +48,14 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 
 	svcs := NewServices(d, cS, enc, jwtSvc, cnf.Server.TokenCacheTTLInMinutes, cnf.Server.AuthProviderRefetchIntervalInMinutes)
 	pm := projects.NewMiddlewares(svcs.Projects)
-	am := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
+	am, err := auth.NewMiddlewares(svcs.Auth, svcs.Clients)
+	if err != nil {
+		return nil, err
+	}
+	authClient, err := goaiamclient.GetGoIamClient(svcs.Clients)
+	if err != nil {
+		return nil, err
+	}
 
 	pvd := &Provider{
 		S:          svcs,
@@ -56,15 +63,17 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 		C:          cS,
 		PM:         pm,
 		AM:         am,
-		AuthClient: goaiamclient.GetGoIamClient(svcs.Clients),
+		AuthClient: authClient,
 	}
 
 	// subscribe to client events for checking auth client
 	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, pvd)
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, pvd)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, svcs.Auth)
+	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, svcs.Auth)
 
 	// creating default project if it doesn't exist
-	err = checkAndAddDefaultProject(svcs.Projects)
+	err = CheckAndAddDefaultProject(svcs.Projects)
 	if err != nil {
 		log.Errorw("error checking and adding default project", "error", err)
 		return nil, fmt.Errorf("error checking and adding default project: %w", err)
@@ -97,6 +106,11 @@ func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
 	if !e.Payload().GoIamClient {
 		return
 	}
-	p.AuthClient = goaiamclient.GetGoIamClient(p.S.Clients)
+	var err error
+	p.AuthClient, err = goaiamclient.GetGoIamClient(p.S.Clients)
+	if err != nil {
+		log.Errorw("failed to get Go IAM client", "error", err)
+		return
+	}
 	p.AM.AuthClient = p.AuthClient
 }

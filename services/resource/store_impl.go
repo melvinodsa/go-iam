@@ -46,7 +46,7 @@ func (s store) Search(ctx context.Context, query sdk.ResourceQuery) (*sdk.Resour
 	cond := bson.D{{Key: md.EnabledKey, Value: true}, {Key: md.ProjectIdKey, Value: bson.D{{Key: "$in", Value: query.ProjectIds}}}}
 
 	if len(filter) > 0 {
-		cond = bson.D{{Key: "$or", Value: filter}}
+		cond = append(cond, bson.E{Key: "$or", Value: filter})
 	}
 
 	// Get total count

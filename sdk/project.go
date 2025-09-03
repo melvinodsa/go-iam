@@ -24,3 +24,7 @@ type ProjectsResponse struct {
 	Message string    `json:"message"`
 	Data    []Project `json:"data,omitempty"`
 }
+
+type ProjectType struct{}
+
+var ProjectsTypeVal = ProjectType{}

@@ -28,9 +28,11 @@ type AuthProviderParam struct {
 type AuthProviderModel struct {
 	iam
 	IdKey        string
+	NameKey      string
 	ProviderKey  string
 	IsEnabledKey string
 	ProjectIdKey string
+	ParamsKey    string
 }
 
 func (a AuthProviderModel) Name() string {
@@ -40,8 +42,10 @@ func (a AuthProviderModel) Name() string {
 func GetAuthProviderModel() AuthProviderModel {
 	return AuthProviderModel{
 		IdKey:        "id",
+		NameKey:      "name",
 		ProviderKey:  "provider",
 		IsEnabledKey: "is_enabled",
 		ProjectIdKey: "project_id",
+		ParamsKey:    "params",
 	}
 }

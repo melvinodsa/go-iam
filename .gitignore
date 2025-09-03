@@ -4,3 +4,11 @@
 /tmp/
 
 .DS_Store
+
+coverage.out
+coverage.html
+
+bin
+
+go-iam
+test.out
