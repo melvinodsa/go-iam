@@ -11,7 +11,8 @@ import (
 type AuthProviderType string
 
 const (
-	AuthProviderTypeGoogle AuthProviderType = "GOOGLE"
+	AuthProviderTypeGoogle    AuthProviderType = "GOOGLE"
+	AuthProviderTypeMicrosoft AuthProviderType = "MICROSOFT"
 )
 
 type AuthProvider struct {
