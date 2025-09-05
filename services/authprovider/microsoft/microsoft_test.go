@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,39 +77,54 @@ func NewMockMicrosoftEndpoints() *MockMicrosoftEndpoints {
 		case refreshToken == "":
 			// Empty refresh token
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_request",
 				"error_description": "Refresh token is required",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		case strings.Contains(refreshToken, "expired"):
 			// Expired token
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_grant",
 				"error_description": "Token has been expired or revoked.",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		case clientID != "test-client-id" || clientSecret != "test-client-secret":
 			// Invalid credentials
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_client",
 				"error_description": "Invalid client credentials",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		case refreshToken == "valid-refresh-token":
 			// Valid refresh token
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(TokenResponse{
+			err := json.NewEncoder(w).Encode(TokenResponse{
 				AccessToken: "new-access-token",
 				ExpiresIn:   3600,
 				TokenType:   "Bearer",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		default:
 			// Default error case
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_grant",
 				"error_description": "Invalid refresh token",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		}
 	}))
 
@@ -118,39 +134,51 @@ func NewMockMicrosoftEndpoints() *MockMicrosoftEndpoints {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		switch {
-		case authHeader == "Bearer valid-access-token":
+		switch authHeader {
+		case "Bearer valid-access-token":
 			// Valid access token
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"email":      "test@example.com",
 				"givenname":  "John",
 				"familyname": "Doe",
 				"picture":    "https://example.com/profile.jpg",
 			})
-		case authHeader == "Bearer empty-fields-token":
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
+		case "Bearer empty-fields-token":
 			// Token with empty user fields
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"email":      "",
 				"givenname":  "",
 				"familyname": "",
 				"picture":    "",
 			})
-		case authHeader == "":
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
+		case "":
 			// No authorization header
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "unauthorized",
 				"error_description": "Access token is required",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		default:
 			// Invalid access token
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{
+			err := json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_token",
 				"error_description": "The access token is invalid",
 			})
+			if err != nil {
+				log.Errorf("failed to encode response: %w", err)
+			}
 		}
 	}))
 
@@ -348,7 +376,9 @@ func TestGetIdentity(t *testing.T) {
 		if err != nil {
 			return nil, fmt.Errorf("error fetching the identity. %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		respBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
