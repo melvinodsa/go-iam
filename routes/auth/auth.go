@@ -305,8 +305,7 @@ func ClientCredentials(c *fiber.Ctx) error {
 	}
 
 	log.Debugw("client credentials authentication successful",
-		"client_id", payload.ClientId,
-		"expires_in", resp.ExpiresIn)
+		"client_id", payload.ClientId)
 
 	return c.Status(http.StatusOK).JSON(sdk.ClientCredentialsResponse{
 		Success: true,

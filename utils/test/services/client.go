@@ -60,3 +60,11 @@ func (m *MockClientService) VerifySecret(plainSecret, hashedSecret string) error
 	args := m.Called(plainSecret, hashedSecret)
 	return args.Error(0)
 }
+
+func (m *MockClientService) RegenerateSecret(ctx context.Context, clientId string) (*sdk.Client, error) {
+	args := m.Called(ctx, clientId)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sdk.Client), args.Error(1)
+}

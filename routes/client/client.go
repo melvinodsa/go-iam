@@ -37,27 +37,23 @@ func CreateRoute(router fiber.Router, basePath string) {
 
 func Create(c *fiber.Ctx) error {
 	log.Debug("received create client request")
-	payload := new(sdk.ClientCreateRequest)
+	payload := new(sdk.Client)
 	if err := c.BodyParser(payload); err != nil {
 		return sdk.ClientBadRequest(fmt.Errorf("invalid request. %w", err).Error(), c)
 	}
 	log.Debug("parsed create client request")
 	pr := providers.GetProviders(c)
-	
-	if payload.LinkedUserEmail != "" && payload.DefaultAuthProviderId != "" {
-		// Get auth provider to check if it's GOIAM/CLIENT
-		authProvider, err := pr.S.AuthProviders.Get(c.Context(), payload.DefaultAuthProviderId, false)
-		if err == nil && authProvider.Provider == sdk.AuthProviderTypeGoIAMClient {
-			// Get user by email
-			user, err := pr.S.User.GetByEmail(c.Context(), payload.LinkedUserEmail, payload.ProjectId)
-			if err != nil {
-				return sdk.ClientBadRequest(fmt.Sprintf("linked user with email %s not found", payload.LinkedUserEmail), c)
-			}
-			payload.LinkedUserId = user.Id
-		}
-	}	
-	client := &payload.Client
-	err := pr.S.Clients.Create(c.Context(), client)
+
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
+	}
+
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
+	}
+	err := pr.S.Clients.Create(c.Context(), payload)
 	if err != nil {
 		message := fmt.Errorf("failed to create client. %w", err).Error()
 		log.Errorw("failed to create client", "error", err)
@@ -68,7 +64,7 @@ func Create(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
 		Success: true,
 		Message: "Client created successfully",
-		Data:    client,
+		Data:    payload,
 	})
 }
 
@@ -192,7 +188,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 	})
 }
 
-
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update client request")
 	id := c.Params("id")
@@ -201,36 +196,20 @@ func Update(c *fiber.Ctx) error {
 		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
 	}
 	// Use ClientUpdateRequest to handle email
-	payload := new(sdk.ClientCreateRequest)
+	payload := new(sdk.Client)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update client request", "error", err)
 		return sdk.ClientBadRequest(fmt.Errorf("invalid request. %w", err).Error(), c)
 	}
 
 	payload.Id = id
-	pr := providers.GetProviders(c)
-	// Handle linked user email for GOIAM/CLIENT auth provider
-	if payload.LinkedUserEmail != "" && payload.DefaultAuthProviderId != "" {
-		authProvider, err := pr.S.AuthProviders.Get(c.Context(), payload.DefaultAuthProviderId, false)
-		if err == nil && authProvider.Provider == sdk.AuthProviderTypeGoIAMClient {
-			// Get user by email
-			user, err := pr.S.User.GetByEmail(c.Context(), payload.LinkedUserEmail, payload.ProjectId)
-			if err != nil {
-				return sdk.ClientBadRequest(fmt.Sprintf("linked user with email %s not found", payload.LinkedUserEmail), c)
-			}
-			payload.LinkedUserId = user.Id
-		}
-	} else if payload.LinkedUserEmail == "" && payload.DefaultAuthProviderId != "" {
-		// Check if auth provider changed from GOIAM/CLIENT to something else
-		authProvider, err := pr.S.AuthProviders.Get(c.Context(), payload.DefaultAuthProviderId, false)
-		if err == nil && authProvider.Provider != sdk.AuthProviderTypeGoIAMClient {
-			// Clear linked user if changing away from GOIAM/CLIENT
-			payload.LinkedUserId = ""
-		}
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
 	}
-	
-	coreClient := &payload.Client
-	err := pr.S.Clients.Update(c.Context(), coreClient)
+	pr := providers.GetProviders(c)
+
+	err := pr.S.Clients.Update(c.Context(), payload)
 	if err != nil {
 		if errors.Is(err, client.ErrClientNotFound) {
 			return sdk.ClientBadRequest("Client not found", c)
@@ -244,6 +223,51 @@ func Update(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
 		Success: true,
 		Message: "Client updated successfully",
-		Data:    coreClient,
+		Data:    payload,
+	})
+}
+
+func RegenerateSecretRoute(router fiber.Router, basePath string) {
+	routePath := "/:id/regenerate-secret"
+	path := basePath + routePath
+	router.Put(routePath, RegenerateSecret)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Regenerate Client Secret",
+		Description: "Regenerate the secret for a client",
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the client",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func RegenerateSecret(c *fiber.Ctx) error {
+	log.Debug("received regenerate client secret request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid regenerate client secret request. client id not found")
+		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
+	}
+	pr := providers.GetProviders(c)
+
+	client, err := pr.S.Clients.RegenerateSecret(c.Context(), id)
+	if err != nil {
+		message := fmt.Errorf("failed to regenerate client secret. %w", err).Error()
+		log.Error("failed to regenerate client secret", "error", err)
+		return sdk.ClientInternalServerError(message, c)
+	}
+
+	log.Debug("client secret regenerated successfully")
+	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
+		Success: true,
+		Message: "Client secret regenerated successfully",
+		Data:    client,
 	})
 }

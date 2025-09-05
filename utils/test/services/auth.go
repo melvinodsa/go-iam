@@ -46,10 +46,10 @@ func (m *MockAuthService) HandleEvent(event utils.Event[sdk.Client]) {
 	m.Called(event)
 }
 
-func (m *MockAuthService) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.ClientCredentialsDataResponse, error) {
+func (m *MockAuthService) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.AuthVerifyCodeResponse, error) {
 	args := m.Called(ctx, clientId, clientSecret)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*sdk.ClientCredentialsDataResponse), args.Error(1)
+	return args.Get(0).(*sdk.AuthVerifyCodeResponse), args.Error(1)
 }

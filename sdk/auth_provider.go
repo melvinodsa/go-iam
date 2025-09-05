@@ -12,7 +12,6 @@ type AuthProviderType string
 
 const (
 	AuthProviderTypeGoogle AuthProviderType = "GOOGLE"
-	AuthProviderTypeGoIAMClient   AuthProviderType = "GOIAM/CLIENT"
 )
 
 type AuthProvider struct {

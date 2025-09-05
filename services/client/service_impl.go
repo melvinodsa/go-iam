@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider"
@@ -29,25 +30,6 @@ func NewService(s Store, p project.Service, authP authprovider.Service, usrSvc u
 		authP:  authP,
 		usrSvc: usrSvc,
 	}
-}
-
-func (s service) VerifySecret(plainSecret, hashedSecret string) error {
-	if plainSecret == "" {
-		return fmt.Errorf("plain secret cannot be empty")
-	}
-
-	// hashSecret function is defined in services/client/helpers.go
-	// It hashes the secret using SHA256 and encodes to base64
-	hashedPlain, err := hashSecret(plainSecret)
-	if err != nil {
-		return fmt.Errorf("failed to hash secret for verification: %w", err)
-	}
-
-	if hashedPlain != hashedSecret {
-		return fmt.Errorf("secret verification failed: invalid secret")
-	}
-
-	return nil 
 }
 
 func (s service) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
@@ -87,17 +69,10 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 		return project.ErrProjectNotFound
 	}
 	if client.DefaultAuthProviderId != "" {
-		authProvider, err := s.authP.Get(ctx, client.DefaultAuthProviderId, true)
-		if err == nil && authProvider.Provider == sdk.AuthProviderTypeGoIAMClient {
-			if client.LinkedUserId == "" {
-				return fmt.Errorf("linked_user_id is required when using GoIAM/CLIENT auth provider")
-			}
-
-			// Validate the user exists
-			_, err := s.usrSvc.GetById(ctx, client.LinkedUserId)
-			if err != nil {
-				return fmt.Errorf("linked user not found: %w", err)
-			}
+		// verifying if auth provider exists
+		_, err := s.authP.Get(ctx, client.DefaultAuthProviderId, true)
+		if err != nil {
+			return fmt.Errorf("failed to get auth provider: %w", err)
 		}
 	}
 	// create a random string secret
@@ -110,6 +85,16 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
+	hashedSec, err := hashSecret(sec)
+	if err != nil {
+		return fmt.Errorf("error hashing client secret: %w", err)
+	}
+	client.Secret = hashedSec
+	err = s.createAndLinkServiceAccountUser(ctx, client, client.ServiceAccountEmail)
+	if err != nil {
+		return fmt.Errorf("failed to create service account user: %w", err)
+	}
+	client.Secret = sec // return the plain secret only during creation
 	s.Emit(newEvent(ctx, goiamuniverse.EventClientCreated, *client, middlewares.GetMetadata(ctx)))
 	return nil
 }
@@ -125,6 +110,85 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	}
 	s.Emit(newEvent(ctx, goiamuniverse.EventClientUpdated, *client, middlewares.GetMetadata(ctx)))
 	return nil
+}
+
+func (s service) VerifySecret(plainSecret, hashedSecret string) error {
+	if plainSecret == "" {
+		return fmt.Errorf("plain secret cannot be empty")
+	}
+
+	// hashSecret function is defined in services/client/helpers.go
+	// It hashes the secret using SHA256 and encodes to base64
+	hashedPlain, err := hashSecret(plainSecret)
+	if err != nil {
+		return fmt.Errorf("failed to hash secret for verification: %w", err)
+	}
+
+	if hashedPlain != hashedSecret {
+		return fmt.Errorf("secret verification failed: invalid secret")
+	}
+
+	return nil
+}
+
+func (s service) RegenerateSecret(ctx context.Context, clientId string) (*sdk.Client, error) {
+	client, err := s.Get(ctx, clientId, true)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching client: %w", err)
+	}
+
+	// Generate a new random secret
+	newSecret, err := generateRandomSecret(32)
+	if err != nil {
+		return nil, fmt.Errorf("error generating new client secret: %w", err)
+	}
+
+	hashedSec, err := hashSecret(newSecret)
+	if err != nil {
+		return nil, fmt.Errorf("error hashing client secret: %w", err)
+	}
+	client.Secret = hashedSec
+	err = s.s.Update(ctx, client)
+	if err != nil {
+		return nil, fmt.Errorf("error updating client with new secret: %w", err)
+	}
+	client.Secret = newSecret // return the plain secret only during regeneration
+
+	return client, nil
+}
+
+func (s service) createAndLinkServiceAccountUser(ctx context.Context, client *sdk.Client, email string) error {
+	user, err := s.createServiceAccountUser(ctx, client, email)
+	if err != nil {
+		return fmt.Errorf("failed to create service account user: %w", err)
+	}
+
+	client.LinkedUserId = user.Id
+	err = s.Update(ctx, client)
+	if err != nil {
+		log.Debugw("failed to update client with linked user", "client_id", client.Id, "user_id", user.Id, "error", err)
+		return fmt.Errorf("failed to update client: %w", err)
+	}
+	return nil
+}
+
+func (s service) createServiceAccountUser(ctx context.Context, client *sdk.Client, email string) (*sdk.User, error) {
+	creator := middlewares.GetUser(ctx)
+	// Implementation for creating a service account user
+	user := &sdk.User{
+		Email:          email,
+		ProjectId:      client.ProjectId,
+		LinkedClientId: client.Id,
+		Name:           fmt.Sprintf("Service Account of %s", client.Name),
+		CreatedBy:      creator.Email,
+	}
+
+	err := s.usrSvc.Create(ctx, user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create service account user: %w", err)
+	}
+
+	return user, nil
 }
 
 func (s service) Emit(event utils.Event[sdk.Client]) {

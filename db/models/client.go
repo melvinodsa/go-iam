@@ -12,6 +12,7 @@ type Client struct {
 	DefaultAuthProviderId string     `bson:"default_auth_provider_id"`
 	GoIamClient           bool       `bson:"go_iam_client"` // Indicates if this is a Go-IAM client
 	ProjectId             string     `bson:"project_id"`
+	ServiceAccountEmail   string     `bson:"service_account_email"`
 	Scopes                []string   `bson:"scopes"`
 	Enabled               bool       `bson:"enabled"`
 	LinkedUserId          string     `bson:"linked_user_id"`

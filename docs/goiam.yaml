@@ -63,13 +63,6 @@ paths:
                                         properties:
                                             access_token:
                                                 type: string
-                                            expires_in:
-                                                format: int64
-                                                type: integer
-                                            refresh_token:
-                                                type: string
-                                            token_type:
-                                                type: string
                                         type: object
                                     message:
                                         type: string
@@ -525,81 +518,6 @@ paths:
             summary: Update AuthProvider
             tags:
                 - Auth Provider
-    /authprovider/v1/enable-service-account:
-        post:
-            description: Enable service account authentication for a project
-            parameters:
-                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
-                  in: header
-                  name: X-Project-Ids
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            additionalProperties: {}
-                            type: object
-                description: Project ID
-            responses:
-                default:
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    data:
-                                        nullable: true
-                                        properties:
-                                            created_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            created_by:
-                                                type: string
-                                            enabled:
-                                                type: boolean
-                                            icon:
-                                                type: string
-                                            id:
-                                                type: string
-                                            name:
-                                                type: string
-                                            params:
-                                                items:
-                                                    properties:
-                                                        is_secret:
-                                                            type: boolean
-                                                        key:
-                                                            type: string
-                                                        label:
-                                                            type: string
-                                                        value:
-                                                            type: string
-                                                    type: object
-                                                type: array
-                                            project_id:
-                                                type: string
-                                            provider:
-                                                type: string
-                                            updated_at:
-                                                format: date-time
-                                                nullable: true
-                                                type: string
-                                            updated_by:
-                                                type: string
-                                        type: object
-                                    message:
-                                        type: string
-                                    success:
-                                        type: boolean
-                                type: object
-                    description: Service account enabled successfully
-            security:
-                - BearerAuth: []
-            summary: Enable Service Account
-            tags:
-                - Auth Provider
     /client/v1/:
         get:
             description: Fetch all clients
@@ -650,6 +568,8 @@ paths:
                                                         type: string
                                                     type: array
                                                 secret:
+                                                    type: string
+                                                service_account_email:
                                                     type: string
                                                 tags:
                                                     items:
@@ -720,6 +640,8 @@ paths:
                                     type: array
                                 secret:
                                     type: string
+                                service_account_email:
+                                    type: string
                                 tags:
                                     items:
                                         type: string
@@ -772,6 +694,8 @@ paths:
                                                     type: string
                                                 type: array
                                             secret:
+                                                type: string
+                                            service_account_email:
                                                 type: string
                                             tags:
                                                 items:
@@ -850,6 +774,8 @@ paths:
                                                 type: array
                                             secret:
                                                 type: string
+                                            service_account_email:
+                                                type: string
                                             tags:
                                                 items:
                                                     type: string
@@ -922,6 +848,8 @@ paths:
                                     type: array
                                 secret:
                                     type: string
+                                service_account_email:
+                                    type: string
                                 tags:
                                     items:
                                         type: string
@@ -975,6 +903,8 @@ paths:
                                                 type: array
                                             secret:
                                                 type: string
+                                            service_account_email:
+                                                type: string
                                             tags:
                                                 items:
                                                     type: string
@@ -995,6 +925,26 @@ paths:
             security:
                 - BearerAuth: []
             summary: Update Client
+            tags:
+                - Client
+    /client/v1/{id}/regenerate-secret:
+        put:
+            description: Regenerate the secret for a client
+            parameters:
+                - description: The ID of the client
+                  in: path
+                  name: id
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses: null
+            security:
+                - BearerAuth: []
+            summary: Regenerate Client Secret
             tags:
                 - Client
     /me/v1/dashboard:
@@ -1033,6 +983,8 @@ paths:
                                                         nullable: true
                                                         type: string
                                                     id:
+                                                        type: string
+                                                    linked_client_id:
                                                         type: string
                                                     name:
                                                         type: string
@@ -1123,6 +1075,8 @@ paths:
                                                 nullable: true
                                                 type: string
                                             id:
+                                                type: string
+                                            linked_client_id:
                                                 type: string
                                             name:
                                                 type: string
@@ -2298,6 +2252,8 @@ paths:
                                                             type: string
                                                         id:
                                                             type: string
+                                                        linked_client_id:
+                                                            type: string
                                                         name:
                                                             type: string
                                                         phone:
@@ -2391,6 +2347,8 @@ paths:
                                     type: string
                                 id:
                                     type: string
+                                linked_client_id:
+                                    type: string
                                 name:
                                     type: string
                                 phone:
@@ -2466,6 +2424,8 @@ paths:
                                                 nullable: true
                                                 type: string
                                             id:
+                                                type: string
+                                            linked_client_id:
                                                 type: string
                                             name:
                                                 type: string
@@ -2567,6 +2527,8 @@ paths:
                                                 type: string
                                             id:
                                                 type: string
+                                            linked_client_id:
+                                                type: string
                                             name:
                                                 type: string
                                             phone:
@@ -2662,6 +2624,8 @@ paths:
                                     type: string
                                 id:
                                     type: string
+                                linked_client_id:
+                                    type: string
                                 name:
                                     type: string
                                 phone:
@@ -2737,6 +2701,8 @@ paths:
                                                 nullable: true
                                                 type: string
                                             id:
+                                                type: string
+                                            linked_client_id:
                                                 type: string
                                             name:
                                                 type: string
@@ -2866,6 +2832,8 @@ paths:
                                                 type: string
                                             id:
                                                 type: string
+                                            linked_client_id:
+                                                type: string
                                             name:
                                                 type: string
                                             phone:
@@ -2980,6 +2948,8 @@ paths:
                                                 nullable: true
                                                 type: string
                                             id:
+                                                type: string
+                                            linked_client_id:
                                                 type: string
                                             name:
                                                 type: string
