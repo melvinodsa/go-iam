@@ -118,6 +118,10 @@ func (m *MockServiceProvider) GetIdentity(token string) ([]sdk.AuthIdentity, err
 	return args.Get(0).([]sdk.AuthIdentity), args.Error(1)
 }
 
+func (m *MockServiceProvider) HasRefreshTokenFlow() bool {
+	return true
+}
+
 type MockJWTService struct {
 	mock.Mock
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/services/authprovider/github"
 	"github.com/melvinodsa/go-iam/services/authprovider/google"
 	"github.com/melvinodsa/go-iam/services/authprovider/microsoft"
 	"github.com/melvinodsa/go-iam/services/project"
@@ -68,6 +69,8 @@ func (s service) GetProvider(ctx context.Context, v sdk.AuthProvider) (sdk.Servi
 		return google.NewAuthProvider(v), nil
 	case sdk.AuthProviderTypeMicrosoft:
 		return microsoft.NewAuthProvider(v), nil
+	case sdk.AuthProviderTypeGitHub:
+		return github.NewAuthProvider(v), nil
 	default:
 		return nil, fmt.Errorf("unknown auth provider: %s", v.Provider)
 	}

@@ -32,6 +32,10 @@ func NewAuthProvider(p sdk.AuthProvider) sdk.ServiceProvider {
 	return authProvider{cnf: oauthConfig}
 }
 
+func (g authProvider) HasRefreshTokenFlow() bool {
+	return true
+}
+
 func (g authProvider) GetAuthCodeUrl(state string) string {
 	return g.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }

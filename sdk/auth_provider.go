@@ -13,6 +13,7 @@ type AuthProviderType string
 const (
 	AuthProviderTypeGoogle    AuthProviderType = "GOOGLE"
 	AuthProviderTypeMicrosoft AuthProviderType = "MICROSOFT"
+	AuthProviderTypeGitHub    AuthProviderType = "GITHUB"
 )
 
 type AuthProvider struct {
@@ -88,6 +89,7 @@ type ServiceProvider interface {
 	VerifyCode(ctx context.Context, code string) (*AuthToken, error)
 	RefreshToken(refreshToken string) (*AuthToken, error)
 	GetIdentity(token string) ([]AuthIdentity, error)
+	HasRefreshTokenFlow() bool
 }
 
 type AuthProviderQueryParams struct {

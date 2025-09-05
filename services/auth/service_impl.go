@@ -273,7 +273,7 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 	}
 
 	// if the token is expired, we need to refresh the token
-	if token.ExpiresAt.Before(time.Now()) {
+	if token.ExpiresAt.Before(time.Now()) && sp.HasRefreshTokenFlow() {
 		newToken, err := s.refreshAuthToken(ctx, accessTokenId, *token, sp)
 		if err != nil {
 			return nil, fmt.Errorf("error refreshing the token %w", err)
