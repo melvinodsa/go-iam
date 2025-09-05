@@ -229,6 +229,9 @@ func TestService_Create_Success(t *testing.T) {
 			c.Secret != "" // Secret should be generated
 	})).Return(nil)
 
+	mockUserService.On("Create", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+	mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+
 	err := service.Create(ctx, client)
 
 	assert.NoError(t, err)

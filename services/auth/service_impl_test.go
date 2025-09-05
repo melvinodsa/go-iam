@@ -1881,7 +1881,7 @@ func TestGetIdentity(t *testing.T) {
 				// Auth provider not found
 				mockAuthProvider.On("Get", ctx, "unknown-provider", true).Return((*sdk.AuthProvider)(nil), errors.New("provider not found"))
 			},
-			expectedError: "error fetching auth provider: provider not found",
+			expectedError: "error getting the identity from auth provider error fetching auth provider details provider not found",
 		},
 		{
 			name:        "error - service provider creation fails",
