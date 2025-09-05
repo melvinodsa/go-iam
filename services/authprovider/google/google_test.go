@@ -290,6 +290,10 @@ func NewMockAuthProvider(p sdk.AuthProvider, endpoints *MockGoogleEndpoints) sdk
 	return mockAuthProvider{cnf: oauthConfig, endpoints: endpoints}
 }
 
+func (m mockAuthProvider) HasRefreshTokenFlow() bool {
+	return true
+}
+
 func (m mockAuthProvider) GetAuthCodeUrl(state string) string {
 	return m.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }

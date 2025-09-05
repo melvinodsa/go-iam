@@ -25,7 +25,7 @@
 
 ### 🔐 Authentication Provider Integration
 
-- Google OAuth login support
+- Google, Microsoft, GitHub OAuth login support
 - Easily extendable to add more providers
 - **Shared credentials** support across multiple clients
 

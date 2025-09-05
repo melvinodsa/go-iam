@@ -670,6 +670,38 @@ func TestService_GetProvider(t *testing.T) {
 			expectedError:  nil,
 		},
 		{
+			name: "success_microsoft_provider",
+			authProvider: sdk.AuthProvider{
+				Id:       "ap2",
+				Name:     "Microsoft Provider",
+				Provider: sdk.AuthProviderTypeMicrosoft,
+				Params: []sdk.AuthProviderParam{
+					{Key: "@MICROSOFT/CLIENT_ID", Value: "client456"},
+					{Key: "@MICROSOFT/CLIENT_SECRET", Value: "secret456"},
+					{Key: "@MICROSOFT/REDIRECT_URL", Value: "http://localhost:8080/callback"},
+				},
+				ProjectId: "project1",
+			},
+			expectedResult: nil, // We can't easily compare the Microsoft provider instance
+			expectedError:  nil,
+		},
+		{
+			name: "success_github_provider",
+			authProvider: sdk.AuthProvider{
+				Id:       "ap3",
+				Name:     "GitHub Provider",
+				Provider: sdk.AuthProviderTypeGitHub,
+				Params: []sdk.AuthProviderParam{
+					{Key: "@GITHUB/CLIENT_ID", Value: "client789"},
+					{Key: "@GITHUB/CLIENT_SECRET", Value: "secret789"},
+					{Key: "@GITHUB/REDIRECT_URL", Value: "http://localhost:8080/callback"},
+				},
+				ProjectId: "project1",
+			},
+			expectedResult: nil, // We can't easily compare the GitHub provider instance
+			expectedError:  nil,
+		},
+		{
 			name: "error_unknown_provider",
 			authProvider: sdk.AuthProvider{
 				Id:        "ap1",
@@ -708,9 +740,11 @@ func TestService_GetProvider(t *testing.T) {
 				assert.Nil(t, result)
 			} else {
 				assert.NoError(t, err)
-				// For Google provider, we just check that it's not nil
+				// For provider instances, we just check that it's not nil
 				// since comparing the actual instance is complex
-				if tt.authProvider.Provider == sdk.AuthProviderTypeGoogle {
+				if tt.authProvider.Provider == sdk.AuthProviderTypeGoogle ||
+					tt.authProvider.Provider == sdk.AuthProviderTypeMicrosoft ||
+					tt.authProvider.Provider == sdk.AuthProviderTypeGitHub {
 					assert.NotNil(t, result)
 				} else {
 					assert.Equal(t, tt.expectedResult, result)
