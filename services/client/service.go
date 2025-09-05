@@ -13,5 +13,7 @@ type Service interface {
 	Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.Client, error)
 	Create(ctx context.Context, client *sdk.Client) error
 	Update(ctx context.Context, client *sdk.Client) error
+	VerifySecret(plainSecret, hashedSecret string) error
+	RegenerateSecret(ctx context.Context, clientId string) (*sdk.Client, error)
 	utils.Emitter[utils.Event[sdk.Client], sdk.Client]
 }

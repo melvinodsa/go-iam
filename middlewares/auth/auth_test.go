@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,105 +8,19 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/utils"
-	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockAuthService is a mock implementation of auth.Service
-type MockAuthService struct {
-	mock.Mock
-}
-
-func (m *MockAuthService) GetLoginUrl(ctx context.Context, clientId, authProviderId, state, redirectUrl, codeChallengeMethod, codeChallenge string) (string, error) {
-	args := m.Called(ctx, clientId, authProviderId, state, redirectUrl, codeChallengeMethod, codeChallenge)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockAuthService) Redirect(ctx context.Context, code, state string) (*sdk.AuthRedirectResponse, error) {
-	args := m.Called(ctx, code, state)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.AuthRedirectResponse), args.Error(1)
-}
-
-func (m *MockAuthService) ClientCallback(ctx context.Context, code, codeChallenge, clientId, clietSecret string) (*sdk.AuthVerifyCodeResponse, error) {
-	args := m.Called(ctx, code, codeChallenge, clientId, clietSecret)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.AuthVerifyCodeResponse), args.Error(1)
-}
-
-func (m *MockAuthService) GetIdentity(ctx context.Context, token string) (*sdk.User, error) {
-	args := m.Called(ctx, token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.User), args.Error(1)
-}
-
-func (m *MockAuthService) HandleEvent(event utils.Event[sdk.Client]) {
-	m.Called(event)
-}
-
-// MockClientService is a mock implementation of client.Service
-type MockClientService struct {
-	mock.Mock
-}
-
-func (m *MockClientService) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, queryParams)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) GetGoIamClients(ctx context.Context, params sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, params)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.Client, error) {
-	args := m.Called(ctx, id, dontCheckProjects)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) Create(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-func (m *MockClientService) Update(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-func (m *MockClientService) Emit(event utils.Event[sdk.Client]) {
-	m.Called(event)
-}
-
-func (m *MockClientService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
-	m.Called(eventName, subscriber)
-}
-
-func setupTestApp() (*fiber.App, *MockAuthService, *MockClientService) {
+func setupTestApp() (*fiber.App, *services.MockAuthService, *services.MockClientService) {
 	app := fiber.New()
-	mockAuthSvc := new(MockAuthService)
-	mockClientSvc := new(MockClientService)
+	mockAuthSvc := new(services.MockAuthService)
+	mockClientSvc := new(services.MockClientService)
 	return app, mockAuthSvc, mockClientSvc
 }
 
-func setupTestAppWithAuthClient() (*fiber.App, *MockAuthService, *MockClientService, *Middlewares) {
+func setupTestAppWithAuthClient() (*fiber.App, *services.MockAuthService, *services.MockClientService, *Middlewares) {
 	app, mockAuthSvc, mockClientSvc := setupTestApp()
 
 	// Mock the GetGoIamClients call for middleware creation
@@ -123,7 +36,7 @@ func setupTestAppWithAuthClient() (*fiber.App, *MockAuthService, *MockClientServ
 	return app, mockAuthSvc, mockClientSvc, middlewares
 }
 
-func setupTestAppWithoutAuthClient() (*fiber.App, *MockAuthService, *MockClientService, *Middlewares) {
+func setupTestAppWithoutAuthClient() (*fiber.App, *services.MockAuthService, *services.MockClientService, *Middlewares) {
 	app, mockAuthSvc, mockClientSvc := setupTestApp()
 
 	// Mock the GetGoIamClients call to return empty slice (no auth client)

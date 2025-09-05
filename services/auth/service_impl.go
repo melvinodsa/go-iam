@@ -182,24 +182,38 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	if !ok {
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
+
 	usr, err := s.getUserFromCache(ctx, accessToken)
 	if err == nil && usr != nil {
 		log.Debugf("fetched user records from cache - %s", usr.Id)
 		return usr, nil
 	}
+
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting the token from cache %w", err)
 	}
-	identity, err := s.getAuthProivderIdentity(ctx, token, accessTokenId)
-	if err != nil {
-		return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
+
+	// Handle based on provider type
+	if len(token.ServiceAccountUserId) > 0 {
+		// For GoIAM/CLIENT, extract user from token
+		usr, err = s.getServiceAccountUser(ctx, token)
+		if err != nil {
+			return nil, fmt.Errorf("error getting service account user: %w", err)
+		}
+	} else {
+		// For other providers (Google, etc), use standard flow
+		identity, err := s.getAuthProivderIdentity(ctx, token, accessTokenId)
+		if err != nil {
+			return nil, fmt.Errorf("error getting the identity from auth provider %w", err)
+		}
+
+		usr, err = s.getOrCreateUser(ctx, *identity)
+		if err != nil {
+			return nil, fmt.Errorf("error getting or creating the user %w", err)
+		}
+
 	}
-	usr, err = s.getOrCreateUser(ctx, *identity)
-	if err != nil {
-		return nil, fmt.Errorf("error getting or creating the user %w", err)
-	}
-	log.Debugf("fetched user records from auth provider - %s", usr.Id)
 	err = s.cacheUserDetails(ctx, accessToken, *usr)
 	if err != nil {
 		return nil, fmt.Errorf("error caching the user details %w", err)
@@ -276,7 +290,14 @@ func (s service) getAuthProivderIdentity(ctx context.Context, token *sdk.AuthTok
 		id.UpdateUserDetails(&user)
 	}
 	return &user, nil
+}
 
+func (s service) getServiceAccountUser(ctx context.Context, token *sdk.AuthToken) (*sdk.User, error) {
+	u, err := s.usrSvc.GetById(ctx, token.ServiceAccountUserId)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching service account user: %w", err)
+	}
+	return u, nil
 }
 
 func (s service) refreshAuthToken(ctx context.Context, accessToken string, token sdk.AuthToken, sp sdk.ServiceProvider) (*sdk.AuthToken, error) {
@@ -554,4 +575,63 @@ func (s service) getRedirectUrl(ctx context.Context, clientId, redirectUrl, auth
 		redirectUrl = fmt.Sprintf("%s&code_challenge=%s", redirectUrl, generateCodeChallengeS256(codeChallenge))
 	}
 	return redirectUrl, nil
+}
+
+func (s service) ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.AuthVerifyCodeResponse, error) {
+	// Step 1: Validate client credentials
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
+	if err != nil {
+		return nil, fmt.Errorf("invalid client_id: %w", err)
+	}
+
+	if !cl.Enabled {
+		return nil, errors.New("client is disabled")
+	}
+
+	err = s.clientSvc.VerifySecret(clientSecret, cl.Secret)
+	if err != nil {
+		return nil, fmt.Errorf("authentication failed: %w", err)
+	}
+
+	// Step 2: Check if client uses GoIAM/CLIENT auth provider
+	if !cl.IsServiceAccount() {
+		return nil, errors.New("client does not support service account flow")
+	}
+
+	// Step 3: Validate linked user
+	if cl.LinkedUserId == "" {
+		return nil, errors.New("client does not have a linked user for service account flow")
+	}
+
+	user, err := s.usrSvc.GetById(ctx, cl.LinkedUserId)
+	if err != nil {
+		return nil, fmt.Errorf("linked user not found: %w", err)
+	}
+
+	if !user.Enabled {
+		return nil, errors.New("linked user is disabled")
+	}
+
+	if user.Expiry != nil && user.Expiry.Before(time.Now()) {
+		return nil, errors.New("linked user has expired")
+	}
+
+	token := sdk.AuthToken{
+		ClientId:             clientId,
+		ServiceAccountUserId: user.Id,
+	}
+
+	// Step 6: Cache the token (same as OAuth flow)
+	accessTokenId, err := s.cacheAccessToken(ctx, token, "")
+	if err != nil {
+		return nil, fmt.Errorf("error caching access token: %w", err)
+	}
+
+	// generate jwt access token
+	accessToken, err := s.jwtSvc.GenerateToken(map[string]interface{}{"id": accessTokenId}, time.Now().AddDate(0, 0, 1).Unix())
+	if err != nil {
+		return nil, fmt.Errorf("error generating the access token %w", err)
+	}
+
+	return &sdk.AuthVerifyCodeResponse{AccessToken: accessToken}, nil
 }

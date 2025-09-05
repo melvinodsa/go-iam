@@ -18,6 +18,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/user"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 )
 
 // Mock services for testing helper functions that need dependencies
@@ -43,52 +44,6 @@ func (m *MockCacheService) Delete(ctx context.Context, key string) error {
 func (m *MockCacheService) Expire(ctx context.Context, key string, ttl time.Duration) error {
 	args := m.Called(ctx, key, ttl)
 	return args.Error(0)
-}
-
-type MockClientService struct {
-	mock.Mock
-}
-
-func (m *MockClientService) Get(ctx context.Context, id string, withSecret bool) (*sdk.Client, error) {
-	args := m.Called(ctx, id, withSecret)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, queryParams)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) GetGoIamClients(ctx context.Context, params sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, params)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) Create(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-func (m *MockClientService) Update(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-func (m *MockClientService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
-	m.Called(eventName, subscriber)
-}
-
-func (m *MockClientService) Emit(event utils.Event[sdk.Client]) {
-	m.Called(event)
 }
 
 // Additional mock services for main interface methods
@@ -278,9 +233,9 @@ func (m *MockUserService) Emit(event utils.Event[sdk.User]) {
 }
 
 // Helper function to create a fully mocked service
-func setupFullTestService() (*service, *MockAuthProviderService, *MockClientService, *MockCacheService, *MockJWTService, *MockEncryptService, *MockUserService) {
+func setupFullTestService() (*service, *MockAuthProviderService, *services.MockClientService, *MockCacheService, *MockJWTService, *MockEncryptService, *MockUserService) {
 	mockAuthProvider := &MockAuthProviderService{}
-	mockClient := &MockClientService{}
+	mockClient := &services.MockClientService{}
 	mockCache := &MockCacheService{}
 	mockJWT := &MockJWTService{}
 	mockEncrypt := &MockEncryptService{}
@@ -304,7 +259,7 @@ func setupFullTestService() (*service, *MockAuthProviderService, *MockClientServ
 func TestNewService(t *testing.T) {
 	// Create mock services
 	mockAuthProvider := &MockAuthProviderService{}
-	mockClient := &MockClientService{}
+	mockClient := &services.MockClientService{}
 	mockCache := &MockCacheService{}
 	mockJWT := &MockJWTService{}
 	mockEncrypt := &MockEncryptService{}
@@ -389,14 +344,14 @@ func TestGetClientSecret(t *testing.T) {
 	tests := []struct {
 		name           string
 		clientId       string
-		setupMocks     func(*MockCacheService, *MockClientService)
+		setupMocks     func(*MockCacheService, *services.MockClientService)
 		expectedSecret string
 		expectedError  string
 	}{
 		{
 			name:     "success - from cache",
 			clientId: "test-client",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("cached-secret", nil)
 			},
 			expectedSecret: "cached-secret",
@@ -404,7 +359,7 @@ func TestGetClientSecret(t *testing.T) {
 		{
 			name:     "success - from database",
 			clientId: "test-client",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("", errors.New("not found"))
 				mockClient.On("Get", ctx, "test-client", false).Return(&sdk.Client{
 					Id:     "test-client",
@@ -417,7 +372,7 @@ func TestGetClientSecret(t *testing.T) {
 		{
 			name:     "success - from database with cache error",
 			clientId: "test-client",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("", errors.New("not found"))
 				mockClient.On("Get", ctx, "test-client", false).Return(&sdk.Client{
 					Id:     "test-client",
@@ -430,7 +385,7 @@ func TestGetClientSecret(t *testing.T) {
 		{
 			name:     "error - client not found",
 			clientId: "invalid-client",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-invalid-client").Return("", errors.New("not found"))
 				mockClient.On("Get", ctx, "invalid-client", false).Return((*sdk.Client)(nil), errors.New("client not found"))
 			},
@@ -441,7 +396,7 @@ func TestGetClientSecret(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockCache := &MockCacheService{}
-			mockClient := &MockClientService{}
+			mockClient := &services.MockClientService{}
 
 			svc := &service{
 				cacheSvc:  mockCache,
@@ -475,14 +430,14 @@ func TestHandlePrivateClient(t *testing.T) {
 		name          string
 		clientId      string
 		clientSecret  string
-		setupMocks    func(*MockCacheService, *MockClientService)
+		setupMocks    func(*MockCacheService, *services.MockClientService)
 		expectedError string
 	}{
 		{
 			name:         "success",
 			clientId:     "test-client",
 			clientSecret: "correct-secret",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("correct-secret", nil)
 			},
 		},
@@ -490,7 +445,7 @@ func TestHandlePrivateClient(t *testing.T) {
 			name:         "error - invalid client secret",
 			clientId:     "test-client",
 			clientSecret: "wrong-secret",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("correct-secret", nil)
 			},
 			expectedError: "invalid client secret",
@@ -499,7 +454,7 @@ func TestHandlePrivateClient(t *testing.T) {
 			name:         "error - client not found",
 			clientId:     "invalid-client",
 			clientSecret: "secret",
-			setupMocks: func(mockCache *MockCacheService, mockClient *MockClientService) {
+			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-invalid-client").Return("", errors.New("not found"))
 				mockClient.On("Get", ctx, "invalid-client", false).Return((*sdk.Client)(nil), errors.New("client not found"))
 			},
@@ -510,7 +465,7 @@ func TestHandlePrivateClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockCache := &MockCacheService{}
-			mockClient := &MockClientService{}
+			mockClient := &services.MockClientService{}
 
 			svc := &service{
 				cacheSvc:  mockCache,
@@ -1926,7 +1881,7 @@ func TestGetIdentity(t *testing.T) {
 				// Auth provider not found
 				mockAuthProvider.On("Get", ctx, "unknown-provider", true).Return((*sdk.AuthProvider)(nil), errors.New("provider not found"))
 			},
-			expectedError: "error fetching auth provider details",
+			expectedError: "error getting the identity from auth provider error fetching auth provider details provider not found",
 		},
 		{
 			name:        "error - service provider creation fails",
@@ -2224,286 +2179,6 @@ func TestGetIdentity(t *testing.T) {
 			},
 			expectedError: "error encrypting the user",
 		},
-		// {
-		// 	name:        "success - phone-based authentication with existing user",
-		// 	accessToken: "valid-token-phone-existing",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-123",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-phone-existing").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-phone-existing").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		token := &sdk.AuthToken{
-		// 			AccessToken:    "at_123",
-		// 			RefreshToken:   "rt_123",
-		// 			AuthProviderID: "phone-provider-id",
-		// 			ExpiresAt:      time.Now().Add(24 * time.Hour),
-		// 		}
-		// 		tokenJSON, err := json.Marshal(token)
-		// 		if err != nil {
-		// 			log.Printf("Error encoding token JSON: %v", err)
-		// 		}
-		// 		mockCache.On("Get", ctx, "access-token-token-123").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(string(tokenJSON), nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "phone-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "phone-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock GetIdentity call returning PHONE identity (no email)
-		// 		identities := []sdk.AuthIdentity{
-		// 			{Type: sdk.AuthIdentityTypePhone, Metadata: MockPhoneMetadata{Phone: "+1234567890"}},
-		// 			{Type: sdk.AuthIdentityTypeEmail, Metadata: MockNameMetadata{Name: "Phone User"}},
-		// 		}
-		// 		mockServiceProvider.On("GetIdentity", "at_123").Return(identities, nil)
-		// 		// Mock existing user found by phone
-		// 		existingUser := &sdk.User{
-		// 			Id:        "phone-user-123",
-		// 			Phone:     "+1234567890",
-		// 			Name:      "Phone User",
-		// 			ProjectId: "test-project",
-		// 			Enabled:   true,
-		// 		}
-		// 		mockUser.On("GetByPhone", ctx, "+1234567890", "test-project").Return(existingUser, nil)
-		// 		// Cache user details
-		// 		mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-user-data", nil)
-		// 		mockCache.On("Set", ctx, "token-valid-token-phone-existing", "encrypted-user-data", mock.Anything).Return(nil)
-		// 	},
-		// 	expectedUser: &sdk.User{
-		// 		Id:        "phone-user-123",
-		// 		Phone:     "+1234567890",
-		// 		Name:      "Phone User",
-		// 		ProjectId: "test-project",
-		// 		Enabled:   true,
-		// 	},
-		// },
-		// {
-		// 	name:        "success - phone-based authentication with new user creation",
-		// 	accessToken: "valid-token-phone-new",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-456",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-phone-new").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-phone-new").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		tokenJSON := `{"access_token":"at_456","refresh_token":"rt_456","auth_provider_id":"phone-provider-id","expires_at":"2025-08-31T10:00:00Z"}`
-		// 		mockCache.On("Get", ctx, "access-token-token-456").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(tokenJSON, nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "phone-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "phone-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock GetIdentity call returning PHONE identity (no email)
-		// 		identities := []sdk.AuthIdentity{
-		// 			{Type: sdk.AuthIdentityTypePhone, Metadata: MockPhoneMetadata{Phone: "+9876543210"}},
-		// 			{Type: sdk.AuthIdentityTypeEmail, Metadata: MockNameMetadata{Name: "New Phone User"}},
-		// 		}
-		// 		mockServiceProvider.On("GetIdentity", "at_456").Return(identities, nil)
-		// 		// Mock user not found by phone (should create new user)
-		// 		mockUser.On("GetByPhone", ctx, "+9876543210", "test-project").Return((*sdk.User)(nil), user.ErrorUserNotFound)
-		// 		// Mock user creation
-		// 		mockUser.On("Create", ctx, mock.MatchedBy(func(user *sdk.User) bool {
-		// 			return user.Phone == "+9876543210" && user.Name == "New Phone User" && user.ProjectId == "test-project"
-		// 		})).Run(func(args mock.Arguments) {
-		// 			u := args.Get(1).(*sdk.User)
-		// 			u.Id = "new-phone-user-456"
-		// 			u.Enabled = true
-		// 		}).Return(nil)
-		// 		// Cache user details
-		// 		mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-user-data", nil)
-		// 		mockCache.On("Set", ctx, "token-valid-token-phone-new", "encrypted-user-data", mock.Anything).Return(nil)
-		// 	},
-		// 	expectedUser: &sdk.User{
-		// 		Id:        "new-phone-user-456",
-		// 		Phone:     "+9876543210",
-		// 		Name:      "New Phone User",
-		// 		ProjectId: "test-project",
-		// 		Enabled:   true,
-		// 	},
-		// },
-		// {
-		// 	name:        "error - phone-based authentication with GetByPhone error",
-		// 	accessToken: "valid-token-phone-error",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-789",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-phone-error").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-phone-error").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		tokenJSON := `{"access_token":"at_789","refresh_token":"rt_789","auth_provider_id":"phone-provider-id","expires_at":"2025-08-31T10:00:00Z"}`
-		// 		mockCache.On("Get", ctx, "access-token-token-789").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(tokenJSON, nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "phone-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "phone-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock GetIdentity call returning PHONE identity (no email)
-		// 		identities := []sdk.AuthIdentity{
-		// 			{Type: sdk.AuthIdentityTypePhone, Metadata: MockPhoneMetadata{Phone: "+5555555555"}},
-		// 			{Type: sdk.AuthIdentityTypeEmail, Metadata: MockNameMetadata{Name: "Error Phone User"}},
-		// 		}
-		// 		mockServiceProvider.On("GetIdentity", "at_789").Return(identities, nil)
-		// 		// Mock GetByPhone returns unexpected error (not ErrorUserNotFound)
-		// 		mockUser.On("GetByPhone", ctx, "+5555555555", "test-project").Return((*sdk.User)(nil), errors.New("database connection failed"))
-		// 	},
-		// 	expectedError: "database connection failed",
-		// },
-		// {
-		// 	name:        "success - expired token with successful refresh",
-		// 	accessToken: "valid-token-expired-refresh-success",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-123",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-expired-refresh-success").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-expired-refresh-success").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		// Create an expired token (1 hour ago)
-		// 		expiredTime := time.Now().Add(-1 * time.Hour)
-		// 		tokenJSON := fmt.Sprintf(`{"access_token":"expired_at_123","refresh_token":"rt_123","auth_provider_id":"auth-provider-id","expires_at":"%s"}`, expiredTime.Format(time.RFC3339))
-		// 		mockCache.On("Get", ctx, "access-token-token-123").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(tokenJSON, nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "auth-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "auth-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock token refresh - RefreshToken should be called with refresh token
-		// 		newToken := &sdk.AuthToken{
-		// 			AccessToken:  "refreshed_at_456",
-		// 			RefreshToken: "refreshed_rt_456",
-		// 			ExpiresAt:    time.Now().Add(1 * time.Hour), // Valid for 1 hour
-		// 		}
-		// 		mockServiceProvider.On("RefreshToken", "rt_123").Return(newToken, nil)
-		// 		// Mock cacheAccessToken call during refresh
-		// 		mockEncrypt.On("Encrypt", mock.MatchedBy(func(data string) bool {
-		// 			// This should be the original expired token JSON (not the refreshed one)
-		// 			return strings.Contains(data, "expired_at_123")
-		// 		})).Return("encrypted-refreshed-token", nil)
-		// 		mockCache.On("Set", ctx, "access-token-token-123", "encrypted-refreshed-token", mock.AnythingOfType("time.Duration")).Return(nil)
-		// 		// Mock GetIdentity call with refreshed token
-		// 		identities := []sdk.AuthIdentity{
-		// 			{Type: sdk.AuthIdentityTypeEmail, Metadata: MockEmailMetadata{Email: "refreshed@example.com"}},
-		// 			{Type: sdk.AuthIdentityTypeEmail, Metadata: MockNameMetadata{Name: "Refreshed User"}},
-		// 		}
-		// 		mockServiceProvider.On("GetIdentity", "refreshed_at_456").Return(identities, nil)
-		// 		// Mock existing user found
-		// 		existingUser := &sdk.User{
-		// 			Id:        "refreshed-user-123",
-		// 			Email:     "refreshed@example.com",
-		// 			Name:      "Refreshed User",
-		// 			ProjectId: "test-project",
-		// 			Enabled:   true,
-		// 		}
-		// 		mockUser.On("GetByEmail", ctx, "refreshed@example.com", "test-project").Return(existingUser, nil)
-		// 		// Cache user details
-		// 		mockEncrypt.On("Encrypt", mock.MatchedBy(func(data string) bool {
-		// 			// This should be the user JSON
-		// 			return strings.Contains(data, "refreshed-user-123")
-		// 		})).Return("encrypted-user-data", nil)
-		// 		mockCache.On("Set", ctx, "token-valid-token-expired-refresh-success", "encrypted-user-data", mock.AnythingOfType("time.Duration")).Return(nil)
-		// 	},
-		// 	expectedUser: &sdk.User{
-		// 		Id:        "refreshed-user-123",
-		// 		Email:     "refreshed@example.com",
-		// 		Name:      "Refreshed User",
-		// 		ProjectId: "test-project",
-		// 		Enabled:   true,
-		// 	},
-		// },
-		// {
-		// 	name:        "error - expired token with refresh failure",
-		// 	accessToken: "valid-token-expired-refresh-fail",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-456",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-expired-refresh-fail").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-expired-refresh-fail").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		// Create an expired token (2 hours ago)
-		// 		expiredTime := time.Now().Add(-2 * time.Hour)
-		// 		tokenJSON := fmt.Sprintf(`{"access_token":"expired_at_456","refresh_token":"rt_456","auth_provider_id":"auth-provider-id","expires_at":"%s"}`, expiredTime.Format(time.RFC3339))
-		// 		mockCache.On("Get", ctx, "access-token-token-456").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(tokenJSON, nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "auth-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "auth-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock token refresh failure
-		// 		mockServiceProvider.On("RefreshToken", "rt_456").Return((*sdk.AuthToken)(nil), errors.New("refresh token expired"))
-		// 	},
-		// 	expectedError: "error refreshing the token",
-		// },
-		// {
-		// 	name:        "error - expired token with refresh cache failure",
-		// 	accessToken: "valid-token-expired-cache-fail",
-		// 	setupMocks: func() {
-		// 		claims := map[string]interface{}{
-		// 			"id": "token-789",
-		// 		}
-		// 		mockJWT.On("ValidateToken", "valid-token-expired-cache-fail").Return(claims, nil)
-		// 		// User not found in cache
-		// 		mockCache.On("Get", ctx, "token-valid-token-expired-cache-fail").Return("", errors.New("user not found in cache"))
-		// 		// Access token found and decrypted successfully
-		// 		// Create an expired token (30 minutes ago)
-		// 		expiredTime := time.Now().Add(-30 * time.Minute)
-		// 		tokenJSON := fmt.Sprintf(`{"access_token":"expired_at_789","refresh_token":"rt_789","auth_provider_id":"auth-provider-id","expires_at":"%s"}`, expiredTime.Format(time.RFC3339))
-		// 		mockCache.On("Get", ctx, "access-token-token-789").Return("encrypted-token-data", nil)
-		// 		mockEncrypt.On("Decrypt", "encrypted-token-data").Return(tokenJSON, nil)
-		// 		// Mock auth provider
-		// 		authProvider := &sdk.AuthProvider{
-		// 			Id:        "auth-provider-id",
-		// 			ProjectId: "test-project",
-		// 		}
-		// 		mockAuthProvider.On("Get", ctx, "auth-provider-id", true).Return(authProvider, nil)
-		// 		// Mock service provider
-		// 		mockServiceProvider := &MockServiceProvider{}
-		// 		mockAuthProvider.On("GetProvider", ctx, *authProvider).Return(mockServiceProvider, nil)
-		// 		// Mock token refresh success
-		// 		newToken := &sdk.AuthToken{
-		// 			AccessToken:  "refreshed_at_789",
-		// 			RefreshToken: "refreshed_rt_789",
-		// 			ExpiresAt:    time.Now().Add(2 * time.Hour),
-		// 		}
-		// 		mockServiceProvider.On("RefreshToken", "rt_789").Return(newToken, nil)
-		// 		// Mock cacheAccessToken failure during refresh
-		// 		mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-refreshed-token", nil)
-		// 		mockCache.On("Set", ctx, "access-token-token-789", "encrypted-refreshed-token", mock.AnythingOfType("time.Duration")).Return(errors.New("cache write failed"))
-		// 	},
-		// 	expectedError: "error caching the access token",
-		// },
 	}
 
 	for _, tt := range tests {

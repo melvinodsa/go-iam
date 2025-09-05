@@ -32,7 +32,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	pstr := project.NewStore(db)
 	psvc := project.NewService(pstr)
 	cstr := client.NewStore(db)
-	csvc := client.NewService(cstr, psvc)
+	
 	rstr := resource.NewStore(db)
 	rsvc := resource.NewService(rstr)
 	roleStr := role.NewStore(db)
@@ -51,6 +51,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)
+	csvc := client.NewService(cstr, psvc,apSvc, userSvc)
 	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, userSvc, tokenTTL, refetchTTL)
 	polstr := policy.NewStore()
 	polSvc := policy.NewService(polstr)

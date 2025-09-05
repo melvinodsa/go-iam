@@ -43,6 +43,16 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("parsed create client request")
 	pr := providers.GetProviders(c)
+
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
+	}
+
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
+	}
 	err := pr.S.Clients.Create(c.Context(), payload)
 	if err != nil {
 		message := fmt.Errorf("failed to create client. %w", err).Error()
@@ -178,7 +188,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 	})
 }
 
-// Update client
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update client request")
 	id := c.Params("id")
@@ -186,6 +195,7 @@ func Update(c *fiber.Ctx) error {
 		log.Error("invalid update client request. client id not found")
 		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
 	}
+	// Use ClientUpdateRequest to handle email
 	payload := new(sdk.Client)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update client request", "error", err)
@@ -193,7 +203,12 @@ func Update(c *fiber.Ctx) error {
 	}
 
 	payload.Id = id
+	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
+		message := "either service account email or default auth provider id must be provided"
+		return sdk.ClientBadRequest(message, c)
+	}
 	pr := providers.GetProviders(c)
+
 	err := pr.S.Clients.Update(c.Context(), payload)
 	if err != nil {
 		if errors.Is(err, client.ErrClientNotFound) {
@@ -209,5 +224,50 @@ func Update(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Client updated successfully",
 		Data:    payload,
+	})
+}
+
+func RegenerateSecretRoute(router fiber.Router, basePath string) {
+	routePath := "/:id/regenerate-secret"
+	path := basePath + routePath
+	router.Put(routePath, RegenerateSecret)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Regenerate Client Secret",
+		Description: "Regenerate the secret for a client",
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the client",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func RegenerateSecret(c *fiber.Ctx) error {
+	log.Debug("received regenerate client secret request")
+	id := c.Params("id")
+	if id == "" {
+		log.Error("invalid regenerate client secret request. client id not found")
+		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
+	}
+	pr := providers.GetProviders(c)
+
+	client, err := pr.S.Clients.RegenerateSecret(c.Context(), id)
+	if err != nil {
+		message := fmt.Errorf("failed to regenerate client secret. %w", err).Error()
+		log.Error("failed to regenerate client secret", "error", err)
+		return sdk.ClientInternalServerError(message, c)
+	}
+
+	log.Debug("client secret regenerated successfully")
+	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
+		Success: true,
+		Message: "Client secret regenerated successfully",
+		Data:    client,
 	})
 }

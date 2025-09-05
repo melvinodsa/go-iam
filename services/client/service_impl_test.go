@@ -10,6 +10,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -39,36 +40,6 @@ func (m *MockStore) Update(ctx context.Context, client *sdk.Client) error {
 	return args.Error(0)
 }
 
-// MockProjectService implements project.Service interface for testing
-type MockProjectService struct {
-	mock.Mock
-}
-
-func (m *MockProjectService) GetAll(ctx context.Context) ([]sdk.Project, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]sdk.Project), args.Error(1)
-}
-
-func (m *MockProjectService) Get(ctx context.Context, id string) (*sdk.Project, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*sdk.Project), args.Error(1)
-}
-
-func (m *MockProjectService) GetByName(ctx context.Context, name string) (*sdk.Project, error) {
-	args := m.Called(ctx, name)
-	return args.Get(0).(*sdk.Project), args.Error(1)
-}
-
-func (m *MockProjectService) Create(ctx context.Context, project *sdk.Project) error {
-	args := m.Called(ctx, project)
-	return args.Error(0)
-}
-
-func (m *MockProjectService) Update(ctx context.Context, project *sdk.Project) error {
-	args := m.Called(ctx, project)
-	return args.Error(0)
-}
-
 // Helper function to create context with projects
 func createContextWithProjects(projects []string) context.Context {
 	metadata := sdk.Metadata{
@@ -80,9 +51,11 @@ func createContextWithProjects(projects []string) context.Context {
 
 func TestNewService(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
 
-	service := NewService(mockStore, mockProjectService)
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	assert.NotNil(t, service)
 	assert.Implements(t, (*Service)(nil), service)
@@ -90,8 +63,10 @@ func TestNewService(t *testing.T) {
 
 func TestService_Emit(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	service.Emit(nil)
 
@@ -108,8 +83,10 @@ func (m *MockSubscriber) HandleEvent(event utils.Event[sdk.Client]) {
 
 func TestService_Subscribe(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	m := &MockSubscriber{}
 	service.Subscribe(goiamuniverse.EventClientCreated, m)
@@ -119,8 +96,10 @@ func TestService_Subscribe(t *testing.T) {
 
 func TestService_GetAll_Success(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1", "project2"})
 
@@ -149,8 +128,10 @@ func TestService_GetAll_Success(t *testing.T) {
 
 func TestService_GetAll_StoreError(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1"})
 
@@ -171,8 +152,10 @@ func TestService_GetAll_StoreError(t *testing.T) {
 
 func TestService_Get_Success(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1", "project2"})
 
@@ -194,8 +177,10 @@ func TestService_Get_Success(t *testing.T) {
 
 func TestService_Get_ClientNotInUserProjects(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1"})
 
@@ -218,8 +203,10 @@ func TestService_Get_ClientNotInUserProjects(t *testing.T) {
 
 func TestService_Create_Success(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	testUser := &sdk.User{Id: "user1", Name: "Test User"}
 	metadata := sdk.Metadata{
@@ -242,6 +229,9 @@ func TestService_Create_Success(t *testing.T) {
 			c.Secret != "" // Secret should be generated
 	})).Return(nil)
 
+	mockUserService.On("Create", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+	mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+
 	err := service.Create(ctx, client)
 
 	assert.NoError(t, err)
@@ -251,8 +241,10 @@ func TestService_Create_Success(t *testing.T) {
 
 func TestService_Create_ProjectNotFound(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1"})
 
@@ -272,8 +264,10 @@ func TestService_Create_ProjectNotFound(t *testing.T) {
 
 func TestService_Update_Success(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	testUser := &sdk.User{Id: "user1", Name: "Test User"}
 	metadata := sdk.Metadata{
@@ -299,8 +293,10 @@ func TestService_Update_Success(t *testing.T) {
 
 func TestService_Update_ProjectNotFound(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1"})
 
@@ -321,8 +317,10 @@ func TestService_Update_ProjectNotFound(t *testing.T) {
 
 func TestService_GetGoIamClients_Success(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := context.Background()
 
@@ -351,8 +349,10 @@ func TestService_GetGoIamClients_Success(t *testing.T) {
 
 func TestService_GetGoIamClients_StoreError(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := context.Background()
 
@@ -374,8 +374,10 @@ func TestService_GetGoIamClients_StoreError(t *testing.T) {
 
 func TestService_Get_WithoutProjectCheck(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := context.Background()
 
@@ -397,8 +399,10 @@ func TestService_Get_WithoutProjectCheck(t *testing.T) {
 
 func TestService_Get_StoreError(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	ctx := createContextWithProjects([]string{"project1"})
 
@@ -416,8 +420,10 @@ func TestService_Get_StoreError(t *testing.T) {
 
 func TestService_Create_StoreError(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	testUser := &sdk.User{Id: "user1", Name: "Test User"}
 	metadata := sdk.Metadata{
@@ -444,8 +450,10 @@ func TestService_Create_StoreError(t *testing.T) {
 
 func TestService_Update_StoreError(t *testing.T) {
 	mockStore := &MockStore{}
-	mockProjectService := &MockProjectService{}
-	service := NewService(mockStore, mockProjectService)
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
 
 	testUser := &sdk.User{Id: "user1", Name: "Test User"}
 	metadata := sdk.Metadata{

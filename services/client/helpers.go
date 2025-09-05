@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
@@ -29,6 +30,8 @@ func fromModelToSdk(client *models.Client) *sdk.Client {
 		GoIamClient:           client.GoIamClient,
 		ProjectId:             client.ProjectId,
 		Scopes:                client.Scopes,
+		LinkedUserId:          client.LinkedUserId,
+		ServiceAccountEmail:   client.ServiceAccountEmail,
 		Enabled:               client.Enabled,
 		CreatedAt:             client.CreatedAt,
 		CreatedBy:             client.CreatedBy,
@@ -48,7 +51,9 @@ func fromSdkToModel(client sdk.Client) models.Client {
 		ProjectId:             client.ProjectId,
 		DefaultAuthProviderId: client.DefaultAuthProviderId,
 		GoIamClient:           client.GoIamClient,
+		ServiceAccountEmail:   client.ServiceAccountEmail,
 		Scopes:                client.Scopes,
+		LinkedUserId:          client.LinkedUserId,
 		Enabled:               client.Enabled,
 		CreatedAt:             client.CreatedAt,
 		CreatedBy:             client.CreatedBy,
@@ -59,6 +64,9 @@ func fromSdkToModel(client sdk.Client) models.Client {
 
 func hashSecret(secret string) (string, error) {
 	// hash the secret then convert it to base64
+	if secret == "" {
+		return "", fmt.Errorf("secret cannot be empty")
+	}
 	hashedSecret := sha256.Sum256([]byte(secret))
 	return base64.StdEncoding.EncodeToString(hashedSecret[:]), nil
 }

@@ -9,6 +9,7 @@ func RegisterRoutes(router fiber.Router, path string) {
 	GetRoute(v1, v1Path)
 	FetchAllRoute(v1, v1Path)
 	UpdateRoute(v1, v1Path)
+	RegenerateSecretRoute(v1, v1Path)
 }
 
 var routeTags = []string{"Client"}

@@ -7,54 +7,14 @@ import (
 	"time"
 
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/utils"
-	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockClientService is a mock implementation of client.Service
-type MockClientService struct {
-	mock.Mock
-}
-
-func (m *MockClientService) GetAll(ctx context.Context, queryParams sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, queryParams)
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) GetGoIamClients(ctx context.Context, params sdk.ClientQueryParams) ([]sdk.Client, error) {
-	args := m.Called(ctx, params)
-	return args.Get(0).([]sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) Get(ctx context.Context, id string, dontCheckProjects bool) (*sdk.Client, error) {
-	args := m.Called(ctx, id, dontCheckProjects)
-	return args.Get(0).(*sdk.Client), args.Error(1)
-}
-
-func (m *MockClientService) Create(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-func (m *MockClientService) Update(ctx context.Context, client *sdk.Client) error {
-	args := m.Called(ctx, client)
-	return args.Error(0)
-}
-
-// Mock methods for utils.Emitter interface
-func (m *MockClientService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Client], sdk.Client]) {
-	m.Called(eventName, subscriber)
-}
-
-func (m *MockClientService) Emit(event utils.Event[sdk.Client]) {
-	m.Called(event)
-}
-
 func TestGetGoIamClient_Success(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create test client
 	now := time.Now()
@@ -109,7 +69,7 @@ func TestGetGoIamClient_Success(t *testing.T) {
 
 func TestGetGoIamClient_MultipleClients(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create multiple test clients
 	now := time.Now()
@@ -147,7 +107,7 @@ func TestGetGoIamClient_MultipleClients(t *testing.T) {
 
 func TestGetGoIamClient_ServiceError(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Set up mock expectations to return an error
 	expectedError := errors.New("database connection failed")
@@ -168,7 +128,7 @@ func TestGetGoIamClient_ServiceError(t *testing.T) {
 
 func TestGetGoIamClient_NoClientsFound(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Set up mock expectations to return empty slice
 	mockService.On("GetGoIamClients", mock.AnythingOfType("context.backgroundCtx"), sdk.ClientQueryParams{
@@ -188,7 +148,7 @@ func TestGetGoIamClient_NoClientsFound(t *testing.T) {
 
 func TestGetGoIamClient_EmptyClient(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create empty client (minimal required fields)
 	emptyClient := sdk.Client{
@@ -220,7 +180,7 @@ func TestGetGoIamClient_EmptyClient(t *testing.T) {
 
 func TestGetGoIamClient_NilFields(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create client with nil timestamp fields
 	clientWithNilFields := sdk.Client{
@@ -253,7 +213,7 @@ func TestGetGoIamClient_NilFields(t *testing.T) {
 
 func TestGetGoIamClient_CorrectQueryParams(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create test client
 	testClient := sdk.Client{
@@ -293,7 +253,7 @@ func TestGetGoIamClient_CorrectQueryParams(t *testing.T) {
 
 func TestGetGoIamClient_ContextPassing(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create test client
 	testClient := sdk.Client{
@@ -320,7 +280,7 @@ func TestGetGoIamClient_ContextPassing(t *testing.T) {
 
 func TestGetGoIamClient_ClientWithAllFields(t *testing.T) {
 	// Create mock service
-	mockService := new(MockClientService)
+	mockService := new(services.MockClientService)
 
 	// Create comprehensive test client with all fields populated
 	now := time.Now()
@@ -416,7 +376,7 @@ func TestGetGoIamClient_ErrorTypes(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create mock service
-			mockService := new(MockClientService)
+			mockService := new(services.MockClientService)
 
 			// Set up mock expectations
 			mockService.On("GetGoIamClients", mock.AnythingOfType("context.backgroundCtx"), sdk.ClientQueryParams{

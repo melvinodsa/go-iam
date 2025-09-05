@@ -423,9 +423,8 @@ func TestHashSecret(t *testing.T) {
 
 		hashedSecret, err := hashSecret(secret)
 
-		assert.NoError(t, err)
-		assert.NotEmpty(t, hashedSecret)
-		assert.Equal(t, 44, len(hashedSecret))
+		assert.Error(t, err)
+		assert.Empty(t, hashedSecret)
 	})
 
 	t.Run("hash_same_secret_produces_same_hash", func(t *testing.T) {
