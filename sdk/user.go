@@ -45,15 +45,15 @@ type UserRole struct {
 }
 
 type UserResource struct {
-	RoleIds   map[string]bool `bson:"role_ids"`
-	PolicyIds map[string]bool `bson:"policy_ids"`
+	RoleIds   map[string]bool `json:"role_ids"`
+	PolicyIds map[string]bool `json:"policy_ids"`
 	Key       string          `json:"key"`
 	Name      string          `json:"name"`
 }
 
 type AddUserResourceRequest struct {
-	RoleId   string `bson:"role_id"`
-	PolicyId string `bson:"policy_id"`
+	RoleId   string `json:"role_id"`
+	PolicyId string `json:"policy_id"`
 	Key      string `json:"key"`
 	Name     string `json:"name"`
 }
