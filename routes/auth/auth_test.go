@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -541,5 +542,246 @@ func TestVerify(t *testing.T) {
 		assert.NotNil(t, resp)
 
 		assert.Equalf(t, 400, res.StatusCode, "Expected status code 400")
+	})
+}
+
+func TestClientCredentials(t *testing.T) {
+	cnf := config.NewAppConfig()
+	log.Infow("Loaded Configurations",
+		"host", cnf.Server.Host,
+		"port", cnf.Server.Port,
+		"env", cnf.Deployment.Environment,
+		"app_name", cnf.Deployment.Name,
+	)
+
+	t.Run("client credentials success", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// auth mock
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("ClientCredentials", mock.Anything, mock.Anything, mock.Anything).Return(&sdk.AuthVerifyCodeResponse{
+			AccessToken: "test_access_token",
+		}, nil).Once()
+
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`{
+			"client_id": "test",
+			"client_secret": "test"
+		}`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 200, res.StatusCode, "Expected status code 200")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+		assert.NotNil(t, resp.Data)
+	})
+
+	t.Run("client credentials error", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// auth mock
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("ClientCredentials", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error")).Once()
+
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`{
+			"client_id": "test",
+			"client_secret": "test"
+		}`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 401, res.StatusCode, "Expected status code 401")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("client not found", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// auth mock
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("ClientCredentials", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("invalid client_id")).Once()
+
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`{
+			"client_id": "test",
+			"client_secret": "test"
+		}`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 404, res.StatusCode, "Expected status code 404")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("client disabled", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// auth mock
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("ClientCredentials", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("client is disabled")).Once()
+
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`{
+			"client_id": "test",
+			"client_secret": "test"
+		}`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 403, res.StatusCode, "Expected status code 403")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("empty payload", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 400, res.StatusCode, "Expected status code 400")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("invalid payload", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/auth")
+
+		req, _ := http.NewRequest("POST", "/auth/v1/client", strings.NewReader(`invalid`))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 400, res.StatusCode, "Expected status code 400")
+		assert.Nil(t, err)
+
+		var resp sdk.ClientCredentialsResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
 	})
 }
