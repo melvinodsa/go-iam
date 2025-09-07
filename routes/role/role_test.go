@@ -480,7 +480,7 @@ func TestUpdate(t *testing.T) {
 		}`))
 		req.Header.Set("Content-Type", "application/json")
 		res, err := app.Test(req, -1)
-		assert.Equalf(t, 500, res.StatusCode, "Expected status code 500")
+		assert.Equalf(t, 404, res.StatusCode, "Expected status code 404")
 		assert.Nil(t, err)
 		var resp sdk.RoleResponse
 		err = json.NewDecoder(res.Body).Decode(&resp)
