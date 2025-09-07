@@ -50,7 +50,7 @@ func (s service) Create(ctx context.Context, provider *sdk.AuthProvider) error {
 	// check if the project exists
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[provider.ProjectId]; !ok {
-		return project.ErrProjectNotFound
+		return sdk.ErrProjectNotFound
 	}
 	return s.s.Create(ctx, provider)
 }
@@ -58,7 +58,7 @@ func (s service) Update(ctx context.Context, provider *sdk.AuthProvider) error {
 	// check if the project exists
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[provider.ProjectId]; !ok {
-		return project.ErrProjectNotFound
+		return sdk.ErrProjectNotFound
 	}
 	return s.s.Update(ctx, provider)
 }

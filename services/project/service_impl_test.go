@@ -351,8 +351,8 @@ func TestService_Update(t *testing.T) {
 
 func TestService_ErrorConstants(t *testing.T) {
 	// Test that the error constants are properly defined
-	assert.NotNil(t, ErrProjectNotFound)
-	assert.Equal(t, "project not found", ErrProjectNotFound.Error())
+	assert.NotNil(t, sdk.ErrProjectNotFound)
+	assert.Equal(t, "project not found", sdk.ErrProjectNotFound.Error())
 }
 
 func TestService_IntegrationScenarios(t *testing.T) {

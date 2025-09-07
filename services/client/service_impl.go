@@ -66,7 +66,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
-		return project.ErrProjectNotFound
+		return sdk.ErrProjectNotFound
 	}
 	if client.DefaultAuthProviderId != "" {
 		// verifying if auth provider exists
@@ -102,7 +102,7 @@ func (s service) Update(ctx context.Context, client *sdk.Client) error {
 	// check if the project exists
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[client.ProjectId]; !ok {
-		return project.ErrProjectNotFound
+		return sdk.ErrProjectNotFound
 	}
 	err := s.s.Update(ctx, client)
 	if err != nil {

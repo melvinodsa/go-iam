@@ -7,7 +7,6 @@ import (
 
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 	"github.com/melvinodsa/go-iam/utils/test/services"
@@ -257,7 +256,7 @@ func TestService_Create_ProjectNotFound(t *testing.T) {
 	err := service.Create(ctx, client)
 
 	assert.Error(t, err)
-	assert.Equal(t, project.ErrProjectNotFound, err)
+	assert.Equal(t, sdk.ErrProjectNotFound, err)
 	// Store should not be called
 	mockStore.AssertNotCalled(t, "Create")
 }
@@ -310,7 +309,7 @@ func TestService_Update_ProjectNotFound(t *testing.T) {
 	err := service.Update(ctx, client)
 
 	assert.Error(t, err)
-	assert.Equal(t, project.ErrProjectNotFound, err)
+	assert.Equal(t, sdk.ErrProjectNotFound, err)
 	// Store should not be called
 	mockStore.AssertNotCalled(t, "Update")
 }

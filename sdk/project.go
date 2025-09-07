@@ -1,6 +1,11 @@
 package sdk
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrProjectNotFound = errors.New("project not found")
 
 type Project struct {
 	Id          string     `json:"id"`

@@ -47,14 +47,14 @@ func (s store) GetAll(ctx context.Context) ([]sdk.Project, error) {
 
 func (s store) GetByName(ctx context.Context, name string) (*sdk.Project, error) {
 	if len(name) == 0 {
-		return nil, ErrProjectNotFound
+		return nil, sdk.ErrProjectNotFound
 	}
 	md := models.GetProjectModel()
 	var project models.Project
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.NameKey, Value: name}}).Decode(&project)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrProjectNotFound
+			return nil, sdk.ErrProjectNotFound
 		}
 		return nil, fmt.Errorf("error finding project by name: %w", err)
 	}
@@ -67,7 +67,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.Project, error) {
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}).Decode(&project)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrProjectNotFound
+			return nil, sdk.ErrProjectNotFound
 		}
 		return nil, fmt.Errorf("error finding project: %w", err)
 	}
@@ -91,7 +91,7 @@ func (s store) Update(ctx context.Context, project *sdk.Project) error {
 	now := time.Now()
 	project.UpdatedAt = &now
 	if project.Id == "" {
-		return ErrProjectNotFound
+		return sdk.ErrProjectNotFound
 	}
 	o, err := s.Get(ctx, project.Id)
 	if err != nil {

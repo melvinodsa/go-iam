@@ -147,7 +147,7 @@ func TestStore_GetByName(t *testing.T) {
 		result, err := store.GetByName(ctx, "")
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrProjectNotFound, err)
+		assert.Equal(t, sdk.ErrProjectNotFound, err)
 		assert.Nil(t, result)
 		mockDB.AssertNotCalled(t, "FindOne")
 	})
@@ -254,7 +254,7 @@ func TestStore_Update(t *testing.T) {
 		err := store.Update(ctx, project)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrProjectNotFound, err)
+		assert.Equal(t, sdk.ErrProjectNotFound, err)
 		mockDB.AssertNotCalled(t, "UpdateOne")
 	})
 
@@ -486,8 +486,8 @@ func TestStore_DatabaseCallValidation(t *testing.T) {
 
 func TestStore_ErrorScenarios(t *testing.T) {
 	t.Run("error_constants_are_defined", func(t *testing.T) {
-		assert.NotNil(t, ErrProjectNotFound)
-		assert.Equal(t, "project not found", ErrProjectNotFound.Error())
+		assert.NotNil(t, sdk.ErrProjectNotFound)
+		assert.Equal(t, "project not found", sdk.ErrProjectNotFound.Error())
 	})
 
 	t.Run("get_by_name_empty_name_returns_error", func(t *testing.T) {
@@ -497,7 +497,7 @@ func TestStore_ErrorScenarios(t *testing.T) {
 		result, err := store.GetByName(context.Background(), "")
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrProjectNotFound, err)
+		assert.Equal(t, sdk.ErrProjectNotFound, err)
 		assert.Nil(t, result)
 	})
 
@@ -510,6 +510,6 @@ func TestStore_ErrorScenarios(t *testing.T) {
 		err := store.Update(context.Background(), project)
 
 		assert.Error(t, err)
-		assert.Equal(t, ErrProjectNotFound, err)
+		assert.Equal(t, sdk.ErrProjectNotFound, err)
 	})
 }

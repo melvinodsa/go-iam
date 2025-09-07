@@ -12,7 +12,7 @@ import (
 
 func CheckAndAddDefaultProject(svc project.Service) error {
 	_, err := svc.GetByName(context.Background(), "Default Project")
-	if err != nil && err != project.ErrProjectNotFound {
+	if err != nil && err != sdk.ErrProjectNotFound {
 		return fmt.Errorf("error fetching default project: %w", err)
 	}
 	if err == nil {

@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/project"
 	"github.com/melvinodsa/go-iam/utils/docs"
 )
 
@@ -58,7 +57,7 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("project created successfully")
 
-	return c.Status(http.StatusOK).JSON(sdk.ProjectResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.ProjectResponse{
 		Success: true,
 		Message: "Project created successfully",
 		Data:    payload,
@@ -95,19 +94,12 @@ func GetRoute(router fiber.Router, basePath string) {
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get project request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid get project request. project id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.ProjectResponse{
-			Success: false,
-			Message: "Invalid request. Project id is required",
-		})
-	}
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.Projects.Get(c.Context(), id)
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to get project. %w", err).Error()
-		if errors.Is(err, project.ErrProjectNotFound) {
+		if errors.Is(err, sdk.ErrProjectNotFound) {
 			status = http.StatusBadRequest
 			message = "project not found"
 		}
@@ -201,13 +193,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update project request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update project request. project id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.ProjectResponse{
-			Success: false,
-			Message: "Invalid request. Project id is required",
-		})
-	}
 	payload := new(sdk.Project)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update project request", "error", err)
@@ -223,8 +208,8 @@ func Update(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to update project. %w", err).Error()
-		if errors.Is(err, project.ErrProjectNotFound) {
-			status = http.StatusBadRequest
+		if errors.Is(err, sdk.ErrProjectNotFound) {
+			status = http.StatusNotFound
 			message = "project not found"
 		}
 		log.Error("failed to update project", "error", err)

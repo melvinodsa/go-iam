@@ -446,7 +446,7 @@ func TestService_Create(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_empty_projects_context",
@@ -462,7 +462,7 @@ func TestService_Create(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_nil_projects_context",
@@ -478,7 +478,7 @@ func TestService_Create(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_from_store",
@@ -567,7 +567,7 @@ func TestService_Update(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_empty_projects_context",
@@ -583,7 +583,7 @@ func TestService_Update(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_nil_projects_context",
@@ -599,7 +599,7 @@ func TestService_Update(t *testing.T) {
 				ProjectId: "project1",
 			},
 			mockSetup:     func(m *MockStore) {},
-			expectedError: project.ErrProjectNotFound,
+			expectedError: sdk.ErrProjectNotFound,
 		},
 		{
 			name: "error_from_store",
