@@ -97,13 +97,7 @@ func GetByIdRoute(router fiber.Router, basePath string) {
 func GetById(c *fiber.Ctx) error {
 	log.Debug("received get user request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid get user request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
-			Success: false,
-			Message: "Invalid request. User ID is required",
-		})
-	}
+
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.User.GetById(c.Context(), id)
 	if err != nil {
@@ -242,13 +236,7 @@ func UpdateRoute(router fiber.Router, basePath string) {
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update user request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update user request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
-			Success: false,
-			Message: "Invalid request. User ID is required",
-		})
-	}
+
 	payload := new(sdk.User)
 	if err := c.BodyParser(payload); err != nil {
 		log.Errorw("invalid update user request", "error", err)
@@ -318,13 +306,6 @@ func UpdateRolesRoute(router fiber.Router, basePath string) {
 func UpdateRoles(c *fiber.Ctx) error {
 	log.Debug("received update user roles request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update user roles request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
-			Success: false,
-			Message: "Invalid request. User ID is required",
-		})
-	}
 
 	payload := new(sdk.UserRoleUpdate)
 	if err := c.BodyParser(payload); err != nil {
@@ -411,13 +392,6 @@ func UpdatePoliciesRoute(router fiber.Router, basePath string) {
 func UpdatePolicies(c *fiber.Ctx) error {
 	log.Debug("received update user policies request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update user roles request. user id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
-			Success: false,
-			Message: "Invalid request. User ID is required",
-		})
-	}
 
 	payload := new(sdk.UserPolicyUpdate)
 	if err := c.BodyParser(payload); err != nil {

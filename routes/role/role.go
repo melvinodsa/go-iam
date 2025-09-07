@@ -178,13 +178,6 @@ func GetRoute(router fiber.Router, basePath string) {
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get role request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid get role request. role id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. Role id is required",
-		})
-	}
 
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.Role.GetById(c.Context(), id)
@@ -244,13 +237,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update role request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update role request. role id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.RoleResponse{
-			Success: false,
-			Message: "Invalid request. Role id is required",
-		})
-	}
 
 	payload := new(sdk.Role)
 	if err := c.BodyParser(payload); err != nil {
