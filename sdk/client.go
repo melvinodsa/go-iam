@@ -1,11 +1,14 @@
 package sdk
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+var ErrClientNotFound = errors.New("client not found")
 
 type Client struct {
 	Id                    string     `json:"id"`
@@ -42,7 +45,7 @@ type ClientResponse struct {
 }
 
 func NewErrorClientResponse(msg string, status int, c *fiber.Ctx) error {
-	return c.Status(http.StatusBadRequest).JSON(ClientResponse{
+	return c.Status(status).JSON(ClientResponse{
 		Success: false,
 		Message: msg,
 	})
@@ -50,6 +53,10 @@ func NewErrorClientResponse(msg string, status int, c *fiber.Ctx) error {
 
 func ClientBadRequest(msg string, c *fiber.Ctx) error {
 	return NewErrorClientResponse(msg, http.StatusBadRequest, c)
+}
+
+func ClientNotFound(msg string, c *fiber.Ctx) error {
+	return NewErrorClientResponse(msg, http.StatusNotFound, c)
 }
 
 func ClientInternalServerError(msg string, c *fiber.Ctx) error {
@@ -63,7 +70,7 @@ type ClientsResponse struct {
 }
 
 func NewErrorClientsResponse(msg string, status int, c *fiber.Ctx) error {
-	return c.Status(http.StatusBadRequest).JSON(ClientsResponse{
+	return c.Status(status).JSON(ClientsResponse{
 		Success: false,
 		Message: msg,
 	})

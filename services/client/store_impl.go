@@ -68,7 +68,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.Client, error) {
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}).Decode(&client)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrClientNotFound
+			return nil, sdk.ErrClientNotFound
 		}
 		return nil, fmt.Errorf("error finding client: %w", err)
 	}
@@ -100,7 +100,7 @@ func (s store) Update(ctx context.Context, client *sdk.Client) error {
 	now := time.Now()
 	client.UpdatedAt = &now
 	if client.Id == "" {
-		return ErrClientNotFound
+		return sdk.ErrClientNotFound
 	}
 	o, err := s.Get(ctx, client.Id)
 	if err != nil {

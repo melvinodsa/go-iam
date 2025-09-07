@@ -58,7 +58,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[cl.ProjectId]; !ok {
-		return nil, ErrClientNotFound
+		return nil, sdk.ErrClientNotFound
 	}
 	return cl, nil
 }

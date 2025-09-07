@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/utils/docs"
 )
 
@@ -49,10 +48,6 @@ func Create(c *fiber.Ctx) error {
 		return sdk.ClientBadRequest(message, c)
 	}
 
-	if payload.ServiceAccountEmail == "" && payload.DefaultAuthProviderId == "" {
-		message := "either service account email or default auth provider id must be provided"
-		return sdk.ClientBadRequest(message, c)
-	}
 	err := pr.S.Clients.Create(c.Context(), payload)
 	if err != nil {
 		message := fmt.Errorf("failed to create client. %w", err).Error()
@@ -61,7 +56,7 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("client created successfully")
 
-	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.ClientResponse{
 		Success: true,
 		Message: "Client created successfully",
 		Data:    payload,
@@ -98,15 +93,11 @@ func GetRoute(router fiber.Router, basePath string) {
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get client request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid get client request. client id not found")
-		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
-	}
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.Clients.Get(c.Context(), id, false)
 	if err != nil {
-		if errors.Is(err, client.ErrClientNotFound) {
-			return sdk.ClientBadRequest("Client not found", c)
+		if errors.Is(err, sdk.ErrClientNotFound) {
+			return sdk.ClientNotFound("Client not found", c)
 		}
 		message := fmt.Errorf("failed to get client. %w", err).Error()
 		log.Error("failed to get client", "error", message)
@@ -191,10 +182,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update client request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update client request. client id not found")
-		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
-	}
 	// Use ClientUpdateRequest to handle email
 	payload := new(sdk.Client)
 	if err := c.BodyParser(payload); err != nil {
@@ -211,8 +198,8 @@ func Update(c *fiber.Ctx) error {
 
 	err := pr.S.Clients.Update(c.Context(), payload)
 	if err != nil {
-		if errors.Is(err, client.ErrClientNotFound) {
-			return sdk.ClientBadRequest("Client not found", c)
+		if errors.Is(err, sdk.ErrClientNotFound) {
+			return sdk.ClientNotFound("Client not found", c)
 		}
 		message := fmt.Errorf("failed to update client. %w", err).Error()
 		log.Error("failed to update client", "error", err)
@@ -251,10 +238,6 @@ func RegenerateSecretRoute(router fiber.Router, basePath string) {
 func RegenerateSecret(c *fiber.Ctx) error {
 	log.Debug("received regenerate client secret request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid regenerate client secret request. client id not found")
-		return sdk.ClientBadRequest("Invalid request. Client id is required", c)
-	}
 	pr := providers.GetProviders(c)
 
 	client, err := pr.S.Clients.RegenerateSecret(c.Context(), id)
@@ -265,7 +248,7 @@ func RegenerateSecret(c *fiber.Ctx) error {
 	}
 
 	log.Debug("client secret regenerated successfully")
-	return c.Status(http.StatusOK).JSON(sdk.ClientResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.ClientResponse{
 		Success: true,
 		Message: "Client secret regenerated successfully",
 		Data:    client,
