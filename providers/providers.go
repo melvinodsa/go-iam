@@ -14,7 +14,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
 	"github.com/melvinodsa/go-iam/utils"
-	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
+	goiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
@@ -52,7 +52,7 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	authClient, err := goaiamclient.GetGoIamClient(svcs.Clients)
+	authClient, err := goiamclient.GetGoIamClient(svcs.Clients)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (p *Provider) HandleEvent(e utils.Event[sdk.Client]) {
 		return
 	}
 	var err error
-	p.AuthClient, err = goaiamclient.GetGoIamClient(p.S.Clients)
+	p.AuthClient, err = goiamclient.GetGoIamClient(p.S.Clients)
 	if err != nil {
 		log.Errorw("failed to get Go IAM client", "error", err)
 		return

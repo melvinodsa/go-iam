@@ -10,7 +10,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/auth"
 	"github.com/melvinodsa/go-iam/services/client"
-	goaiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
+	goiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 )
 
 type Middlewares struct {
@@ -20,7 +20,7 @@ type Middlewares struct {
 }
 
 func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) (*Middlewares, error) {
-	authClient, err := goaiamclient.GetGoIamClient(clientSvc)
+	authClient, err := goiamclient.GetGoIamClient(clientSvc)
 	if err != nil {
 		return nil, err
 	}

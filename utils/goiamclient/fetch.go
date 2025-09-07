@@ -1,4 +1,4 @@
-package goaiamclient
+package goiamclient
 
 import (
 	"context"
