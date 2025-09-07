@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/services/resource"
 	"github.com/melvinodsa/go-iam/utils/docs"
 )
 
@@ -61,7 +60,7 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("resource created successfully")
 
-	return c.Status(http.StatusOK).JSON(sdk.ResourceResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.ResourceResponse{
 		Success: true,
 		Message: "Resource created successfully",
 		Data:    payload,
@@ -110,8 +109,8 @@ func Get(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to get resource. %w", err).Error()
-		if errors.Is(err, resource.ErrResourceNotFound) {
-			status = http.StatusBadRequest
+		if errors.Is(err, sdk.ErrResourceNotFound) {
+			status = http.StatusNotFound
 			message = "resource not found"
 		}
 		log.Error("failed to get resource", "error", message)
@@ -277,8 +276,8 @@ func Update(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to update resource. %w", err).Error()
-		if errors.Is(err, resource.ErrResourceNotFound) {
-			status = http.StatusBadRequest
+		if errors.Is(err, sdk.ErrResourceNotFound) {
+			status = http.StatusNotFound
 			message = "resource not found"
 		}
 		log.Error("failed to update resource", "error", err)
@@ -338,7 +337,7 @@ func Delete(c *fiber.Ctx) error {
 	if err != nil {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to delete resource. %w", err).Error()
-		if errors.Is(err, resource.ErrResourceNotFound) {
+		if errors.Is(err, sdk.ErrResourceNotFound) {
 			status = http.StatusNotFound
 			message = "resource not found"
 		}

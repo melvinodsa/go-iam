@@ -1,6 +1,13 @@
 package sdk
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrResourceNotFound = errors.New("resource not found")
+)
 
 type Resource struct {
 	ID          string     `json:"id"`

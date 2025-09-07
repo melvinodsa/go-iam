@@ -366,7 +366,7 @@ func TestStore_Update_ResourceNotFound(t *testing.T) {
 	err := store.Update(ctx, resource)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrResourceNotFound, err)
+	assert.Equal(t, sdk.ErrResourceNotFound, err)
 }
 
 func TestStore_Update_UpdateCall(t *testing.T) {

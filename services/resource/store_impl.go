@@ -17,10 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	ErrResourceNotFound = errors.New("resource not found")
-)
-
 type store struct {
 	db db.DB
 }
@@ -93,7 +89,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}, {Key: md.EnabledKey, Value: true}}).Decode(&resource)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrResourceNotFound
+			return nil, sdk.ErrResourceNotFound
 		}
 		return nil, fmt.Errorf("error finding resource: %w", err)
 	}
@@ -119,7 +115,7 @@ func (s store) Update(ctx context.Context, resource *sdk.Resource) error {
 	now := time.Now()
 	resource.UpdatedAt = &now
 	if resource.ID == "" {
-		return ErrResourceNotFound
+		return sdk.ErrResourceNotFound
 	}
 	o, err := s.Get(ctx, resource.ID)
 	if err != nil {
