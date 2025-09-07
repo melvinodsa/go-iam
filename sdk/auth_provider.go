@@ -53,7 +53,7 @@ type AuthProviderResponse struct {
 }
 
 func NewErrorAuthProviderResponse(msg string, status int, c *fiber.Ctx) error {
-	return c.Status(http.StatusBadRequest).JSON(ClientResponse{
+	return c.Status(status).JSON(ClientResponse{
 		Success: false,
 		Message: msg,
 	})
