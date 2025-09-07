@@ -197,7 +197,7 @@ func TestService_Get_ClientNotInUserProjects(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrClientNotFound, err)
+	assert.Equal(t, sdk.ErrClientNotFound, err)
 	mockStore.AssertExpectations(t)
 }
 
