@@ -2,11 +2,14 @@ package sdk
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+var ErrAuthProviderNotFound = errors.New("auth provider not found")
 
 type AuthProviderType string
 
@@ -63,6 +66,10 @@ func AuthProviderBadRequest(msg string, c *fiber.Ctx) error {
 	return NewErrorAuthProviderResponse(msg, http.StatusBadRequest, c)
 }
 
+func AuthProviderNotFound(msg string, c *fiber.Ctx) error {
+	return NewErrorAuthProviderResponse(msg, http.StatusNotFound, c)
+}
+
 func AuthProviderInternalServerError(msg string, c *fiber.Ctx) error {
 	return NewErrorAuthProviderResponse(msg, http.StatusInternalServerError, c)
 }
@@ -74,7 +81,7 @@ type AuthProvidersResponse struct {
 }
 
 func NewErrorAuthProvidersResponse(msg string, status int, c *fiber.Ctx) error {
-	return c.Status(http.StatusBadRequest).JSON(AuthProvidersResponse{
+	return c.Status(status).JSON(AuthProvidersResponse{
 		Success: false,
 		Message: msg,
 	})

@@ -42,7 +42,7 @@ func (s service) Get(ctx context.Context, id string, dontCheckProjects bool) (*s
 	// check if the project exists
 	projectIdsMap := utils.Reduce(middlewares.GetProjects(ctx), func(ini map[string]bool, p string) map[string]bool { ini[p] = true; return ini }, map[string]bool{})
 	if _, ok := projectIdsMap[ap.ProjectId]; !ok {
-		return nil, ErrAuthProviderNotFound
+		return nil, sdk.ErrAuthProviderNotFound
 	}
 	return ap, nil
 }

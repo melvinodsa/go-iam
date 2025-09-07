@@ -320,7 +320,7 @@ func TestService_Get(t *testing.T) {
 				}, nil)
 			},
 			expectedResult: nil,
-			expectedError:  ErrAuthProviderNotFound,
+			expectedError:  sdk.ErrAuthProviderNotFound,
 		},
 		{
 			name: "error_from_store",
@@ -356,7 +356,7 @@ func TestService_Get(t *testing.T) {
 				}, nil)
 			},
 			expectedResult: nil,
-			expectedError:  ErrAuthProviderNotFound,
+			expectedError:  sdk.ErrAuthProviderNotFound,
 		},
 		{
 			name: "error_with_nil_projects_context",
@@ -376,7 +376,7 @@ func TestService_Get(t *testing.T) {
 				}, nil)
 			},
 			expectedResult: nil,
-			expectedError:  ErrAuthProviderNotFound,
+			expectedError:  sdk.ErrAuthProviderNotFound,
 		},
 	}
 

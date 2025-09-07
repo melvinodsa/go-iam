@@ -31,7 +31,7 @@ func (s store) Get(ctx context.Context, id string) (*sdk.AuthProvider, error) {
 	err := s.db.FindOne(ctx, md, bson.D{{Key: md.IdKey, Value: id}}).Decode(&provider)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrAuthProviderNotFound
+			return nil, sdk.ErrAuthProviderNotFound
 		}
 		return nil, fmt.Errorf("error finding auth provider: %w", err)
 	}
@@ -106,7 +106,7 @@ func (s store) Update(ctx context.Context, provider *sdk.AuthProvider) error {
 	t := time.Now()
 	provider.UpdatedAt = &t
 	if provider.Id == "" {
-		return ErrAuthProviderNotFound
+		return sdk.ErrAuthProviderNotFound
 	}
 	o, err := s.Get(ctx, provider.Id)
 	if err != nil {
