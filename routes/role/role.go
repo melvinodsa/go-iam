@@ -60,7 +60,7 @@ func Create(c *fiber.Ctx) error {
 	}
 	log.Debug("role created successfully")
 
-	return c.Status(http.StatusOK).JSON(sdk.RoleResponse{
+	return c.Status(http.StatusCreated).JSON(sdk.RoleResponse{
 		Success: true,
 		Message: "Role created successfully",
 		Data:    payload,
@@ -192,7 +192,7 @@ func Get(c *fiber.Ctx) error {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to get role. %w", err).Error()
 		if errors.Is(err, sdk.ErrRoleNotFound) {
-			status = http.StatusBadRequest
+			status = http.StatusNotFound
 			message = "role not found"
 		}
 		log.Error("failed to get role", "error", message)
@@ -268,7 +268,7 @@ func Update(c *fiber.Ctx) error {
 		status := http.StatusInternalServerError
 		message := fmt.Errorf("failed to update role. %w", err).Error()
 		if errors.Is(err, sdk.ErrRoleNotFound) {
-			status = http.StatusBadRequest
+			status = http.StatusNotFound
 			message = "role not found"
 		}
 		log.Error("failed to update role", "error", err)
