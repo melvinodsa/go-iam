@@ -96,13 +96,6 @@ func GetRoute(router fiber.Router, basePath string) {
 func Get(c *fiber.Ctx) error {
 	log.Debug("received get resource request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid get resource request. resource id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.ResourceResponse{
-			Success: false,
-			Message: "Invalid request. Resource id is required",
-		})
-	}
 
 	pr := providers.GetProviders(c)
 	ds, err := pr.S.Resources.Get(c.Context(), id)
@@ -253,13 +246,6 @@ func UpdateRoute(router fiber.Router, basePath string) {
 func Update(c *fiber.Ctx) error {
 	log.Debug("received update resource request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid update resource request. resource id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.ResourceResponse{
-			Success: false,
-			Message: "Invalid request. Resource id is required",
-		})
-	}
 
 	payload := new(sdk.Resource)
 	if err := c.BodyParser(payload); err != nil {
@@ -324,13 +310,6 @@ func DeleteRoute(router fiber.Router, basePath string) {
 func Delete(c *fiber.Ctx) error {
 	log.Debug("received delete resource request")
 	id := c.Params("id")
-	if id == "" {
-		log.Error("invalid delete resource request. resource id not found")
-		return c.Status(http.StatusBadRequest).JSON(sdk.ResourceResponse{
-			Success: false,
-			Message: "Invalid request. Resource id is required",
-		})
-	}
 
 	pr := providers.GetProviders(c)
 	err := pr.S.Resources.Delete(c.Context(), id)
