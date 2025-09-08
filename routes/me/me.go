@@ -12,7 +12,7 @@ import (
 )
 
 func MeRoute(router fiber.Router, basePath string) {
-	routePath := "/me"
+	routePath := "/"
 	path := basePath + routePath
 	router.Get(routePath, Me)
 	docs.RegisterApi(docs.ApiWrapper{
