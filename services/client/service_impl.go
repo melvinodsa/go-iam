@@ -174,6 +174,13 @@ func (s service) createAndLinkServiceAccountUser(ctx context.Context, client *sd
 
 func (s service) createServiceAccountUser(ctx context.Context, client *sdk.Client, email string) (*sdk.User, error) {
 	creator := middlewares.GetUser(ctx)
+	if creator == nil {
+		creator = &sdk.User{
+			Email: "system",
+			Name:  "System",
+			Id:    "system",
+		}
+	}
 	// Implementation for creating a service account user
 	user := &sdk.User{
 		Email:          email,
