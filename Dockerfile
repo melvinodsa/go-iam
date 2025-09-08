@@ -21,6 +21,7 @@ WORKDIR /
 
 # Copy binary from the builder stage
 COPY --from=builder /app/go-iam .
+COPY --chown=nonroot:nonroot --from=builder /app/docs /docs
 
 # Expose application port (change this if needed)
 EXPOSE 3000
