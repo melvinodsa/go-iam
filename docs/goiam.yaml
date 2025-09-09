@@ -947,6 +947,41 @@ paths:
             summary: Regenerate Client Secret
             tags:
                 - Client
+    /health/v1/:
+        get:
+            description: Get application health status
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        properties:
+                                            components:
+                                                additionalProperties:
+                                                    type: string
+                                                type: object
+                                            status:
+                                                type: string
+                                            uptime:
+                                                type: string
+                                            version:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                    timestamp:
+                                        type: string
+                                type: object
+                    description: Health status retrieved successfully
+            security:
+                - BearerAuth: []
+            summary: Health Check
+            tags:
+                - Health
     /me/v1/:
         get:
             description: Get current user information

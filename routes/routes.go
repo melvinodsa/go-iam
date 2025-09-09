@@ -6,6 +6,7 @@ import (
 	"github.com/melvinodsa/go-iam/routes/auth"
 	"github.com/melvinodsa/go-iam/routes/authprovider"
 	"github.com/melvinodsa/go-iam/routes/client"
+	"github.com/melvinodsa/go-iam/routes/health"
 	"github.com/melvinodsa/go-iam/routes/me"
 	"github.com/melvinodsa/go-iam/routes/policy"
 	"github.com/melvinodsa/go-iam/routes/project"
@@ -35,6 +36,7 @@ func RegisterAuthRoutes(app *fiber.App, prv *providers.Provider) {
 func RegisterOpenRoutes(app *fiber.App, prv *providers.Provider) {
 	me.RegisterOpenRoutes(app, "/me", prv)
 	auth.RegisterRoutes(app, "/auth")
+	health.RegisterRoutes(app, "/health")
 
 	app.Static("/docs", "./docs")
 }
