@@ -6,18 +6,19 @@ import (
 	"testing"
 
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPolicyCheck(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	assert.NotNil(t, pc.userSvc)
 }
 
 func TestPolicyCheck_RunCheck_Success_PolicyExists(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	ctx := context.Background()
@@ -44,7 +45,7 @@ func TestPolicyCheck_RunCheck_Success_PolicyExists(t *testing.T) {
 }
 
 func TestPolicyCheck_RunCheck_Success_PolicyNotExists(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	ctx := context.Background()
@@ -69,7 +70,7 @@ func TestPolicyCheck_RunCheck_Success_PolicyNotExists(t *testing.T) {
 }
 
 func TestPolicyCheck_RunCheck_UserServiceError(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	ctx := context.Background()
@@ -77,7 +78,7 @@ func TestPolicyCheck_RunCheck_UserServiceError(t *testing.T) {
 	policyId := "@policy/system/test_policy"
 
 	// Mock user service to return error
-	userSvc.On("GetById", ctx, userId).Return(nil, errors.New("user service error"))
+	userSvc.On("GetById", ctx, userId).Return(&sdk.User{}, errors.New("user service error"))
 
 	// Execute
 	user, exists, err := pc.RunCheck(ctx, policyId, userId)
@@ -91,7 +92,7 @@ func TestPolicyCheck_RunCheck_UserServiceError(t *testing.T) {
 }
 
 func TestPolicyCheck_RunCheck_PolicyExists_WithOtherPolicies(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	ctx := context.Background()
@@ -120,7 +121,7 @@ func TestPolicyCheck_RunCheck_PolicyExists_WithOtherPolicies(t *testing.T) {
 }
 
 func TestPolicyCheck_RunCheck_DifferentPolicyId(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	pc := NewPolicyCheck(userSvc)
 
 	ctx := context.Background()

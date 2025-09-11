@@ -45,6 +45,11 @@ func (m *MockStore) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleL
 	return args.Get(0).(*sdk.RoleList), args.Error(1)
 }
 
+func (m *MockStore) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	args := m.Called(ctx, resourceKey)
+	return args.Error(0)
+}
+
 func TestNewService(t *testing.T) {
 	mockStore := &MockStore{}
 
@@ -549,6 +554,39 @@ func TestService_Subscribe(t *testing.T) {
 		assert.NotPanics(t, func() {
 			service.Subscribe(goiamuniverse.EventRoleUpdated, mockSubscriber)
 		})
+	})
+}
+
+func TestService_RemoveResourceFromAll(t *testing.T) {
+	t.Run("successful_remove_resource_from_all_roles", func(t *testing.T) {
+		mockStore := &MockStore{}
+		service := NewService(mockStore)
+		ctx := context.Background()
+
+		resourceKey := "users"
+
+		mockStore.On("RemoveResourceFromAll", ctx, resourceKey).Return(nil)
+
+		err := service.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.NoError(t, err)
+		mockStore.AssertExpectations(t)
+	})
+
+	t.Run("failed_remove_resource_from_all_roles", func(t *testing.T) {
+		mockStore := &MockStore{}
+		service := NewService(mockStore)
+		ctx := context.Background()
+
+		resourceKey := "users"
+
+		mockStore.On("RemoveResourceFromAll", ctx, resourceKey).Return(errors.New("database error"))
+
+		err := service.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "database error")
+		mockStore.AssertExpectations(t)
 	})
 }
 

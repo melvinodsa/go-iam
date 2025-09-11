@@ -14,6 +14,7 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 )
 
 // MockStore is a mock implementation of the Store interface
@@ -51,46 +52,9 @@ func (m *MockStore) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserL
 	return args.Get(0).(*sdk.UserList), args.Error(1)
 }
 
-// MockRoleService is a mock implementation of the role.Service interface
-type MockRoleService struct {
-	mock.Mock
-}
-
-func (m *MockRoleService) GetById(ctx context.Context, id string) (*sdk.Role, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*sdk.Role), args.Error(1)
-}
-
-func (m *MockRoleService) Create(ctx context.Context, role *sdk.Role) error {
-	args := m.Called(ctx, role)
+func (m *MockStore) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	args := m.Called(ctx, resourceKey)
 	return args.Error(0)
-}
-
-func (m *MockRoleService) Update(ctx context.Context, role *sdk.Role) error {
-	args := m.Called(ctx, role)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error) {
-	args := m.Called(ctx, query)
-	return args.Get(0).(*sdk.RoleList), args.Error(1)
-}
-
-func (m *MockRoleService) AddResource(ctx context.Context, roleId string, resource sdk.Resources) error {
-	args := m.Called(ctx, roleId, resource)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) HandleEvent(event utils.Event[sdk.Project]) {
-	m.Called(event)
-}
-
-func (m *MockRoleService) Emit(event utils.Event[sdk.Role]) {
-	m.Called(event)
-}
-
-func (m *MockRoleService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Role], sdk.Role]) {
-	m.Called(eventName, subscriber)
 }
 
 // Test helper to create a test user
@@ -129,9 +93,9 @@ func createTestRole() *sdk.Role {
 	}
 }
 
-func setupUserService() (*service, *MockStore, *MockRoleService) {
+func setupUserService() (*service, *MockStore, *services.MockRoleService) {
 	mockStore := &MockStore{}
-	mockRoleService := &MockRoleService{}
+	mockRoleService := &services.MockRoleService{}
 
 	svc := &service{
 		store:   mockStore,
@@ -154,7 +118,7 @@ func createContextWithMetadata() context.Context {
 // TestNewService tests the NewService constructor
 func TestNewService(t *testing.T) {
 	mockStore := &MockStore{}
-	mockRoleService := &MockRoleService{}
+	mockRoleService := &services.MockRoleService{}
 
 	svc := NewService(mockStore, mockRoleService)
 
@@ -916,6 +880,54 @@ func TestRemovePolicyFromUser(t *testing.T) {
 			tt.setupMocks()
 
 			err := svc.RemovePolicyFromUser(ctx, tt.userId, tt.policyIds)
+
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+
+			mockStore.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRemoveResourceFromAllUsers(t *testing.T) {
+	ctx := createContextWithMetadata()
+	svc, mockStore, _ := setupUserService()
+
+	tests := []struct {
+		name          string
+		resourceKey   string
+		setupMocks    func()
+		expectedError string
+	}{
+		{
+			name:        "success - remove resource from all users",
+			resourceKey: "resource-key",
+			setupMocks: func() {
+				mockStore.On("RemoveResourceFromAll", ctx, "resource-key").Return(nil)
+			},
+		},
+		{
+			name:        "error - store removal fails",
+			resourceKey: "resource-key",
+			setupMocks: func() {
+				mockStore.On("RemoveResourceFromAll", ctx, "resource-key").Return(errors.New("database error"))
+			},
+			expectedError: "database error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset mocks
+			mockStore.ExpectedCalls = nil
+
+			tt.setupMocks()
+
+			err := svc.RemoveResourceFromAll(ctx, tt.resourceKey)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)

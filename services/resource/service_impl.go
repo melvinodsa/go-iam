@@ -30,8 +30,11 @@ func (s service) Get(ctx context.Context, id string) (*sdk.Resource, error) {
 
 func (s service) Create(ctx context.Context, resource *sdk.Resource) error {
 	_, err := s.s.Create(ctx, resource)
+	if err != nil {
+		return err
+	}
 	s.Emit(newEvent(ctx, goiamuniverse.EventResourceCreated, *resource, middlewares.GetMetadata(ctx)))
-	return err
+	return nil
 }
 
 func (s service) Update(ctx context.Context, resource *sdk.Resource) error {
@@ -39,7 +42,16 @@ func (s service) Update(ctx context.Context, resource *sdk.Resource) error {
 }
 
 func (s service) Delete(ctx context.Context, id string) error {
-	return s.s.Delete(ctx, id)
+	vl, err := s.s.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	err = s.s.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+	s.Emit(newEvent(ctx, goiamuniverse.EventResourceDeleted, *vl, middlewares.GetMetadata(ctx)))
+	return nil
 }
 
 func (s service) Emit(event utils.Event[sdk.Resource]) {

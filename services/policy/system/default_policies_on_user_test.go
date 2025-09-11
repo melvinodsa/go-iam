@@ -7,6 +7,7 @@ import (
 
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func newMockUserEvent(ctx context.Context, name goiamuniverse.Event, payload sdk
 }
 
 func TestNewDefaultPoliciesOnUser(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	policy := NewDefaultPoliciesOnUser(userSvc)
 
 	assert.Equal(t, "@policy/system/default_policies_on_user", policy.ID())
@@ -47,7 +48,7 @@ func TestNewDefaultPoliciesOnUser(t *testing.T) {
 }
 
 func TestDefaultPoliciesOnUser_HandleEvent_Success(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -81,7 +82,7 @@ func TestDefaultPoliciesOnUser_HandleEvent_Success(t *testing.T) {
 }
 
 func TestDefaultPoliciesOnUser_HandleEvent_AddPolicyError(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -115,7 +116,7 @@ func TestDefaultPoliciesOnUser_HandleEvent_AddPolicyError(t *testing.T) {
 }
 
 func TestDefaultPoliciesOnUser_HandleEvent_DifferentUser(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	originalUserId := "original123"

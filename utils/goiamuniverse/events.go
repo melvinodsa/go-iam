@@ -4,6 +4,7 @@ const (
 	EventRoleUpdated = Event(Role) + ":" + Updated
 
 	EventResourceCreated = Event(Resource) + ":" + Created
+	EventResourceDeleted = Event(Resource) + ":" + Deleted
 
 	EventUserCreated = Event(User) + ":" + Created
 
@@ -16,4 +17,5 @@ type Event string
 const (
 	Updated Event = "updated"
 	Created Event = "created"
+	Deleted Event = "deleted"
 )

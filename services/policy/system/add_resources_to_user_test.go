@@ -7,11 +7,12 @@ import (
 
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewAddResourcesToUser(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	policy := NewAddResourcesToUser(userSvc)
 
 	assert.Equal(t, "@policy/system/add_resources_to_user", policy.ID())
@@ -21,7 +22,7 @@ func TestNewAddResourcesToUser(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_Success(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -69,7 +70,7 @@ func TestAddResourcesToUser_HandleEvent_Success(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_PolicyCheckError(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -87,7 +88,7 @@ func TestAddResourcesToUser_HandleEvent_PolicyCheckError(t *testing.T) {
 	)
 
 	// Setup mocks - policy check returns error
-	userSvc.On("GetById", ctx, userId).Return(nil, errors.New("policy check error"))
+	userSvc.On("GetById", ctx, userId).Return(&sdk.User{}, errors.New("policy check error"))
 
 	// Execute
 	policy := NewAddResourcesToUser(userSvc)
@@ -99,7 +100,7 @@ func TestAddResourcesToUser_HandleEvent_PolicyCheckError(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_PolicyNotExists(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -133,7 +134,7 @@ func TestAddResourcesToUser_HandleEvent_PolicyNotExists(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_NoUserIdInPolicy(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -174,7 +175,7 @@ func TestAddResourcesToUser_HandleEvent_NoUserIdInPolicy(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_EmptyUserId(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -217,7 +218,7 @@ func TestAddResourcesToUser_HandleEvent_EmptyUserId(t *testing.T) {
 }
 
 func TestAddResourcesToUser_HandleEvent_AddResourceError(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -265,7 +266,7 @@ func TestAddResourcesToUser_HandleEvent_AddResourceError(t *testing.T) {
 }
 
 func TestAddResourcesToUser_getTargetUserId(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	policy := NewAddResourcesToUser(userSvc)
 
 	tests := []struct {
@@ -347,7 +348,7 @@ func TestAddResourcesToUser_getTargetUserId(t *testing.T) {
 }
 
 func TestAddResourcesToUser_PolicyDef(t *testing.T) {
-	userSvc := &MockUserService{}
+	userSvc := &services.MockUserService{}
 	policy := NewAddResourcesToUser(userSvc)
 
 	policyDef := policy.PolicyDef()

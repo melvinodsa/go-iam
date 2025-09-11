@@ -473,3 +473,49 @@ func TestStore_GetAll(t *testing.T) {
 		mockDB.AssertExpectations(t)
 	})
 }
+
+func TestStore_RemoveResourceFromAll(t *testing.T) {
+	t.Run("successful_removal", func(t *testing.T) {
+		mockDB := test.SetupMockDB()
+		store := NewStore(mockDB)
+		ctx := context.Background()
+
+		resourceKey := "users"
+
+		mockDB.On("UpdateMany", ctx, mock.AnythingOfType("models.RoleModel"), mock.AnythingOfType("primitive.D"), mock.AnythingOfType("primitive.D"), mock.Anything).Return(&mongo.UpdateResult{ModifiedCount: 2}, nil)
+
+		err := store.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.NoError(t, err)
+		mockDB.AssertExpectations(t)
+	})
+
+	t.Run("empty_resource_key", func(t *testing.T) {
+		mockDB := test.SetupMockDB()
+		store := NewStore(mockDB)
+		ctx := context.Background()
+
+		err := store.RemoveResourceFromAll(ctx, "")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "resource key cannot be empty")
+		mockDB.AssertNotCalled(t, "UpdateMany")
+	})
+
+	t.Run("database_error", func(t *testing.T) {
+		mockDB := test.SetupMockDB()
+		store := NewStore(mockDB)
+		ctx := context.Background()
+
+		resourceKey := "users"
+
+		mockDB.On("UpdateMany", ctx, mock.AnythingOfType("models.RoleModel"), mock.AnythingOfType("primitive.D"), mock.AnythingOfType("primitive.D"), mock.Anything).Return(&mongo.UpdateResult{}, errors.New("database error"))
+
+		err := store.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to remove resource from roles")
+		assert.Contains(t, err.Error(), "database error")
+		mockDB.AssertExpectations(t)
+	})
+}

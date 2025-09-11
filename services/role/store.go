@@ -11,4 +11,5 @@ type Store interface {
 	Update(ctx context.Context, role *sdk.Role) error
 	GetById(ctx context.Context, id string) (*sdk.Role, error)
 	GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error)
+	RemoveResourceFromAll(ctx context.Context, resourceKey string) error
 }

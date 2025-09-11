@@ -13,6 +13,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/encrypt"
 	"github.com/melvinodsa/go-iam/services/jwt"
+	"github.com/melvinodsa/go-iam/services/policy/system"
 	"github.com/melvinodsa/go-iam/utils"
 	goiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
@@ -71,6 +72,10 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, pvd)
 	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, svcs.Auth)
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, svcs.Auth)
+
+	// subscribe to resource events for updating downstream dependencies
+	svcs.Resources.Subscribe(goiamuniverse.EventResourceDeleted, system.NewRemoveDeletedResourceFromRole(svcs.Role))
+	svcs.Resources.Subscribe(goiamuniverse.EventResourceDeleted, system.NewRemoveDeletedResourceFromUser(svcs.User))
 
 	// creating default project if it doesn't exist
 	err = CheckAndAddDefaultProject(svcs.Projects)

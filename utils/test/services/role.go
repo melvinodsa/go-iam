@@ -33,6 +33,10 @@ func (m *MockRoleService) AddResource(ctx context.Context, roleId string, resour
 	args := m.Called(ctx, roleId, resource)
 	return args.Error(0)
 }
+func (m *MockRoleService) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	args := m.Called(ctx, resourceKey)
+	return args.Error(0)
+}
 func (m *MockRoleService) Emit(event utils.Event[sdk.Role]) {
 	m.Called(event)
 }

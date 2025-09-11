@@ -6,64 +6,14 @@ import (
 	"testing"
 
 	"github.com/melvinodsa/go-iam/sdk"
-	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockRoleService implements role.Service interface for testing
-type MockRoleService struct {
-	mock.Mock
-}
-
-func (m *MockRoleService) Create(ctx context.Context, role *sdk.Role) error {
-	args := m.Called(ctx, role)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) Update(ctx context.Context, role *sdk.Role) error {
-	args := m.Called(ctx, role)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) GetById(ctx context.Context, id string) (*sdk.Role, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.Role), args.Error(1)
-}
-
-func (m *MockRoleService) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList, error) {
-	args := m.Called(ctx, query)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*sdk.RoleList), args.Error(1)
-}
-
-func (m *MockRoleService) AddResource(ctx context.Context, roleId string, resource sdk.Resources) error {
-	args := m.Called(ctx, roleId, resource)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) RemoveResource(ctx context.Context, roleId string, resourceId string) error {
-	args := m.Called(ctx, roleId, resourceId)
-	return args.Error(0)
-}
-
-func (m *MockRoleService) Emit(event utils.Event[sdk.Role]) {
-	m.Called(event)
-}
-
-func (m *MockRoleService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.Role], sdk.Role]) {
-	m.Called(eventName, subscriber)
-}
-
 func TestNewAddResourcesToRole(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 	policy := NewAddResourcesToRole(userSvc, roleSvc)
 
 	assert.Equal(t, "@policy/system/add_resources_to_role", policy.ID())
@@ -74,8 +24,8 @@ func TestNewAddResourcesToRole(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_Success(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -124,8 +74,8 @@ func TestAddResourcesToRole_HandleEvent_Success(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_PolicyCheckError(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -143,7 +93,7 @@ func TestAddResourcesToRole_HandleEvent_PolicyCheckError(t *testing.T) {
 	)
 
 	// Setup mocks - policy check returns error
-	userSvc.On("GetById", ctx, userId).Return(nil, errors.New("policy check error"))
+	userSvc.On("GetById", ctx, userId).Return(&sdk.User{}, errors.New("policy check error"))
 
 	// Execute
 	policy := NewAddResourcesToRole(userSvc, roleSvc)
@@ -155,8 +105,8 @@ func TestAddResourcesToRole_HandleEvent_PolicyCheckError(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_PolicyNotExists(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -190,8 +140,8 @@ func TestAddResourcesToRole_HandleEvent_PolicyNotExists(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_NoRoleIdInPolicy(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -232,8 +182,8 @@ func TestAddResourcesToRole_HandleEvent_NoRoleIdInPolicy(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_EmptyRoleId(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -276,8 +226,8 @@ func TestAddResourcesToRole_HandleEvent_EmptyRoleId(t *testing.T) {
 }
 
 func TestAddResourcesToRole_HandleEvent_AddResourceError(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 
 	ctx := context.Background()
 	userId := "user123"
@@ -326,8 +276,8 @@ func TestAddResourcesToRole_HandleEvent_AddResourceError(t *testing.T) {
 }
 
 func TestAddResourcesToRole_getTargetRoleId(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 	policy := NewAddResourcesToRole(userSvc, roleSvc)
 
 	tests := []struct {
@@ -409,8 +359,8 @@ func TestAddResourcesToRole_getTargetRoleId(t *testing.T) {
 }
 
 func TestAddResourcesToRole_PolicyDef(t *testing.T) {
-	userSvc := &MockUserService{}
-	roleSvc := &MockRoleService{}
+	userSvc := &services.MockUserService{}
+	roleSvc := &services.MockRoleService{}
 	policy := NewAddResourcesToRole(userSvc, roleSvc)
 
 	policyDef := policy.PolicyDef()

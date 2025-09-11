@@ -570,3 +570,35 @@ func TestStoreGetAll(t *testing.T) {
 		mockDB.AssertExpectations(t)
 	})
 }
+
+// TestStoreRemoveResourceFromAll tests the RemoveResourceFromAll method
+func TestStoreRemoveResourceFromAll(t *testing.T) {
+	ctx := createContextWithProjects()
+	mockDB := &MockDB{}
+	s := NewStore(mockDB)
+
+	t.Run("update_many_error", func(t *testing.T) {
+		resourceKey := "resource-123"
+
+		mockDB.On("UpdateMany", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return((*mongo.UpdateResult)(nil), errors.New("database error"))
+
+		err := s.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "error removing resource from all users")
+		mockDB.AssertExpectations(t)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		mockDB.ExpectedCalls = nil
+		resourceKey := "resource-123"
+
+		updateResult := &mongo.UpdateResult{MatchedCount: 5, ModifiedCount: 5}
+		mockDB.On("UpdateMany", ctx, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(updateResult, nil)
+
+		err := s.RemoveResourceFromAll(ctx, resourceKey)
+
+		assert.NoError(t, err)
+		mockDB.AssertExpectations(t)
+	})
+}

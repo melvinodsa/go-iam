@@ -167,6 +167,10 @@ func (s *service) RemovePolicyFromUser(ctx context.Context, userId string, polic
 	return nil
 }
 
+func (s *service) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	return s.store.RemoveResourceFromAll(ctx, resourceKey)
+}
+
 func (s service) Emit(event utils.Event[sdk.User]) {
 	if event == nil {
 		return
