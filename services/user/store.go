@@ -13,4 +13,5 @@ type Store interface {
 	GetById(ctx context.Context, id string) (*sdk.User, error)
 	GetByPhone(ctx context.Context, phone string, projectId string) (*sdk.User, error)
 	GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList, error)
+	RemoveResourceFromAll(ctx context.Context, resourceKey string) error
 }

@@ -138,3 +138,20 @@ func (s *store) GetAll(ctx context.Context, query sdk.RoleQuery) (*sdk.RoleList,
 		Limit: query.Limit,
 	}, nil
 }
+
+func (s *store) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	if resourceKey == "" {
+		return errors.New("resource key cannot be empty")
+	}
+
+	md := models.GetRoleModel()
+
+	_, err := s.db.UpdateMany(ctx, md, bson.D{
+		{Key: fmt.Sprintf("%s.%s", md.ResourcesKey, resourceKey), Value: bson.D{{Key: "$exists", Value: true}}},
+	}, bson.D{{Key: "$unset", Value: bson.D{{Key: fmt.Sprintf("%s.%s", md.ResourcesKey, resourceKey), Value: ""}}}})
+	if err != nil {
+		return fmt.Errorf("failed to remove resource from roles: %w", err)
+	}
+
+	return nil
+}

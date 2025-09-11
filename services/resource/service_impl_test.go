@@ -299,6 +299,7 @@ func TestService_Delete(t *testing.T) {
 		ctx := createTestContext()
 		resourceId := "resource1"
 
+		mockStore.On("Get", ctx, resourceId).Return(&sdk.Resource{ID: resourceId}, nil)
 		mockStore.On("Delete", ctx, resourceId).Return(nil)
 
 		err := service.Delete(ctx, resourceId)
@@ -314,6 +315,7 @@ func TestService_Delete(t *testing.T) {
 		ctx := createTestContext()
 		resourceId := "resource1"
 
+		mockStore.On("Get", ctx, resourceId).Return(&sdk.Resource{ID: resourceId}, nil)
 		mockStore.On("Delete", ctx, resourceId).Return(errors.New("delete failed"))
 
 		err := service.Delete(ctx, resourceId)

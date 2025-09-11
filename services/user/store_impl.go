@@ -162,3 +162,15 @@ func (s *store) GetAll(ctx context.Context, query sdk.UserQuery) (*sdk.UserList,
 		Limit: query.Limit,
 	}, nil
 }
+
+func (s *store) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	md := models.GetUserModel()
+	filter := bson.D{{Key: fmt.Sprintf("%s.%s", md.ResourcesKey, resourceKey), Value: bson.D{{Key: "$exists", Value: true}}}}
+	update := bson.D{{Key: "$unset", Value: bson.D{{Key: fmt.Sprintf("%s.%s", md.ResourcesKey, resourceKey), Value: ""}}}}
+
+	_, err := s.db.UpdateMany(ctx, md, filter, update)
+	if err != nil {
+		return fmt.Errorf("error removing resource from all users: %w", err)
+	}
+	return nil
+}

@@ -19,6 +19,7 @@ type Service interface {
 	AddResourceToUser(ctx context.Context, userId string, request sdk.AddUserResourceRequest) error
 	AddPolicyToUser(ctx context.Context, userId string, policies map[string]sdk.UserPolicy) error
 	RemovePolicyFromUser(ctx context.Context, userId string, policyIds []string) error
+	RemoveResourceFromAll(ctx context.Context, resourceKey string) error
 	HandleEvent(event utils.Event[sdk.Role])
 	utils.Emitter[utils.Event[sdk.User], sdk.User]
 }

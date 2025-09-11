@@ -68,6 +68,11 @@ func (m *MockUserService) RemovePolicyFromUser(ctx context.Context, userId strin
 	return args.Error(0)
 }
 
+func (m *MockUserService) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	args := m.Called(ctx, resourceKey)
+	return args.Error(0)
+}
+
 func (m *MockUserService) HandleEvent(event utils.Event[sdk.Role]) {
 	m.Called(event)
 }

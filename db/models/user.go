@@ -48,17 +48,17 @@ type UserRoles struct {
 
 type UserModel struct {
 	iam
-	IdKey         string
-	NameKey       string
-	EmailKey      string
-	PhoneKey      string
-	EnabledKey    string
-	RolesIdKey    string
-	PoliciesKey   string
-	ResourceIdKey string
-	IsEnabledKey  string
-	ProjectIDKey  string
-	ExpiryKey     string
+	IdKey        string
+	NameKey      string
+	EmailKey     string
+	PhoneKey     string
+	EnabledKey   string
+	RolesIdKey   string
+	PoliciesKey  string
+	ResourcesKey string
+	IsEnabledKey string
+	ProjectIDKey string
+	ExpiryKey    string
 }
 
 func (u UserModel) Name() string {
@@ -67,16 +67,16 @@ func (u UserModel) Name() string {
 
 func GetUserModel() UserModel {
 	return UserModel{
-		IdKey:         "id",
-		NameKey:       "name",
-		EmailKey:      "email",
-		PhoneKey:      "phone",
-		EnabledKey:    "enabled",
-		RolesIdKey:    "roles",
-		ResourceIdKey: "resources",
-		PoliciesKey:   "policies",
-		IsEnabledKey:  "is_enabled",
-		ProjectIDKey:  "project_id",
-		ExpiryKey:     "expiry",
+		IdKey:        "id",
+		NameKey:      "name",
+		EmailKey:     "email",
+		PhoneKey:     "phone",
+		EnabledKey:   "enabled",
+		RolesIdKey:   "roles",
+		ResourcesKey: "resources",
+		PoliciesKey:  "policies",
+		IsEnabledKey: "is_enabled",
+		ProjectIDKey: "project_id",
+		ExpiryKey:    "expiry",
 	}
 }

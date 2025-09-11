@@ -55,6 +55,10 @@ func (s *service) AddResource(ctx context.Context, roleId string, resource sdk.R
 	return s.Update(ctx, role)
 }
 
+func (s *service) RemoveResourceFromAll(ctx context.Context, resourceKey string) error {
+	return s.store.RemoveResourceFromAll(ctx, resourceKey)
+}
+
 func (s service) Emit(event utils.Event[sdk.Role]) {
 	if event == nil {
 		return
