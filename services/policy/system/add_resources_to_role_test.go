@@ -17,7 +17,7 @@ func TestNewAddResourcesToRole(t *testing.T) {
 	policy := NewAddResourcesToRole(userSvc, roleSvc)
 
 	assert.Equal(t, "@policy/system/add_resources_to_role", policy.ID())
-	assert.Equal(t, "Add resources to role specified in user policy", policy.Name())
+	assert.Equal(t, "Add the resources created by a user to role specified in user policy", policy.Name())
 	assert.NotNil(t, policy.userSvc)
 	assert.NotNil(t, policy.roleSvc)
 	assert.NotNil(t, policy.pc)
@@ -366,7 +366,7 @@ func TestAddResourcesToRole_PolicyDef(t *testing.T) {
 	policyDef := policy.PolicyDef()
 
 	assert.Equal(t, "@policy/system/add_resources_to_role", policyDef.Id)
-	assert.Equal(t, "Add resources to role specified in user policy", policyDef.Name)
+	assert.Equal(t, "Add the resources created by a user to role specified in user policy", policyDef.Name)
 	assert.Equal(t, "This policy adds the created resource to the role specified in the user policy.", policyDef.Description)
 	assert.Len(t, policyDef.Definition.Arguments, 1)
 	assert.Equal(t, "@roleId", policyDef.Definition.Arguments[0].Name)
