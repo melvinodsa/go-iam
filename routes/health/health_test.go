@@ -3,6 +3,7 @@ package health
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestHealth(t *testing.T) {
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,

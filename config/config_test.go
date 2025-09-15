@@ -18,6 +18,7 @@ func TestNewAppConfig(t *testing.T) {
 	// Clean environment before test
 	cleanEnv()
 
+	os.Setenv("JWT_SECRET", "abcd")
 	config := NewAppConfig()
 
 	assert.NotNil(t, config)
@@ -27,7 +28,7 @@ func TestNewAppConfig(t *testing.T) {
 	assert.Equal(t, int64(1440), config.Server.TokenCacheTTLInMinutes)
 	assert.Equal(t, int64(1), config.Server.AuthProviderRefetchIntervalInMinutes)
 	assert.Equal(t, "development", config.Deployment.Environment)
-	assert.Equal(t, "Cuttle.ai Demo", config.Deployment.Name)
+	assert.Equal(t, "Go IAM Demo", config.Deployment.Name)
 }
 
 func TestAppConfig_Handle(t *testing.T) {
@@ -186,7 +187,7 @@ func TestAppConfig_LoadDeploymentConfig(t *testing.T) {
 			envVars: map[string]string{},
 			expected: Deployment{
 				Environment: "development",
-				Name:        "Cuttle.ai Demo",
+				Name:        "Go IAM Demo",
 			},
 		},
 		{
@@ -207,7 +208,7 @@ func TestAppConfig_LoadDeploymentConfig(t *testing.T) {
 			},
 			expected: Deployment{
 				Environment: "staging",
-				Name:        "Cuttle.ai Demo",
+				Name:        "Go IAM Demo",
 			},
 		},
 		{
@@ -475,6 +476,7 @@ func TestAppConfig_Load(t *testing.T) {
 		"SERVER_PORT":            "9000",
 		"DEPLOYMENT_ENVIRONMENT": "test",
 		"DB_HOST":                "mongodb://testdb",
+		"JWT_SECRET":             "abcd",
 		"ENCRYPTER_KEY":          "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		"REDIS_HOST":             "testredis:6379",
 	}

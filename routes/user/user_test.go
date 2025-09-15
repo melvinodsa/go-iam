@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 
 func TestGetById(t *testing.T) {
 
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -149,6 +151,7 @@ func TestGetById(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -281,6 +284,7 @@ func TestCreate(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -376,6 +380,7 @@ func TestGetAll(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -542,6 +547,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateRoles(t *testing.T) {
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -782,6 +788,7 @@ func TestUpdateRoles(t *testing.T) {
 }
 
 func TestUpdatePolicies(t *testing.T) {
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,

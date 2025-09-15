@@ -150,12 +150,12 @@ func (a *AppConfig) LoadServerConfig() {
 //
 // Environment variables:
 //   - DEPLOYMENT_ENVIRONMENT: Deployment environment name (default: development)
-//   - DEPLOYMENT_NAME: Application deployment name (default: Cuttle.ai Demo)
+//   - DEPLOYMENT_NAME: Application deployment name (default: Go IAM Demo)
 func (a *AppConfig) LoadDeploymentConfig() {
 	// load the default values
 	// then load from env variables
 	a.Deployment.Environment = "development"
-	a.Deployment.Name = "Cuttle.ai Demo"
+	a.Deployment.Name = "Go IAM Demo"
 
 	environment := os.Getenv("DEPLOYMENT_ENVIRONMENT")
 	if environment != "" {

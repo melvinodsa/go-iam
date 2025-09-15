@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 
 func TestCreate(t *testing.T) {
 	// setup
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -203,6 +205,7 @@ func TestCreate(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	// setup
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -335,6 +338,7 @@ func TestGet(t *testing.T) {
 
 func TestFetchhAll(t *testing.T) {
 	// setup
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -436,6 +440,7 @@ func TestFetchhAll(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	// setup
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -659,6 +664,7 @@ func TestUpdate(t *testing.T) {
 
 func TestRegenerateSecret(t *testing.T) {
 	// setup
+	os.Setenv("JWT_SECRET", "abcd")
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
