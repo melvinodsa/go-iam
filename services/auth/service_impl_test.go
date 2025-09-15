@@ -282,7 +282,7 @@ func TestGetClientSecret(t *testing.T) {
 			clientId: "test-client",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("", errors.New("not found"))
-				mockClient.On("Get", ctx, "test-client", false).Return(&sdk.Client{
+				mockClient.On("Get", ctx, "test-client", true).Return(&sdk.Client{
 					Id:     "test-client",
 					Secret: "db-secret",
 				}, nil)
@@ -295,7 +295,7 @@ func TestGetClientSecret(t *testing.T) {
 			clientId: "test-client",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("", errors.New("not found"))
-				mockClient.On("Get", ctx, "test-client", false).Return(&sdk.Client{
+				mockClient.On("Get", ctx, "test-client", true).Return(&sdk.Client{
 					Id:     "test-client",
 					Secret: "db-secret",
 				}, nil)
@@ -308,7 +308,7 @@ func TestGetClientSecret(t *testing.T) {
 			clientId: "invalid-client",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-invalid-client").Return("", errors.New("not found"))
-				mockClient.On("Get", ctx, "invalid-client", false).Return((*sdk.Client)(nil), errors.New("client not found"))
+				mockClient.On("Get", ctx, "invalid-client", true).Return((*sdk.Client)(nil), errors.New("client not found"))
 			},
 			expectedError: "couldn't get the client even from db",
 		},
@@ -360,6 +360,7 @@ func TestHandlePrivateClient(t *testing.T) {
 			clientSecret: "correct-secret",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("correct-secret", nil)
+				mockClient.On("VerifySecret", "correct-secret", "correct-secret").Return(nil)
 			},
 		},
 		{
@@ -368,6 +369,7 @@ func TestHandlePrivateClient(t *testing.T) {
 			clientSecret: "wrong-secret",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-test-client").Return("correct-secret", nil)
+				mockClient.On("VerifySecret", mock.Anything, mock.Anything).Return(errors.New("invalid client secret"))
 			},
 			expectedError: "invalid client secret",
 		},
@@ -377,7 +379,7 @@ func TestHandlePrivateClient(t *testing.T) {
 			clientSecret: "secret",
 			setupMocks: func(mockCache *MockCacheService, mockClient *services.MockClientService) {
 				mockCache.On("Get", ctx, "client-invalid-client").Return("", errors.New("not found"))
-				mockClient.On("Get", ctx, "invalid-client", false).Return((*sdk.Client)(nil), errors.New("client not found"))
+				mockClient.On("Get", ctx, "invalid-client", true).Return((*sdk.Client)(nil), errors.New("client not found"))
 			},
 			expectedError: "error getting client secret",
 		},
@@ -1184,7 +1186,7 @@ func TestClientCallback(t *testing.T) {
 				mockEncrypt.On("Decrypt", "encrypted-data").Return(tokenJSON, nil)
 				// Client secret cache miss, then client not found in DB
 				mockCache.On("Get", ctx, "client-unknown-client").Return("", errors.New("cache miss"))
-				mockClient.On("Get", ctx, "unknown-client", false).Return((*sdk.Client)(nil), errors.New("client not found"))
+				mockClient.On("Get", ctx, "unknown-client", true).Return((*sdk.Client)(nil), errors.New("client not found"))
 			},
 			expectedError: "error handling private client",
 		},
@@ -1205,7 +1207,8 @@ func TestClientCallback(t *testing.T) {
 					Id:     "test-client",
 					Secret: "correct-secret",
 				}
-				mockClient.On("Get", ctx, "test-client", false).Return(client, nil)
+				mockClient.On("Get", ctx, "test-client", true).Return(client, nil)
+				mockClient.On("VerifySecret", mock.Anything, mock.Anything).Return(errors.New("invalid client secret"))
 				mockCache.On("Set", ctx, "client-test-client", "correct-secret", mock.Anything).Return(nil)
 			},
 			expectedError: "invalid client secret",
@@ -1269,7 +1272,8 @@ func TestClientCallback(t *testing.T) {
 					Id:     "test-client",
 					Secret: "test-secret",
 				}
-				mockClient.On("Get", ctx, "test-client", false).Return(client, nil)
+				mockClient.On("Get", ctx, "test-client", true).Return(client, nil)
+				mockClient.On("VerifySecret", "test-secret", "test-secret").Return(nil)
 				mockCache.On("Set", ctx, "client-test-client", "test-secret", mock.Anything).Return(nil)
 				// Access token caching fails during encryption
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("", errors.New("encryption failed"))
@@ -1293,7 +1297,8 @@ func TestClientCallback(t *testing.T) {
 					Id:     "test-client",
 					Secret: "test-secret",
 				}
-				mockClient.On("Get", ctx, "test-client", false).Return(client, nil)
+				mockClient.On("Get", ctx, "test-client", true).Return(client, nil)
+				mockClient.On("VerifySecret", "test-secret", "test-secret").Return(nil)
 				mockCache.On("Set", ctx, "client-test-client", "test-secret", mock.Anything).Return(nil)
 				// Access token caching succeeds
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-access-token", nil)
@@ -1320,7 +1325,8 @@ func TestClientCallback(t *testing.T) {
 					Id:     "test-client",
 					Secret: "test-secret",
 				}
-				mockClient.On("Get", ctx, "test-client", false).Return(client, nil)
+				mockClient.On("Get", ctx, "test-client", true).Return(client, nil)
+				mockClient.On("VerifySecret", "test-secret", "test-secret").Return(nil)
 				mockCache.On("Set", ctx, "client-test-client", "test-secret", mock.Anything).Return(nil)
 				// Access token caching succeeds
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-access-token", nil)
@@ -1349,7 +1355,8 @@ func TestClientCallback(t *testing.T) {
 					Id:     "test-client",
 					Secret: "test-secret",
 				}
-				mockClient.On("Get", ctx, "test-client", false).Return(client, nil)
+				mockClient.On("Get", ctx, "test-client", true).Return(client, nil)
+				mockClient.On("VerifySecret", "test-secret", "test-secret").Return(nil)
 				mockCache.On("Set", ctx, "client-test-client", "test-secret", mock.Anything).Return(nil)
 				// Access token caching succeeds
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-access-token", nil)
