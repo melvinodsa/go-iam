@@ -23,7 +23,7 @@ func (a addResourcesToUser) ID() string {
 }
 
 func (a addResourcesToUser) Name() string {
-	return "Add resources to user specified in user policy"
+	return "Add the resources created by a user to another user specified in user policy"
 }
 
 func (a addResourcesToUser) HandleEvent(event utils.Event[sdk.Resource]) {
