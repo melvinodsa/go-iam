@@ -1,3 +1,6 @@
+// Package config provides configuration management for the Go IAM API server.
+// It handles loading configuration from environment variables and .env files
+// for all application components including server, database, encryption, JWT, and more.
 package config
 
 import (
@@ -12,17 +15,23 @@ import (
 	"github.com/melvinodsa/go-iam/sdk"
 )
 
+// AppConfig holds all configuration settings for the Go IAM application.
+// It includes settings for server, deployment, logging, database, encryption,
+// Redis, JWT, and service account configurations.
 type AppConfig struct {
-	Server     Server
-	Deployment Deployment
-	Logger     Logger
-	DB         DB
-	Encrypter  Encrypter
-	Redis      Redis
-	Jwt        Jwt
-	ServiceAccount ServiceAccount
+	Server         Server         // HTTP server configuration
+	Deployment     Deployment     // Deployment environment settings
+	Logger         Logger         // Logging configuration
+	DB             DB             // Database connection settings
+	Encrypter      Encrypter      // Encryption key configuration
+	Redis          Redis          // Redis cache configuration
+	Jwt            Jwt            // JWT token configuration
+	ServiceAccount ServiceAccount // Service account token settings
 }
 
+// NewAppConfig creates a new AppConfig instance and loads all configuration
+// from environment variables and .env files. This is the primary entry point
+// for initializing application configuration.
 func NewAppConfig() *AppConfig {
 	cnf := &AppConfig{}
 	cnf.Load()
@@ -35,15 +44,30 @@ type keyType struct {
 
 var configKey = keyType{"config"}
 
+// Handle is a Fiber middleware that stores the AppConfig in the request context.
+// This allows handlers to access configuration using GetAppConfig().
+//
+// Usage:
+//
+//	app.Use(config.Handle)
 func (a *AppConfig) Handle(c *fiber.Ctx) error {
 	c.Locals(configKey, *a)
 	return c.Next()
 }
 
+// GetAppConfig retrieves the AppConfig from the Fiber context.
+// This function should be called from handlers that need access to configuration.
+// The config must have been previously stored using the Handle middleware.
+//
+// Returns the AppConfig instance stored in the context.
 func GetAppConfig(c *fiber.Ctx) AppConfig {
 	return c.Locals(configKey).(AppConfig)
 }
 
+// Load reads configuration from environment variables and .env files.
+// It loads all configuration sections including server, deployment, logger,
+// database, encrypter, and Redis settings. This method is called automatically
+// by NewAppConfig() and should not typically be called directly.
 func (a *AppConfig) Load() {
 	/*
 	 * load env file
@@ -59,9 +83,20 @@ func (a *AppConfig) Load() {
 	a.LoadDBConfig()
 	a.LoadEncrypterConfig()
 	a.LoadRedisConfig()
+	a.LoadJwtConfig()
+	a.LoadServiceAccountConfig()
 }
 
-// LoadServerConfig load server config
+// LoadServerConfig loads server-specific configuration from environment variables.
+// It sets up HTTP server host, port, Redis enablement, token cache TTL,
+// and auth provider refetch interval settings.
+//
+// Environment variables:
+//   - SERVER_HOST: HTTP server host (default: localhost)
+//   - SERVER_PORT: HTTP server port (default: 3000)
+//   - ENABLE_REDIS: Enable Redis caching (default: false)
+//   - TOKEN_CACHE_TTL_IN_MINUTES: Token cache TTL in minutes (default: 1440)
+//   - AUTH_PROVIDER_REFETCH_INTERVAL_IN_MINUTES: Auth provider refresh interval (default: 1)
 func (a *AppConfig) LoadServerConfig() {
 	// load the default values
 	// then load from env variables
@@ -110,7 +145,12 @@ func (a *AppConfig) LoadServerConfig() {
 	)
 }
 
-// LoadDeploymentConfig loads the deployment config
+// LoadDeploymentConfig loads deployment environment configuration from environment variables.
+// It configures the deployment environment and application name for identification.
+//
+// Environment variables:
+//   - DEPLOYMENT_ENVIRONMENT: Deployment environment name (default: development)
+//   - DEPLOYMENT_NAME: Application deployment name (default: Cuttle.ai Demo)
 func (a *AppConfig) LoadDeploymentConfig() {
 	// load the default values
 	// then load from env variables
@@ -128,7 +168,11 @@ func (a *AppConfig) LoadDeploymentConfig() {
 	}
 }
 
-// LoadLoggerConfig loads logger config
+// LoadLoggerConfig loads logging configuration from environment variables.
+// It sets up the global logger with the specified log level.
+//
+// Environment variables:
+//   - LOGGER_LEVEL: Log level as integer (default: Info level)
 func (a *AppConfig) LoadLoggerConfig() {
 	// load the default values
 	// then load from env variables
@@ -146,7 +190,11 @@ func (a *AppConfig) LoadLoggerConfig() {
 	a.Logger = *lg
 }
 
-// LoadDBConfig loads db config
+// LoadDBConfig loads database configuration from environment variables.
+// It configures the MongoDB connection string.
+//
+// Environment variables:
+//   - DB_HOST: MongoDB connection string (default: mongodb://test:test@127.0.0.1)
 func (a *AppConfig) LoadDBConfig() {
 	// load the default values
 	// then load from env variables
@@ -157,6 +205,14 @@ func (a *AppConfig) LoadDBConfig() {
 	}
 }
 
+// LoadEncrypterConfig loads encryption configuration from environment variables.
+// It sets up the encryption key used for sensitive data encryption.
+// The key must be a valid hex-encoded string.
+//
+// Environment variables:
+//   - ENCRYPTER_KEY: Hex-encoded encryption key (default: 64-character zero string)
+//
+// Panics if the encryption key cannot be decoded from hex.
 func (a *AppConfig) LoadEncrypterConfig() {
 	// load the default values
 	// then load from env variables
@@ -173,6 +229,15 @@ func (a *AppConfig) LoadEncrypterConfig() {
 	a.Encrypter.key = sdk.MaskedBytes(key)
 }
 
+// LoadRedisConfig loads Redis configuration from environment variables.
+// It configures Redis connection settings including host, database number, and password.
+//
+// Environment variables:
+//   - REDIS_HOST: Redis server address (default: localhost:6379)
+//   - REDIS_DB: Redis database number (default: 0)
+//   - REDIS_PASSWORD: Redis password (optional)
+//
+// Panics if REDIS_DB cannot be converted to integer.
 func (a *AppConfig) LoadRedisConfig() {
 	// load the default values
 	// then load from env variables
@@ -199,6 +264,13 @@ func (a *AppConfig) LoadRedisConfig() {
 	}
 }
 
+// LoadJwtConfig loads JWT configuration from environment variables.
+// It sets up the JWT secret key used for token signing and verification.
+//
+// Environment variables:
+//   - JWT_SECRET: JWT secret key (required)
+//
+// Panics if JWT_SECRET is not provided.
 func (a *AppConfig) LoadJwtConfig() {
 	// load from env variables
 	secret := os.Getenv("JWT_SECRET")
@@ -208,6 +280,12 @@ func (a *AppConfig) LoadJwtConfig() {
 	a.Jwt.secret = sdk.MaskedBytes(secret)
 }
 
+// LoadServiceAccountConfig loads service account configuration from environment variables.
+// It configures token TTL settings for service account access and refresh tokens.
+//
+// Environment variables:
+//   - SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES: Access token TTL in minutes (default: 60)
+//   - SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS: Refresh token TTL in days (default: 30)
 func (a *AppConfig) LoadServiceAccountConfig() {
 	a.ServiceAccount.AccessTokenTTLInMinutes = 60 // Default 1 hour
 	a.ServiceAccount.RefreshTokenTTLInDays = 30   // Default 30 days
