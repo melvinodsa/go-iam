@@ -24,7 +24,7 @@ func (s *service) getClientSecret(ctx context.Context, clientId string) (string,
 	if err == nil {
 		return secret, nil
 	}
-	cl, err := s.clientSvc.Get(ctx, clientId, false)
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
 	if err != nil {
 		return "", fmt.Errorf("couldn't get the client even from db: %w", err)
 	}
