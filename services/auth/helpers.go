@@ -40,8 +40,9 @@ func (s *service) handlePrivateClient(ctx context.Context, clientId, clientSecre
 	if err != nil {
 		return fmt.Errorf("error getting client secret: %w", err)
 	}
-	if secret != clientSecret {
-		return fmt.Errorf("invalid client secret")
+	err = s.clientSvc.VerifySecret(clientSecret, secret)
+	if err != nil {
+		return fmt.Errorf("invalid client secret: %w", err)
 	}
 	return nil
 }
