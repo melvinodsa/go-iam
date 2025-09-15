@@ -25,7 +25,7 @@ func (a addResourcesToRole) ID() string {
 }
 
 func (a addResourcesToRole) Name() string {
-	return "Add resources to role specified in user policy"
+	return "Add the resources created by a user to role specified in user policy"
 }
 
 func (a addResourcesToRole) HandleEvent(event utils.Event[sdk.Resource]) {
