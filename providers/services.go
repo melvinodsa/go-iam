@@ -17,22 +17,45 @@ import (
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
 )
 
+// Service is a container that holds all business logic services for the Go IAM system.
+// It provides centralized access to all domain services and manages their dependencies.
+// Services are organized by domain and provide the core functionality for IAM operations.
 type Service struct {
-	Projects      project.Service
-	Clients       client.Service
-	AuthProviders authprovider.Service
-	Auth          auth.Service
-	Resources     resource.Service
-	User          user.Service
-	Role          role.Service
-	Policy        policy.Service
+	Projects      project.Service      // Project management service
+	Clients       client.Service       // OAuth2/OIDC client management service
+	AuthProviders authprovider.Service // Authentication provider management service
+	Auth          auth.Service         // Authentication and token validation service
+	Resources     resource.Service     // Resource management service
+	User          user.Service         // User management and authorization service
+	Role          role.Service         // Role-based access control service
+	Policy        policy.Service       // Policy management service
 }
 
+// NewServices creates and configures all business logic services with their dependencies.
+// This function initializes services in the correct order to satisfy dependencies and
+// sets up event subscriptions for cross-service communication.
+//
+// Service initialization order:
+// 1. Core services (project, resource, role, user)
+// 2. Authentication services (auth provider, client, auth)
+// 3. Policy services
+// 4. Event subscriptions for reactive updates
+//
+// Parameters:
+//   - db: Database connection interface
+//   - cache: Cache service for performance optimization
+//   - enc: Encryption service for sensitive data
+//   - jwtSvc: JWT service for token operations
+//   - tokenTTL: Token time-to-live in minutes
+//   - refetchTTL: Auth provider refetch interval in minutes
+//
+// Returns:
+//   - *Service: Configured service container with all dependencies wired
 func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.Service, tokenTTL int64, refetchTTL int64) *Service {
 	pstr := project.NewStore(db)
 	psvc := project.NewService(pstr)
 	cstr := client.NewStore(db)
-	
+
 	rstr := resource.NewStore(db)
 	rsvc := resource.NewService(rstr)
 	roleStr := role.NewStore(db)
@@ -51,7 +74,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 
 	apStr := authprovider.NewStore(enc, db)
 	apSvc := authprovider.NewService(apStr, psvc)
-	csvc := client.NewService(cstr, psvc,apSvc, userSvc)
+	csvc := client.NewService(cstr, psvc, apSvc, userSvc)
 	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, userSvc, tokenTTL, refetchTTL)
 	polstr := policy.NewStore()
 	polSvc := policy.NewService(polstr)
