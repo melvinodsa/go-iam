@@ -1,3 +1,6 @@
+// Package auth provides authentication middleware for the Go IAM system.
+// It handles user authentication via Bearer tokens and integrates with
+// the Go IAM authentication service to validate and extract user information.
 package auth
 
 import (
@@ -13,12 +16,26 @@ import (
 	goiamclient "github.com/melvinodsa/go-iam/utils/goiamclient"
 )
 
+// Middlewares provides authentication middleware functionality.
+// It encapsulates the authentication service, client service, and Go IAM client
+// needed for user authentication and authorization.
 type Middlewares struct {
-	authSvc    auth.Service
-	clientSvc  client.Service
-	AuthClient *sdk.Client
+	authSvc    auth.Service   // Authentication service for token validation
+	clientSvc  client.Service // Client service for client operations
+	AuthClient *sdk.Client    // Go IAM client configuration
 }
 
+// NewMiddlewares creates a new authentication middleware instance.
+// It initializes the middleware with the required services and retrieves
+// the Go IAM client configuration for authentication operations.
+//
+// Parameters:
+//   - authSvc: Authentication service for token validation
+//   - clientSvc: Client service for client operations
+//
+// Returns:
+//   - *Middlewares: Configured middleware instance
+//   - error: Error if Go IAM client retrieval fails
 func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) (*Middlewares, error) {
 	authClient, err := goiamclient.GetGoIamClient(clientSvc)
 	if err != nil {
@@ -31,6 +48,20 @@ func NewMiddlewares(authSvc auth.Service, clientSvc client.Service) (*Middleware
 	}, nil
 }
 
+// User is a Fiber middleware that authenticates users via Bearer token.
+// It extracts the Authorization header, validates the token, and stores
+// the authenticated user in the request context. If authentication fails,
+// it returns a 401 Unauthorized response.
+//
+// Usage:
+//
+//	app.Use(authMiddleware.User)
+//
+// Parameters:
+//   - c: Fiber context containing the HTTP request
+//
+// Returns:
+//   - error: nil on success, HTTP error response on authentication failure
 func (m *Middlewares) User(c *fiber.Ctx) error {
 	if m.AuthClient == nil {
 		// If the auth client is not set, we cannot authenticate the user
@@ -49,6 +80,20 @@ func (m *Middlewares) User(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// DashboardUser is a specialized Fiber middleware for dashboard authentication.
+// It performs user authentication similar to User middleware but returns
+// dashboard-specific response format including setup information about
+// the Go IAM client configuration.
+//
+// Usage:
+//
+//	app.Use(authMiddleware.DashboardUser)
+//
+// Parameters:
+//   - c: Fiber context containing the HTTP request
+//
+// Returns:
+//   - error: nil on success, HTTP error response with dashboard format on failure
 func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
 	if m.AuthClient == nil {
 		// If the auth client is not set, we cannot authenticate the user
@@ -71,6 +116,16 @@ func (m *Middlewares) DashboardUser(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+// GetUser extracts and validates the user from the Authorization header.
+// This is a helper method used by the middleware functions to perform
+// the actual token validation and user retrieval.
+//
+// Parameters:
+//   - c: Fiber context containing the HTTP request with Authorization header
+//
+// Returns:
+//   - *sdk.User: Authenticated user information
+//   - error: Error if token is missing, invalid, or authentication fails
 func (m *Middlewares) GetUser(c *fiber.Ctx) (*sdk.User, error) {
 	authHeader := c.Get("Authorization")
 	if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
