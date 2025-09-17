@@ -18,7 +18,8 @@ func TestNewAppConfig(t *testing.T) {
 	// Clean environment before test
 	cleanEnv()
 
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	config := NewAppConfig()
 
 	assert.NotNil(t, config)
