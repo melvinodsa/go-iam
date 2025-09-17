@@ -19,11 +19,13 @@ import (
 	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetById(t *testing.T) {
 
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -151,7 +153,8 @@ func TestGetById(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -284,7 +287,8 @@ func TestCreate(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -380,7 +384,8 @@ func TestGetAll(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -547,7 +552,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateRoles(t *testing.T) {
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -788,7 +794,8 @@ func TestUpdateRoles(t *testing.T) {
 }
 
 func TestUpdatePolicies(t *testing.T) {
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,

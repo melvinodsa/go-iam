@@ -24,6 +24,9 @@ const (
 
 	// AuthProviderTypeGitHub represents GitHub OAuth2 authentication.
 	AuthProviderTypeGitHub AuthProviderType = "GITHUB"
+
+	// AuthProviderTypeOIDC represents generic OpenID Connect authentication.
+	AuthProviderTypeOIDC AuthProviderType = "OIDC"
 )
 
 // AuthProvider represents an external authentication provider configuration.

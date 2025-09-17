@@ -12,10 +12,10 @@ import (
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
-	Success   bool                   `json:"success"`
-	Message   string                 `json:"message"`
-	Data      HealthData             `json:"data"`
-	Timestamp string                 `json:"timestamp"`
+	Success   bool       `json:"success"`
+	Message   string     `json:"message"`
+	Data      HealthData `json:"data"`
+	Timestamp string     `json:"timestamp"`
 }
 
 // HealthData contains the health check information
@@ -48,13 +48,13 @@ func HealthRoute(router fiber.Router, basePath string) {
 
 func Health(c *fiber.Ctx) error {
 	log.Debug("received health check request")
-	
+
 	pr := providers.GetProviders(c)
 	uptime := time.Since(startTime)
-	
+
 	// Check component health
 	components := make(map[string]string)
-	
+
 	// Check database connection
 	if pr.D != nil {
 		// Try to ping the database using a simple operation
@@ -69,7 +69,7 @@ func Health(c *fiber.Ctx) error {
 	} else {
 		components["database"] = "unavailable"
 	}
-	
+
 	// Check cache connection
 	if pr.C != nil {
 		// For now, just check if cache service exists
@@ -78,7 +78,7 @@ func Health(c *fiber.Ctx) error {
 	} else {
 		components["cache"] = "unavailable"
 	}
-	
+
 	// Determine overall status
 	status := "healthy"
 	for _, componentStatus := range components {
@@ -89,29 +89,32 @@ func Health(c *fiber.Ctx) error {
 			status = "degraded"
 		}
 	}
-	
+
 	healthData := HealthData{
 		Status:     status,
 		Version:    "1.0.0", // You can make this configurable
 		Uptime:     uptime.String(),
 		Components: components,
 	}
-	
+
 	response := HealthResponse{
 		Success:   true,
 		Message:   "Health check completed successfully",
 		Data:      healthData,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	// Return different HTTP status codes based on health status
 	statusCode := http.StatusOK
-	if status == "unhealthy" {
+	switch status {
+	case "healthy":
+		statusCode = http.StatusOK
+	case "unhealthy":
 		statusCode = http.StatusServiceUnavailable
-	} else if status == "degraded" {
+	case "degraded":
 		statusCode = http.StatusPartialContent
 	}
-	
+
 	log.Debug("health check completed successfully")
 	return c.Status(statusCode).JSON(response)
 }

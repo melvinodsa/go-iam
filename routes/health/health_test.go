@@ -17,10 +17,12 @@ import (
 	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHealth(t *testing.T) {
-	os.Setenv("JWT_SECRET", "abcd")
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
@@ -160,11 +162,12 @@ func TestHealth(t *testing.T) {
 		assert.NotNil(t, resp)
 
 		// Status code should be 200 for healthy systems
-		if resp.Data.Status == "healthy" {
+		switch resp.Data.Status {
+		case "healthy":
 			assert.Equal(t, 200, res.StatusCode)
-		} else if resp.Data.Status == "degraded" {
+		case "degraded":
 			assert.Equal(t, 206, res.StatusCode) // StatusPartialContent
-		} else if resp.Data.Status == "unhealthy" {
+		case "unhealthy":
 			assert.Equal(t, 503, res.StatusCode) // StatusServiceUnavailable
 		}
 	})
