@@ -11,6 +11,7 @@ func RegisterRoutes(router fiber.Router, path string) {
 	UpdateRoute(v1, v1Path)
 	UpdateRolesRoute(v1, v1Path)
 	UpdatePoliciesRoute(v1, v1Path)
+	TransferOwnershipRoute(v1, v1Path)
 }
 
 var routeTags = []string{"User"}

@@ -442,3 +442,66 @@ func UpdatePolicies(c *fiber.Ctx) error {
 		Message: "User policies updated successfully",
 	})
 }
+
+// TransferOwnershipRoute registers the route for transferring user ownership
+func TransferOwnershipRoute(router fiber.Router, basePath string) {
+	routePath := "/:id/transfer-ownership/:oldId"
+	path := basePath + routePath
+	router.Put(routePath, TransferOwnership)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Transfer User Ownership",
+		Description: "Transfer ownership of a user",
+		Response: &docs.ApiResponse{
+			Description: "User ownership transferred successfully",
+			Content:     new(sdk.UserResponse),
+		},
+		// Parameters for the user ID and old ID in the path
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "id",
+				In:          "path",
+				Description: "The ID of the user",
+				Required:    true,
+			},
+			{
+				Name:        "oldId",
+				In:          "path",
+				Description: "The ID of the old user",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func TransferOwnership(c *fiber.Ctx) error {
+	log.Debug("received transfer user ownership request")
+	id := c.Params("id")
+	oldId := c.Params("oldId")
+
+	pr := providers.GetProviders(c)
+	err := pr.S.User.TransferOwnership(c.Context(), id, oldId)
+	if err != nil {
+		if errors.Is(err, sdk.ErrUserNotFound) {
+			return c.Status(http.StatusNotFound).JSON(sdk.UserResponse{
+				Success: false,
+				Message: fmt.Sprintf("User %s not found", id),
+			})
+		}
+
+		message := fmt.Sprintf("failed to transfer ownership from user %s to user %s. %v", oldId, id, err)
+		log.Errorw("failed to transfer ownership", "error", message)
+		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("user ownership transferred successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User ownership transferred successfully",
+	})
+}

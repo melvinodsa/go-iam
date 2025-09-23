@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/role"
@@ -164,6 +165,72 @@ func (s *service) RemovePolicyFromUser(ctx context.Context, userId string, polic
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
+	return nil
+}
+
+func (s *service) TransferOwnership(ctx context.Context, userId, newOwnerId string) error {
+	if userId == "" || newOwnerId == "" {
+		return errors.New("user ID and new owner ID are required")
+	}
+
+	user, err := s.GetById(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	newOwner, err := s.GetById(ctx, newOwnerId)
+	if err != nil {
+		return err
+	}
+
+	// transfer roles
+	for roleId := range user.Roles {
+		// Skip if role already exists
+		if _, exists := newOwner.Roles[roleId]; exists {
+			continue
+		}
+		role, err := s.roleSvc.GetById(ctx, roleId)
+		if err != nil {
+			log.Warnf("failed to fetch role %s: %v", roleId, err)
+			continue
+		}
+		addRoleToUserObj(newOwner, *role)
+	}
+
+	// transfer resources
+	for resourceKey, resource := range user.Resources {
+		if _, exists := newOwner.Resources[resourceKey]; exists {
+			// merge policies if resource already exists
+			for policyId, policy := range resource.PolicyIds {
+				newOwner.Resources[resourceKey].PolicyIds[policyId] = policy
+			}
+		} else {
+			newOwner.Resources[resourceKey] = resource
+		}
+	}
+
+	// transfer policies
+	for policyId, policy := range user.Policies {
+		newOwner.Policies[policyId] = policy
+	}
+
+	// Update new owner in the database
+	err = s.store.Update(ctx, newOwner)
+	if err != nil {
+		return fmt.Errorf("failed to update new owner: %w", err)
+	}
+
+	// remove all roles, resources, policies from old user
+	user.Roles = make(map[string]sdk.UserRole)
+	user.Resources = make(map[string]sdk.UserResource)
+	user.Policies = make(map[string]sdk.UserPolicy)
+
+	// Update old user in the database
+	err = s.store.Update(ctx, user)
+	if err != nil {
+		return fmt.Errorf("failed to update old user: %w", err)
+	}
+
 	return nil
 }
 
