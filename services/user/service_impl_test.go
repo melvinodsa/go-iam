@@ -941,6 +941,198 @@ func TestRemoveResourceFromAllUsers(t *testing.T) {
 	}
 }
 
+func TestTransferOwnership(t *testing.T) {
+	ctx := createContextWithMetadata()
+	svc, mockStore, roleSvc := setupUserService()
+
+	oldOwner := createTestUser()
+	newOwner := createTestUser()
+	newOwner.Id = "user-456"
+	newOwner.Email = "new-owner@example.com"
+	newOwner.Phone = "+1987654321"
+
+	tests := []struct {
+		name          string
+		oldOwnerId    string
+		newOwnerId    string
+		setupMocks    func()
+		expectedError string
+	}{
+		{
+			name:       "success - transfer ownership",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "user-123").Return(oldOwner, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership with policies",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Policies = map[string]sdk.UserPolicy{
+					"policy-1": {
+						Name: "policy-1",
+					},
+				}
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership with roles",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Roles = map[string]sdk.UserRole{
+					"role-1": {
+						Name: "role-1",
+					},
+					"role-2": {
+						Name: "role-2",
+					},
+				}
+				newUsr := createTestUser()
+				newUsr.Roles = map[string]sdk.UserRole{
+					"role-2": {
+						Name: "role-2",
+					},
+				}
+				roleSvc.On("GetById", ctx, "role-1").Return(createTestRole(), nil)
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newUsr, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership with resources",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Resources = map[string]sdk.UserResource{
+					"resource-1": {
+						Name: "resource-1",
+					},
+					"resource-2": {
+						Name:      "resource-2",
+						PolicyIds: map[string]bool{"policy-1": true},
+					},
+				}
+				newUsr := createTestUser()
+				newUsr.Resources = map[string]sdk.UserResource{
+					"resource-2": {
+						Name:      "resource-2",
+						PolicyIds: map[string]bool{"policy-2": true},
+					},
+				}
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newUsr, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership with roles not found",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Roles = map[string]sdk.UserRole{
+					"role-2": {
+						Name: "role-2",
+					},
+				}
+				roleSvc.On("GetById", ctx, "role-2").Return(createTestRole(), errors.New("role not found"))
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "error - old owner not found",
+			oldOwnerId: "user-999",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "user-999").Return((*sdk.User)(nil), ErrorUserNotFound)
+			},
+			expectedError: "user not found",
+		},
+		{
+			name:       "error - new owner not found",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-999",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "user-123").Return(oldOwner, nil)
+				mockStore.On("GetById", ctx, "user-999").Return((*sdk.User)(nil), ErrorUserNotFound)
+			},
+			expectedError: "user not found",
+		},
+		{
+			name:       "error - store update fails",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "user-123").Return(oldOwner, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(errors.New("database error"))
+			},
+			expectedError: "failed to update new owner",
+		},
+		{
+			name:       "error - old user store update fails",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "user-123").Return(oldOwner, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil).Once()                          // First call succeeds
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(errors.New("database error")).Once() // Second call fails
+			},
+			expectedError: "failed to update old user",
+		},
+		{
+			name:          "error - empty old owner ID",
+			oldOwnerId:    "",
+			newOwnerId:    "user-456",
+			setupMocks:    func() {},
+			expectedError: "user ID and new owner ID are required",
+		},
+		{
+			name:          "error - empty new owner ID",
+			oldOwnerId:    "user-123",
+			newOwnerId:    "",
+			setupMocks:    func() {},
+			expectedError: "user ID and new owner ID are required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset mocks
+			mockStore.ExpectedCalls = nil
+
+			tt.setupMocks()
+
+			err := svc.TransferOwnership(ctx, tt.oldOwnerId, tt.newOwnerId)
+
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+
+			mockStore.AssertExpectations(t)
+		})
+	}
+}
+
 // TestEventHandling tests the event handling functionality
 func TestEventHandling(t *testing.T) {
 	svc, _, _ := setupUserService()

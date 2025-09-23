@@ -73,6 +73,11 @@ func (m *MockUserService) RemoveResourceFromAll(ctx context.Context, resourceKey
 	return args.Error(0)
 }
 
+func (m *MockUserService) TransferOwnership(ctx context.Context, userId, newOwnerId string) error {
+	args := m.Called(ctx, userId, newOwnerId)
+	return args.Error(0)
+}
+
 func (m *MockUserService) HandleEvent(event utils.Event[sdk.Role]) {
 	m.Called(event)
 }

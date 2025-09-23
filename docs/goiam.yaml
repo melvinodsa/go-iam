@@ -3127,3 +3127,117 @@ paths:
             summary: Update User Roles
             tags:
                 - User
+    /user/v1/{id}/transfer-ownership/{oldId}:
+        put:
+            description: Transfer ownership of a user
+            parameters:
+                - description: The ID of the user
+                  in: path
+                  name: id
+                  required: true
+                - description: The ID of the old user
+                  in: path
+                  name: oldId
+                  required: true
+                - description: Comma-separated list of project IDs. If not provided, the API will use the default project ID configured in the server.
+                  in: header
+                  name: X-Project-Ids
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    data:
+                                        nullable: true
+                                        properties:
+                                            created_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            created_by:
+                                                type: string
+                                            email:
+                                                type: string
+                                            enabled:
+                                                type: boolean
+                                            expiry:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            id:
+                                                type: string
+                                            linked_client_id:
+                                                type: string
+                                            name:
+                                                type: string
+                                            phone:
+                                                type: string
+                                            policies:
+                                                additionalProperties:
+                                                    properties:
+                                                        mapping:
+                                                            properties:
+                                                                arguments:
+                                                                    additionalProperties:
+                                                                        properties:
+                                                                            static:
+                                                                                type: string
+                                                                        type: object
+                                                                    type: object
+                                                            type: object
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            profile_pic:
+                                                type: string
+                                            project_id:
+                                                type: string
+                                            resources:
+                                                additionalProperties:
+                                                    properties:
+                                                        key:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                        policy_ids:
+                                                            additionalProperties:
+                                                                type: boolean
+                                                            type: object
+                                                        role_ids:
+                                                            additionalProperties:
+                                                                type: boolean
+                                                            type: object
+                                                    type: object
+                                                type: object
+                                            roles:
+                                                additionalProperties:
+                                                    properties:
+                                                        id:
+                                                            type: string
+                                                        name:
+                                                            type: string
+                                                    type: object
+                                                type: object
+                                            updated_at:
+                                                format: date-time
+                                                nullable: true
+                                                type: string
+                                            updated_by:
+                                                type: string
+                                        type: object
+                                    message:
+                                        type: string
+                                    success:
+                                        type: boolean
+                                type: object
+                    description: User ownership transferred successfully
+            security:
+                - BearerAuth: []
+            summary: Transfer User Ownership
+            tags:
+                - User

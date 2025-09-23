@@ -20,6 +20,7 @@ type Service interface {
 	AddPolicyToUser(ctx context.Context, userId string, policies map[string]sdk.UserPolicy) error
 	RemovePolicyFromUser(ctx context.Context, userId string, policyIds []string) error
 	RemoveResourceFromAll(ctx context.Context, resourceKey string) error
+	TransferOwnership(ctx context.Context, userId, newOwnerId string) error
 	HandleEvent(event utils.Event[sdk.Role])
 	utils.Emitter[utils.Event[sdk.User], sdk.User]
 }
