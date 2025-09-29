@@ -171,6 +171,124 @@ func TestHealth(t *testing.T) {
 			assert.Equal(t, 503, res.StatusCode) // StatusServiceUnavailable
 		}
 	})
+
+	t.Run("health check with database unhealthy", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		// Mock the project service to return error for health check
+		mockProjectSvc := &services.MockProjectService{}
+		mockProjectSvc.On("GetAll", mock.Anything).Return([]sdk.Project(nil), assert.AnError)
+		mockProjectSvc.On("GetByName", mock.Anything, mock.Anything).Return(&sdk.Project{
+			Id:          "project-id",
+			Name:        "Test Project",
+			Description: "test project",
+		}, nil)
+		svcs.Projects = mockProjectSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		app.Use(providers.Handle(prv))
+		RegisterRoutes(app, "/health")
+
+		req, _ := http.NewRequest("GET", "/health/v1", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusServiceUnavailable, res.StatusCode)
+
+		var resp HealthResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "unhealthy", resp.Data.Status)
+		assert.Equal(t, "unhealthy", resp.Data.Components["database"])
+		assert.Equal(t, "healthy", resp.Data.Components["cache"])
+	})
+
+	t.Run("health check with database unavailable", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		prv := &providers.Provider{
+			S: svcs,
+			D: nil, // Database unavailable
+			C: cs,
+		}
+
+		app.Use(providers.Handle(prv))
+		RegisterRoutes(app, "/health")
+
+		req, _ := http.NewRequest("GET", "/health/v1", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusPartialContent, res.StatusCode)
+
+		var resp HealthResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "degraded", resp.Data.Status)
+		assert.Equal(t, "unavailable", resp.Data.Components["database"])
+		assert.Equal(t, "healthy", resp.Data.Components["cache"])
+	})
+
+	t.Run("health check with cache unavailable", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		// Mock the project service to return empty projects for health check
+		mockProjectSvc := &services.MockProjectService{}
+		mockProjectSvc.On("GetAll", mock.Anything).Return([]sdk.Project{}, nil)
+		svcs.Projects = mockProjectSvc
+
+		prv := &providers.Provider{
+			S: svcs,
+			D: d,
+			C: nil, // Cache unavailable
+		}
+
+		app.Use(providers.Handle(prv))
+		RegisterRoutes(app, "/health")
+
+		req, _ := http.NewRequest("GET", "/health/v1", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusPartialContent, res.StatusCode)
+
+		var resp HealthResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "degraded", resp.Data.Status)
+		assert.Equal(t, "healthy", resp.Data.Components["database"])
+		assert.Equal(t, "unavailable", resp.Data.Components["cache"])
+	})
 }
 
 func TestHealthRoute(t *testing.T) {
