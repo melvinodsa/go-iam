@@ -606,6 +606,24 @@ func TestGitHubIdentityUsername_UpdateUserDetails(t *testing.T) {
 	})
 }
 
+func TestHasRefreshTokenFlow(t *testing.T) {
+	mockProvider := createMockGitHubProvider()
+	serviceProvider := NewAuthProvider(mockProvider)
+
+	// GitHub doesn't support refresh token flow
+	assert.False(t, serviceProvider.HasRefreshTokenFlow())
+}
+
+func TestRefreshToken(t *testing.T) {
+	mockProvider := createMockGitHubProvider()
+	serviceProvider := NewAuthProvider(mockProvider)
+
+	// GitHub refresh token should return nil
+	token, err := serviceProvider.RefreshToken("any-token")
+	assert.Nil(t, token)
+	assert.Nil(t, err)
+}
+
 func TestAuthProvider_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name     string
