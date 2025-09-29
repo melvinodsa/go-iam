@@ -12,6 +12,7 @@ import (
 	"github.com/melvinodsa/go-iam/services/user"
 	"github.com/melvinodsa/go-iam/utils"
 	"github.com/melvinodsa/go-iam/utils/goiamuniverse"
+	"github.com/melvinodsa/go-iam/utils/hashing"
 )
 
 type service struct {
@@ -85,7 +86,7 @@ func (s service) Create(ctx context.Context, client *sdk.Client) error {
 	if err != nil {
 		return fmt.Errorf("error while creating client: %w", err)
 	}
-	hashedSec, err := hashSecret(sec)
+	hashedSec, err := hashing.HashSecret(sec)
 	if err != nil {
 		return fmt.Errorf("error hashing client secret: %w", err)
 	}
@@ -117,9 +118,9 @@ func (s service) VerifySecret(plainSecret, hashedSecret string) error {
 		return fmt.Errorf("plain secret cannot be empty")
 	}
 
-	// hashSecret function is defined in services/client/helpers.go
+	// hashing.HashSecret function is defined in services/client/helpers.go
 	// It hashes the secret using SHA256 and encodes to base64
-	hashedPlain, err := hashSecret(plainSecret)
+	hashedPlain, err := hashing.HashSecret(plainSecret)
 	if err != nil {
 		return fmt.Errorf("failed to hash secret for verification: %w", err)
 	}
@@ -143,7 +144,7 @@ func (s service) RegenerateSecret(ctx context.Context, clientId string) (*sdk.Cl
 		return nil, fmt.Errorf("error generating new client secret: %w", err)
 	}
 
-	hashedSec, err := hashSecret(newSecret)
+	hashedSec, err := hashing.HashSecret(newSecret)
 	if err != nil {
 		return nil, fmt.Errorf("error hashing client secret: %w", err)
 	}

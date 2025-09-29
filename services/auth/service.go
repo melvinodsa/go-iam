@@ -13,5 +13,6 @@ type Service interface {
 	ClientCallback(ctx context.Context, code, codeChallenge, clientId, clietSecret string) (*sdk.AuthVerifyCodeResponse, error)
 	GetIdentity(ctx context.Context, accessToken string) (*sdk.User, error)
 	ClientCredentials(ctx context.Context, clientId, clientSecret string) (*sdk.AuthVerifyCodeResponse, error)
+	LoginWithPassword(ctx context.Context, email, password string) (*sdk.AuthVerifyCodeResponse, error)
 	HandleEvent(event utils.Event[sdk.Client])
 }

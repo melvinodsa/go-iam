@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/melvinodsa/go-iam/services/authprovider"
+	"github.com/melvinodsa/go-iam/services/authprovider/withpassword"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/client"
 	"github.com/melvinodsa/go-iam/services/encrypt"
@@ -22,26 +23,28 @@ import (
 )
 
 type service struct {
-	authP      authprovider.Service
-	clientSvc  client.Service
-	cacheSvc   cache.Service
-	jwtSvc     jwt.Service
-	encSvc     encrypt.Service
-	usrSvc     user.Service
-	tokenTTL   int64
-	refetchTTL int64
+	withPasswdSvc withpassword.Service
+	authP         authprovider.Service
+	clientSvc     client.Service
+	cacheSvc      cache.Service
+	jwtSvc        jwt.Service
+	encSvc        encrypt.Service
+	usrSvc        user.Service
+	tokenTTL      int64
+	refetchTTL    int64
 }
 
-func NewService(authP authprovider.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service, usrSvc user.Service, tokenTTL int64, refetchTTL int64) *service {
+func NewService(authP authprovider.Service, withPasswdSvc withpassword.Service, clientSvc client.Service, cacheSvc cache.Service, jwtSvc jwt.Service, encSvc encrypt.Service, usrSvc user.Service, tokenTTL int64, refetchTTL int64) *service {
 	return &service{
-		authP:      authP,
-		clientSvc:  clientSvc,
-		cacheSvc:   cacheSvc,
-		jwtSvc:     jwtSvc,
-		encSvc:     encSvc,
-		usrSvc:     usrSvc,
-		tokenTTL:   tokenTTL,
-		refetchTTL: refetchTTL,
+		authP:         authP,
+		withPasswdSvc: withPasswdSvc,
+		clientSvc:     clientSvc,
+		cacheSvc:      cacheSvc,
+		jwtSvc:        jwtSvc,
+		encSvc:        encSvc,
+		usrSvc:        usrSvc,
+		tokenTTL:      tokenTTL,
+		refetchTTL:    refetchTTL,
 	}
 }
 
@@ -220,6 +223,22 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 	}
 
 	return usr, nil
+}
+
+func (s service) LoginWithPassword(ctx context.Context, clientID, clientSecret, email, password string) (*sdk.AuthVerifyCodeResponse, error) {
+	err := s.handlePrivateClient(ctx, clientID, clientSecret)
+	if err != nil {
+		return nil, fmt.Errorf("error validating client details %w", err)
+	}
+	projectID, err := s.getClientProjectID(ctx, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting client project ID %w", err)
+	}
+	up, err := s.withPasswdSvc.Login(ctx, email, password, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("error logging in with password %w", err)
+	}
+	return nil, nil
 }
 
 func (s service) getOrCreateUser(ctx context.Context, usr sdk.User) (*sdk.User, error) {

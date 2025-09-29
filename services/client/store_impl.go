@@ -11,6 +11,7 @@ import (
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
+	"github.com/melvinodsa/go-iam/utils/hashing"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -84,7 +85,7 @@ func (s store) Create(ctx context.Context, client *sdk.Client) error {
 	d := fromSdkToModel(*client)
 
 	// hash the client secret before storing it
-	secret, err := hashSecret(d.Secret)
+	secret, err := hashing.HashSecret(d.Secret)
 	if err != nil {
 		return fmt.Errorf("error hashing client secret: %w", err)
 	}

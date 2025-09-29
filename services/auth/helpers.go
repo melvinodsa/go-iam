@@ -19,6 +19,27 @@ func (s *service) cacheClientSecret(ctx context.Context, clientId string, secret
 	}
 }
 
+func (s *service) cacheClientProjectID(ctx context.Context, clientId string, projectId string) {
+	err := s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s-project", clientId), projectId, time.Hour*24*365)
+	if err != nil {
+		log.Errorf("failed to cache client project ID: %w", err)
+	}
+}
+
+func (s *service) getClientProjectID(ctx context.Context, clientId string) (string, error) {
+	projectId, err := s.cacheSvc.Get(ctx, fmt.Sprintf("client-%s-project", clientId))
+	if err == nil {
+		return projectId, nil
+	}
+	cl, err := s.clientSvc.Get(ctx, clientId, true)
+	if err != nil {
+		return "", fmt.Errorf("couldn't get the client even from db: %w", err)
+	}
+	s.cacheClientSecret(ctx, cl.Id, cl.Secret)
+	s.cacheClientProjectID(ctx, cl.Id, cl.ProjectId)
+	return cl.ProjectId, nil
+}
+
 func (s *service) getClientSecret(ctx context.Context, clientId string) (string, error) {
 	secret, err := s.cacheSvc.Get(ctx, fmt.Sprintf("client-%s", clientId))
 	if err == nil {
@@ -28,10 +49,8 @@ func (s *service) getClientSecret(ctx context.Context, clientId string) (string,
 	if err != nil {
 		return "", fmt.Errorf("couldn't get the client even from db: %w", err)
 	}
-	err = s.cacheSvc.Set(ctx, fmt.Sprintf("client-%s", clientId), cl.Secret, time.Hour*24*365)
-	if err != nil {
-		log.Errorf("failed to cache client secret: %w", err)
-	}
+	s.cacheClientSecret(ctx, cl.Id, cl.Secret)
+	s.cacheClientProjectID(ctx, cl.Id, cl.ProjectId)
 	return cl.Secret, nil
 }
 

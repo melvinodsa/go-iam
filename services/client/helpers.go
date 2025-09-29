@@ -2,9 +2,7 @@ package client
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/melvinodsa/go-iam/db/models"
 	"github.com/melvinodsa/go-iam/sdk"
@@ -60,15 +58,6 @@ func fromSdkToModel(client sdk.Client) models.Client {
 		UpdatedAt:             client.UpdatedAt,
 		UpdatedBy:             client.UpdatedBy,
 	}
-}
-
-func hashSecret(secret string) (string, error) {
-	// hash the secret then convert it to base64
-	if secret == "" {
-		return "", fmt.Errorf("secret cannot be empty")
-	}
-	hashedSecret := sha256.Sum256([]byte(secret))
-	return base64.StdEncoding.EncodeToString(hashedSecret[:]), nil
 }
 
 func generateRandomSecret(length int) (string, error) {
