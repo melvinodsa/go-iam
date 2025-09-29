@@ -205,3 +205,61 @@ func TestRegisterOpenRoutes(t *testing.T) {
 	}
 	assert.True(t, dashboardRouteFound, "Dashboard route should be registered")
 }
+func TestDashboardMe(t *testing.T) {
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
+	cnf := config.NewAppConfig()
+
+	t.Run("success - returns dashboard user information", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		authClient := &sdk.Client{
+			Id: "test-client",
+		}
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		prv.AuthClient = authClient
+
+		app.Use(providers.Handle(prv))
+
+		// Create a test user and set it in context
+		testUser := &sdk.User{
+			Id:    "user-123",
+			Email: "test@example.com",
+			Name:  "Test User",
+		}
+
+		// Add middleware to set user in context
+		app.Use(func(c *fiber.Ctx) error {
+			c.Context().SetUserValue(sdk.UserTypeVal, testUser)
+			return c.Next()
+		})
+
+		// Register the route directly
+		app.Get("/dashboard", DashboardMe)
+
+		req, _ := http.NewRequest("GET", "/dashboard", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+
+		var resp sdk.DashboardUserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "User fetched successfully", resp.Message)
+		assert.Equal(t, testUser, resp.Data.User)
+		assert.True(t, resp.Data.Setup.ClientAdded)
+		assert.Equal(t, "test-client", resp.Data.Setup.ClientId)
+	})
+}
