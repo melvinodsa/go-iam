@@ -1,11 +1,17 @@
 package providers
 
 import (
+	"context"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/melvinodsa/go-iam/config"
+	"github.com/melvinodsa/go-iam/middlewares/auth"
+	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandle(t *testing.T) {
@@ -24,4 +30,44 @@ func TestHandle(t *testing.T) {
 	resp, err := app.Test(req, -1)
 	assert.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
+}
+
+func TestInjectDefaultProviders(t *testing.T) {
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
+	cnf := config.NewAppConfig()
+
+	t.Run("successful provider injection", func(t *testing.T) {
+		provider, err := InjectDefaultProviders(*cnf)
+		assert.NoError(t, err)
+		assert.NotNil(t, provider)
+		assert.NotNil(t, provider.S)
+		assert.NotNil(t, provider.D)
+		assert.NotNil(t, provider.C)
+		assert.NotNil(t, provider.PM)
+		assert.NotNil(t, provider.AM)
+
+		// Clean up
+		if provider.D != nil {
+			provider.D.Disconnect(context.Background())
+		}
+	})
+}
+
+func TestProviderStruct(t *testing.T) {
+	t.Run("Provider struct initialization", func(t *testing.T) {
+		provider := &Provider{
+			S:          &Service{},
+			D:          nil,
+			C:          nil,
+			PM:         nil,
+			AM:         &auth.Middlewares{},
+			AuthClient: &sdk.Client{Id: "test-client"},
+		}
+
+		assert.NotNil(t, provider.S)
+		assert.NotNil(t, provider.AM)
+		assert.NotNil(t, provider.AuthClient)
+		assert.Equal(t, "test-client", provider.AuthClient.Id)
+	})
 }
