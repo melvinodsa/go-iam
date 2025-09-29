@@ -135,3 +135,98 @@ func TestUserTypeVal(t *testing.T) {
 		assert.IsType(t, UserType{}, UserTypeVal)
 	})
 }
+func TestMaskedBytes(t *testing.T) {
+	t.Run("MarshalJSON returns masked bytes", func(t *testing.T) {
+		mb := MaskedBytes([]byte("secret"))
+		data, err := mb.MarshalJSON()
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(`"*****"`), data)
+	})
+
+	t.Run("String returns masked string", func(t *testing.T) {
+		mb := MaskedBytes([]byte("password"))
+		assert.Equal(t, "*****", mb.String())
+	})
+}
+func TestAuthProviderErrorResponses(t *testing.T) {
+	app := fiber.New()
+
+	t.Run("NewErrorAuthProviderResponse", func(t *testing.T) {
+		app.Get("/test", func(c *fiber.Ctx) error {
+			return NewErrorAuthProviderResponse("test error", http.StatusBadRequest, c)
+		})
+
+		req := httptest.NewRequest("GET", "/test", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("AuthProviderBadRequest", func(t *testing.T) {
+		app.Get("/bad", func(c *fiber.Ctx) error {
+			return AuthProviderBadRequest("bad request", c)
+		})
+
+		req := httptest.NewRequest("GET", "/bad", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("AuthProviderNotFound", func(t *testing.T) {
+		app.Get("/notfound", func(c *fiber.Ctx) error {
+			return AuthProviderNotFound("not found", c)
+		})
+
+		req := httptest.NewRequest("GET", "/notfound", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	})
+
+	t.Run("AuthProviderInternalServerError", func(t *testing.T) {
+		app.Get("/error", func(c *fiber.Ctx) error {
+			return AuthProviderInternalServerError("server error", c)
+		})
+
+		req := httptest.NewRequest("GET", "/error", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	})
+
+	t.Run("AuthProvidersInternalServerError", func(t *testing.T) {
+		app.Get("/providers-error", func(c *fiber.Ctx) error {
+			return AuthProvidersInternalServerError("providers error", c)
+		})
+
+		req := httptest.NewRequest("GET", "/providers-error", nil)
+		resp, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	})
+}
+// TestAuthMetadataType is a test implementation of AuthMetadataType
+type TestAuthMetadataType struct{}
+
+func (t TestAuthMetadataType) UpdateUserDetails(user *User) {
+	user.Name = "Updated Name"
+}
+
+func TestAuthIdentity(t *testing.T) {
+	t.Run("UpdateUserDetails calls metadata UpdateUserDetails", func(t *testing.T) {
+		user := &User{
+			Id:   "user-123",
+			Name: "Original Name",
+		}
+
+		identity := AuthIdentity{
+			Type:     AuthIdentityTypeEmail,
+			Metadata: TestAuthMetadataType{},
+		}
+
+		identity.UpdateUserDetails(user)
+
+		assert.Equal(t, "Updated Name", user.Name)
+	})
+}
