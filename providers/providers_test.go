@@ -9,7 +9,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/middlewares/auth"
+	"github.com/stretchr/testify/mock"
 	"github.com/melvinodsa/go-iam/sdk"
+	testservices "github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,5 +71,35 @@ func TestProviderStruct(t *testing.T) {
 		assert.NotNil(t, provider.AM)
 		assert.NotNil(t, provider.AuthClient)
 		assert.Equal(t, "test-client", provider.AuthClient.Id)
+	})
+}
+
+func TestCheckAndAddDefaultProject(t *testing.T) {
+	t.Run("default project already exists", func(t *testing.T) {
+		mockSvc := &testservices.MockProjectService{}
+		mockSvc.On("GetByName", context.Background(), "Default Project").Return(&sdk.Project{Name: "Default Project"}, nil)
+
+		err := CheckAndAddDefaultProject(mockSvc)
+		assert.NoError(t, err)
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("default project does not exist, create it", func(t *testing.T) {
+		mockSvc := &testservices.MockProjectService{}
+		mockSvc.On("GetByName", context.Background(), "Default Project").Return((*sdk.Project)(nil), sdk.ErrProjectNotFound)
+		mockSvc.On("Create", context.Background(), mock.AnythingOfType("*sdk.Project")).Return(nil)
+
+		err := CheckAndAddDefaultProject(mockSvc)
+		assert.NoError(t, err)
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("error fetching project", func(t *testing.T) {
+		mockSvc := &testservices.MockProjectService{}
+		mockSvc.On("GetByName", context.Background(), "Default Project").Return((*sdk.Project)(nil), assert.AnError)
+
+		err := CheckAndAddDefaultProject(mockSvc)
+		assert.Error(t, err)
+		mockSvc.AssertExpectations(t)
 	})
 }
