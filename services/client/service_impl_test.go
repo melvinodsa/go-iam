@@ -872,3 +872,182 @@ func TestService_RegenerateSecret_UpdateError(t *testing.T) {
 
 	mockStore.AssertExpectations(t)
 }
+
+
+func TestService_Create_NoUserInContext(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	// Context with no user, only projects
+	metadata := sdk.Metadata{
+		User:       nil, // No user
+		ProjectIds: []string{"project1"},
+	}
+	ctx := middlewares.AddMetadata(context.Background(), metadata)
+
+	client := &sdk.Client{
+		Name:        "Test Client",
+		Description: "Test Description",
+		ProjectId:   "project1",
+	}
+
+	// We expect the store to be called with the client having a generated secret
+	mockStore.On("Create", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+	mockUserService.On("Create", ctx, mock.MatchedBy(func(u *sdk.User) bool {
+		return u.CreatedBy == "system" // Should use "system" as creator
+	})).Return(nil)
+	mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+
+	err := service.Create(ctx, client)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, client.Secret) // Secret should be generated
+	mockStore.AssertExpectations(t)
+	mockUserService.AssertExpectations(t)
+}
+
+func TestService_Create_ServiceAccountUpdateError(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	testUser := &sdk.User{Id: "user1", Name: "Test User"}
+	metadata := sdk.Metadata{
+		User:       testUser,
+		ProjectIds: []string{"project1"},
+	}
+	ctx := middlewares.AddMetadata(context.Background(), metadata)
+
+	client := &sdk.Client{
+		Name:        "Test Client",
+		Description: "Test Description",
+		ProjectId:   "project1",
+	}
+
+	mockStore.On("Create", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+	mockUserService.On("Create", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+	mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.Client")).Return(errors.New("update failed"))
+
+	err := service.Create(ctx, client)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update client")
+	mockStore.AssertExpectations(t)
+	mockUserService.AssertExpectations(t)
+}
+
+func TestService_Create_WithAuthProvider(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	testUser := &sdk.User{Id: "user1", Name: "Test User"}
+	metadata := sdk.Metadata{
+		User:       testUser,
+		ProjectIds: []string{"project1"},
+	}
+	ctx := middlewares.AddMetadata(context.Background(), metadata)
+
+	client := &sdk.Client{
+		Name:                    "Test Client",
+		Description:             "Test Description",
+		ProjectId:               "project1",
+		DefaultAuthProviderId:   "provider1",
+	}
+
+	mockAuthService.On("Get", ctx, "provider1", true).Return(&sdk.AuthProvider{Id: "provider1"}, nil)
+	mockStore.On("Create", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+	mockUserService.On("Create", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+	mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+
+	err := service.Create(ctx, client)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, client.Secret)
+	mockAuthService.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
+	mockUserService.AssertExpectations(t)
+}
+
+func TestService_Create_AuthProviderNotFound(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	ctx := createContextWithProjects([]string{"project1"})
+
+	client := &sdk.Client{
+		Name:                    "Test Client",
+		Description:             "Test Description",
+		ProjectId:               "project1",
+		DefaultAuthProviderId:   "provider1",
+	}
+
+	mockAuthService.On("Get", ctx, "provider1", true).Return((*sdk.AuthProvider)(nil), sdk.ErrAuthProviderNotFound)
+
+	err := service.Create(ctx, client)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get auth provider")
+	mockAuthService.AssertExpectations(t)
+	// Store should not be called
+	mockStore.AssertNotCalled(t, "Create")
+}
+
+func TestService_VerifySecret_Success(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	plainSecret := "mySecret123"
+	// Since hashSecret uses SHA256 and base64, I can compute it
+	// But to make it simple, let's use the hashSecret function directly
+	hashed, err := hashSecret(plainSecret)
+	assert.NoError(t, err)
+
+	err = service.VerifySecret(plainSecret, hashed)
+
+	assert.NoError(t, err)
+}
+
+func TestService_Create_UserCreateError(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	testUser := &sdk.User{Id: "user1", Name: "Test User"}
+	metadata := sdk.Metadata{
+		User:       testUser,
+		ProjectIds: []string{"project1"},
+	}
+	ctx := middlewares.AddMetadata(context.Background(), metadata)
+
+	client := &sdk.Client{
+		Name:        "Test Client",
+		Description: "Test Description",
+		ProjectId:   "project1",
+	}
+
+	mockStore.On("Create", ctx, mock.AnythingOfType("*sdk.Client")).Return(nil)
+	mockUserService.On("Create", ctx, mock.AnythingOfType("*sdk.User")).Return(errors.New("user creation failed"))
+
+	err := service.Create(ctx, client)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create service account user")
+	mockStore.AssertExpectations(t)
+	mockUserService.AssertExpectations(t)
+}
