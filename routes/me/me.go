@@ -24,6 +24,14 @@ func MeRoute(router fiber.Router, basePath string) {
 			Description: "User fetched successfully",
 			Content:     new(sdk.UserResponse),
 		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "force_fetch",
+				In:          "query",
+				Description: "Force fetch user information",
+				Required:    false,
+			},
+		},
 		Tags:                 routeTags,
 		ProjectIDNotRequired: true,
 	})
@@ -65,6 +73,14 @@ func DashboardMeRoute(router fiber.Router, basePath string, prv *providers.Provi
 		Response: &docs.ApiResponse{
 			Description: "User fetched successfully",
 			Content:     new(sdk.DashboardUserResponse),
+		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "force_fetch",
+				In:          "query",
+				Description: "Force fetch user information",
+				Required:    false,
+			},
 		},
 		Tags:                 routeTags,
 		ProjectIDNotRequired: true,

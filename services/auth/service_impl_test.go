@@ -2120,7 +2120,7 @@ func TestGetIdentity(t *testing.T) {
 
 			tt.setupMocks()
 
-			user, err := svc.GetIdentity(ctx, tt.accessToken)
+			user, err := svc.GetIdentity(ctx, tt.accessToken, false)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
