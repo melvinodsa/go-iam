@@ -47,7 +47,7 @@ func TestHealth(t *testing.T) {
 		// Mock the project service to return empty projects for health check
 		mockProjectSvc := &services.MockProjectService{}
 		mockProjectSvc.On("GetAll", mock.Anything).Return([]sdk.Project{}, nil)
-		// Mock GetByName to return that default project doesn't exist (which is fine for health check)mockProjectSvc := services.MockProjectService{}
+		// Mock GetByName to return that default project doesn't exist (which is fine for health check)
 		mockProjectSvc.On("GetByName", mock.Anything, mock.Anything).Return(&sdk.Project{
 			Id:          "project-id",
 			Name:        "Test Project",
@@ -170,5 +170,70 @@ func TestHealth(t *testing.T) {
 		case "unhealthy":
 			assert.Equal(t, 503, res.StatusCode) // StatusServiceUnavailable
 		}
+	})
+}
+
+func TestHealthRoute(t *testing.T) {
+	app := fiber.New()
+	HealthRoute(app, "/health")
+
+	// Check if routes are registered
+	routes := app.GetRoutes()
+	assert.NotEmpty(t, routes, "Routes should be registered")
+
+	// Check that at least one GET route exists
+	getRouteFound := false
+	for _, route := range routes {
+		if route.Method == "GET" {
+			getRouteFound = true
+			break
+		}
+	}
+	assert.True(t, getRouteFound, "GET route should be registered")
+}
+
+func TestHealthResponse_Structs(t *testing.T) {
+	t.Run("HealthResponse struct initialization", func(t *testing.T) {
+		response := HealthResponse{
+			Success:   true,
+			Message:   "test message",
+			Timestamp: "2023-01-01T00:00:00Z",
+			Data: HealthData{
+				Status:  "healthy",
+				Version: "1.0.0",
+				Uptime:  "1h0m0s",
+				Components: map[string]string{
+					"database": "healthy",
+					"cache":    "healthy",
+				},
+			},
+		}
+
+		assert.True(t, response.Success)
+		assert.Equal(t, "test message", response.Message)
+		assert.Equal(t, "2023-01-01T00:00:00Z", response.Timestamp)
+		assert.Equal(t, "healthy", response.Data.Status)
+		assert.Equal(t, "1.0.0", response.Data.Version)
+		assert.Equal(t, "1h0m0s", response.Data.Uptime)
+		assert.Equal(t, "healthy", response.Data.Components["database"])
+		assert.Equal(t, "healthy", response.Data.Components["cache"])
+	})
+
+	t.Run("HealthData struct initialization", func(t *testing.T) {
+		data := HealthData{
+			Status:  "degraded",
+			Version: "2.0.0",
+			Uptime:  "2h30m15s",
+			Components: map[string]string{
+				"database": "healthy",
+				"cache":    "unavailable",
+			},
+		}
+
+		assert.Equal(t, "degraded", data.Status)
+		assert.Equal(t, "2.0.0", data.Version)
+		assert.Equal(t, "2h30m15s", data.Uptime)
+		assert.Equal(t, "healthy", data.Components["database"])
+		assert.Equal(t, "unavailable", data.Components["cache"])
 	})
 }
