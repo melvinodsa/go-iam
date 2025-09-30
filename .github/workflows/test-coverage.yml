@@ -13,13 +13,13 @@ jobs:
 
     services:
       mongo:
-        image: mongo:7.0
+        image: mongo:6.0
         ports:
           - 27017:27017
         env:
           MONGO_INITDB_ROOT_USERNAME: test
           MONGO_INITDB_ROOT_PASSWORD: test
-        options: --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --health-cmd "mongo --eval 'db.adminCommand(\"ping\")'" --health-interval 10s --health-timeout 5s --health-retries 5
 
 
     steps:
