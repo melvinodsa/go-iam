@@ -13,9 +13,10 @@ jobs:
 
     services:
       mongo:
-        image: mongo:7.0
+        image: mongo:6.0
         ports:
           - 27017:27017
+
 
     steps:
       - uses: actions/checkout@v4
@@ -36,9 +37,13 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Wait for MongoDB
+        run: sleep 300
+
       - name: Run tests with coverage
         run: |
-          export DB_HOST=mongodb://mongo:27017
+          export DB_HOST=mongodb://127.0.0.1:27017
+          export MONGODB_URL=mongodb://127.0.0.1:27017
           PROD_PACKAGES=$(go list ./... | grep -v 'utils/test')
           go test -v -race -coverpkg=$PROD_PACKAGES -coverprofile=coverage.out -covermode=atomic ./...
 
