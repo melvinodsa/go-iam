@@ -16,8 +16,7 @@ jobs:
         image: mongo:noble
         ports:
           - 27017:27017
-        options: >-
-          --no-healthcheck
+        options: --no-healthcheck
 
     steps:
       - uses: actions/checkout@v4
