@@ -793,6 +793,126 @@ func TestUpdateRoles(t *testing.T) {
 	})
 }
 
+func TestTransferOwnership(t *testing.T) {
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
+	cnf := config.NewAppConfig()
+	log.Infow("Loaded Configurations",
+		"host", cnf.Server.Host,
+		"port", cnf.Server.Port,
+		"env", cnf.Deployment.Environment,
+		"app_name", cnf.Deployment.Name,
+	)
+
+	t.Run("transfer ownership successfully", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("TransferOwnership", mock.Anything, "0001", "0002").Return(nil).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/0001/transfer-ownership/0002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 200, res.StatusCode, "Expected status code 200")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("transfer ownership user not found", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("TransferOwnership", mock.Anything, "0001", "0002").Return(sdk.ErrUserNotFound).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/0001/transfer-ownership/0002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 404, res.StatusCode, "Expected status code 404")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("transfer ownership error", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("TransferOwnership", mock.Anything, "0001", "0002").Return(errors.New("some error")).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/0001/transfer-ownership/0002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 500, res.StatusCode, "Expected status code 500")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+	})
+}
+
 func TestUpdatePolicies(t *testing.T) {
 	err := os.Setenv("JWT_SECRET", "abcd")
 	require.NoError(t, err)
