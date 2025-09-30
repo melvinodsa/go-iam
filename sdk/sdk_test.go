@@ -230,3 +230,31 @@ func TestAuthIdentity(t *testing.T) {
 		assert.Equal(t, "Updated Name", user.Name)
 	})
 }
+func TestAuthProvider_GetParam(t *testing.T) {
+	t.Run("returns value for existing key", func(t *testing.T) {
+		provider := AuthProvider{
+			Params: []AuthProviderParam{
+				{Key: "client_id", Value: "test-client-id"},
+				{Key: "client_secret", Value: "test-secret"},
+			},
+		}
+		assert.Equal(t, "test-client-id", provider.GetParam("client_id"))
+		assert.Equal(t, "test-secret", provider.GetParam("client_secret"))
+	})
+
+	t.Run("returns empty string for non-existing key", func(t *testing.T) {
+		provider := AuthProvider{
+			Params: []AuthProviderParam{
+				{Key: "client_id", Value: "test-client-id"},
+			},
+		}
+		assert.Equal(t, "", provider.GetParam("non-existing"))
+	})
+
+	t.Run("returns empty string for empty params", func(t *testing.T) {
+		provider := AuthProvider{
+			Params: []AuthProviderParam{},
+		}
+		assert.Equal(t, "", provider.GetParam("any-key"))
+	})
+}

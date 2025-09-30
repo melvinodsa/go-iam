@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/melvinodsa/go-iam/middlewares"
@@ -125,29 +126,6 @@ func TestService_GetAll_Success(t *testing.T) {
 	mockStore.AssertExpectations(t)
 }
 
-func TestService_GetAll_StoreError(t *testing.T) {
-	mockStore := &MockStore{}
-	mockProjectService := &services.MockProjectService{}
-	mockAuthService := &services.MockAuthProviderService{}
-	mockUserService := &services.MockUserService{}
-	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
-
-	ctx := createContextWithProjects([]string{"project1"})
-
-	queryParams := sdk.ClientQueryParams{}
-	expectedParams := sdk.ClientQueryParams{
-		ProjectIds: []string{"project1"},
-	}
-
-	mockStore.On("GetAll", ctx, expectedParams).Return(([]sdk.Client)(nil), errors.New("database error"))
-
-	result, err := service.GetAll(ctx, queryParams)
-
-	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "database error")
-	mockStore.AssertExpectations(t)
-}
 
 func TestService_Get_Success(t *testing.T) {
 	mockStore := &MockStore{}
@@ -1050,4 +1028,54 @@ func TestService_Create_UserCreateError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to create service account user")
 	mockStore.AssertExpectations(t)
 	mockUserService.AssertExpectations(t)
+}
+
+func TestService_GetAll_StoreError(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	ctx := createContextWithProjects([]string{"project1"})
+
+	queryParams := sdk.ClientQueryParams{}
+	expectedParams := sdk.ClientQueryParams{
+		ProjectIds: []string{"project1"},
+	}
+
+	mockStore.On("GetAll", ctx, expectedParams).Return(([]sdk.Client)(nil), errors.New("database error"))
+
+	result, err := service.GetAll(ctx, queryParams)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "database error")
+	mockStore.AssertExpectations(t)
+}
+
+func TestService_GetAll_NoProjectIdsOrGoIamClient(t *testing.T) {
+	mockStore := &MockStore{}
+	mockProjectService := &services.MockProjectService{}
+	mockAuthService := &services.MockAuthProviderService{}
+	mockUserService := &services.MockUserService{}
+	service := NewService(mockStore, mockProjectService, mockAuthService, mockUserService)
+
+	ctx := createContextWithProjects([]string{}) // No projects in context
+
+	queryParams := sdk.ClientQueryParams{
+		// No project ids and GoIamClient is false
+	}
+	expectedParams := sdk.ClientQueryParams{
+		ProjectIds: []string{}, // Empty from context
+	}
+
+	mockStore.On("GetAll", ctx, expectedParams).Return(([]sdk.Client)(nil), fmt.Errorf("no project ids provided or GoIamClient flag is not set"))
+
+	result, err := service.GetAll(ctx, queryParams)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "no project ids provided or GoIamClient flag is not set")
+	mockStore.AssertExpectations(t)
 }

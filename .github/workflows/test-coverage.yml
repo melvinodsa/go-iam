@@ -11,6 +11,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +38,10 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+          export DB_HOST=mongodb://mongo:27017
+          PROD_PACKAGES=$(go list ./... | grep -v 'utils/test')
+          go test -v -race -coverpkg=$PROD_PACKAGES -coverprofile=coverage.out -covermode=atomic ./...
+
 
       - name: Generate coverage report
         run: go tool cover -html=coverage.out -o coverage.html

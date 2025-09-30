@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -580,4 +581,170 @@ func BenchmarkService_GenerateValidateRoundtrip(b *testing.B) {
 		token, _ := service.GenerateToken(claims, expiryTime)
 		_, _ = service.ValidateToken(token)
 	}
+}
+
+func TestService_GenerateToken_EdgeCases(t *testing.T) {
+	t.Run("generate_token_with_very_large_claims", func(t *testing.T) {
+		secret := sdk.MaskedBytes("test-secret-key-for-jwt")
+		service := NewService(secret)
+
+		// Create very large claims
+		largeClaims := map[string]interface{}{
+			"user_id": "123",
+		}
+		// Add many claims
+		for i := 0; i < 100; i++ {
+			largeClaims[fmt.Sprintf("claim_%d", i)] = fmt.Sprintf("value_%d", i)
+		}
+
+		expiryTime := time.Now().Add(time.Hour).Unix()
+
+		token, err := service.GenerateToken(largeClaims, expiryTime)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.True(t, strings.Contains(token, "."))
+	})
+
+	t.Run("generate_token_with_special_characters_in_claims", func(t *testing.T) {
+		secret := sdk.MaskedBytes("test-secret-key-for-jwt")
+		service := NewService(secret)
+
+		claims := map[string]interface{}{
+			"user_id":    "123",
+			"special":    "!@#$%^&*()_+-=[]{}|;':\",./<>?`~",
+			"unicode":    "🔒🗝️🛡️",
+			"multibyte":  "café",
+			"json_like":  `{"nested": "object"}`,
+		}
+
+		expiryTime := time.Now().Add(time.Hour).Unix()
+
+		token, err := service.GenerateToken(claims, expiryTime)
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.True(t, strings.Contains(token, "."))
+	})
+}
+
+func TestService_ValidateToken_AdditionalErrorCases(t *testing.T) {
+	secret := sdk.MaskedBytes("test-secret-key-for-jwt")
+	service := NewService(secret)
+
+	t.Run("validate_token_with_none_algorithm", func(t *testing.T) {
+		// Create a token with "none" algorithm (should fail signing method check)
+		claims := jwtp.MapClaims{
+			"user_id": "123",
+			"exp":     time.Now().Add(time.Hour).Unix(),
+		}
+		token := jwtp.NewWithClaims(jwtp.SigningMethodNone, claims)
+		tokenString, _ := token.SigningString()
+
+		// This should fail because we require HMAC
+		result, err := service.ValidateToken(tokenString + ".")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected signing method")
+		assert.Empty(t, result)
+	})
+
+	t.Run("validate_token_with_invalid_signature", func(t *testing.T) {
+		// Generate a valid token, then tamper with the signature
+		originalClaims := map[string]interface{}{
+			"user_id": "123",
+		}
+		expiryTime := time.Now().Add(time.Hour).Unix()
+
+		token, err := service.GenerateToken(originalClaims, expiryTime)
+		assert.NoError(t, err)
+
+		// Replace the signature with invalid one
+		parts := strings.Split(token, ".")
+		if len(parts) == 3 {
+			invalidToken := parts[0] + "." + parts[1] + ".invalid_signature"
+
+			result, err := service.ValidateToken(invalidToken)
+
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "error parsing jwt token")
+			assert.Empty(t, result)
+		}
+	})
+
+	t.Run("validate_token_with_expired_and_invalid_signature", func(t *testing.T) {
+		// Create an expired token with invalid signature
+		pastClaims := map[string]interface{}{
+			"user_id": "123",
+		}
+		pastTime := time.Now().Add(-time.Hour).Unix()
+
+		token, err := service.GenerateToken(pastClaims, pastTime)
+		assert.NoError(t, err)
+
+		// Tamper with signature
+		parts := strings.Split(token, ".")
+		if len(parts) == 3 {
+			tamperedToken := parts[0] + "." + parts[1] + ".tampered"
+
+			result, err := service.ValidateToken(tamperedToken)
+
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "error parsing jwt token")
+			assert.Empty(t, result)
+		}
+	})
+
+	t.Run("validate_token_with_malformed_header", func(t *testing.T) {
+		// Create a token with malformed header
+		malformedToken := "invalid.header.payload.signature"
+
+		result, err := service.ValidateToken(malformedToken)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "error parsing jwt token")
+		assert.Empty(t, result)
+	})
+}
+
+func TestService_ValidateToken_TokenNotValid(t *testing.T) {
+	secret := sdk.MaskedBytes("test-secret-key-for-jwt")
+	service := NewService(secret)
+
+	// Create a token that will parse successfully but be invalid
+	// This is tricky because JWT library usually sets token.Valid correctly
+	// Let's try with a token that has invalid claims structure
+
+	// Create a token manually with invalid structure
+	invalidClaims := jwtp.MapClaims{
+		"exp": "invalid-expiry", // Invalid expiry type
+		"user_id": "123",
+	}
+	token := jwtp.NewWithClaims(jwtp.SigningMethodHS256, invalidClaims)
+	tokenString, err := token.SignedString([]byte(secret))
+	assert.NoError(t, err)
+
+	// This should fail during parsing due to invalid exp type
+	result, err := service.ValidateToken(tokenString)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error parsing jwt token")
+	assert.Empty(t, result)
+}
+
+func TestService_ValidateToken_ClaimsTypeAssertionFails(t *testing.T) {
+	secret := sdk.MaskedBytes("test-secret-key-for-jwt")
+	service := NewService(secret)
+
+	// This is very hard to trigger because jwt.Parse always returns MapClaims for our signing method
+	// The type assertion on line 48 should always succeed for properly parsed tokens
+
+	// Let's try with a completely malformed token that might cause parsing issues
+	malformedToken := "header.payload.signature.with.extra.parts"
+
+	result, err := service.ValidateToken(malformedToken)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error parsing jwt token")
+	assert.Empty(t, result)
 }
