@@ -37,19 +37,12 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Install mongosh
-        run: |
-          curl -sSL https://downloads.mongodb.com/compass/mongosh-2.5.8-linux-x64.tgz -o mongosh.tgz
-          tar -xzf mongosh.tgz
-          sudo mv mongosh-*/bin/mongosh /usr/local/bin/mongosh
-          mongosh --version
-
       - name: Wait for MongoDB to be ready
         run: |
           for i in {1..30}; do
-            mongosh --host mongo --eval "db.adminCommand('ping')" && break
+            mongosh --host 127.0.0.1 --port 27017 --eval "db.adminCommand('ping')" && break
             echo "Waiting for MongoDB..."
-            sleep 4
+            sleep 2
             if [ $i -eq 30 ]; then
               echo "MongoDB did not start in time"
               exit 1
