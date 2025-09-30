@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	jwtp "github.com/golang-jwt/jwt/v4"
 	"github.com/melvinodsa/go-iam/sdk"
 	"github.com/stretchr/testify/assert"
 )
@@ -297,6 +298,24 @@ func TestService_ValidateToken(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "error parsing jwt token")
+		assert.Empty(t, claims)
+	})
+
+	t.Run("validate_token_with_wrong_signing_method", func(t *testing.T) {
+		// Create a token with RS256 method but validate with HS256 secret
+		// This will fail the signing method check
+		wrongMethodClaims := jwtp.MapClaims{
+			"user_id": "123",
+			"exp":     time.Now().Add(time.Hour).Unix(),
+		}
+		wrongMethodToken := jwtp.NewWithClaims(jwtp.SigningMethodRS256, wrongMethodClaims)
+		// Don't sign it properly, just encode the header and payload
+		wrongTokenString, _ := wrongMethodToken.SigningString()
+
+		claims, err := service.ValidateToken(wrongTokenString + ".invalidsignature")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected signing method")
 		assert.Empty(t, claims)
 	})
 }
