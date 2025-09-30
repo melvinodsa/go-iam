@@ -13,7 +13,7 @@ jobs:
 
     services:
       mongo:
-        image: mongo:7.0
+        image: mongo:noble
         ports:
           - 27017:27017
         options: >-
