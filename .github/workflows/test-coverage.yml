@@ -16,6 +16,11 @@ jobs:
         image: mongo:7.0
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongo --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +40,14 @@ jobs:
 
       - name: Install dependencies
         run: go mod download
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          for i in {1..30}; do
+            mongo --host mongo --eval "db.adminCommand('ping')" && break
+            echo "Waiting for MongoDB..."
+            sleep 2
+          done
 
       - name: Run tests with coverage
         run: |
