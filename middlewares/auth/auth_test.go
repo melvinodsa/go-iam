@@ -126,7 +126,7 @@ func TestMiddlewares_User_Success(t *testing.T) {
 	app, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
 	testUser := createTestUser()
-	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
+	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token", mock.Anything).Return(testUser, nil)
 
 	// Create a test route
 	app.Get("/test", middlewares.User, func(c *fiber.Ctx) error {
@@ -167,7 +167,7 @@ func TestMiddlewares_User_NoAuthClient(t *testing.T) {
 func TestMiddlewares_User_AuthError(t *testing.T) {
 	app, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
-	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token").Return(nil, errors.New("invalid token"))
+	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token", mock.Anything).Return(nil, errors.New("invalid token"))
 
 	app.Get("/test", middlewares.User, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "success"})
@@ -188,7 +188,7 @@ func TestMiddlewares_DashboardUser_Success(t *testing.T) {
 	app, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
 	testUser := createTestUser()
-	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
+	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token", mock.Anything).Return(testUser, nil)
 
 	app.Get("/dashboard", middlewares.DashboardUser, func(c *fiber.Ctx) error {
 		user := c.Context().UserValue(sdk.UserTypeVal).(*sdk.User)
@@ -225,7 +225,7 @@ func TestMiddlewares_DashboardUser_NoAuthClient(t *testing.T) {
 func TestMiddlewares_DashboardUser_AuthError(t *testing.T) {
 	app, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
-	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token").Return(nil, errors.New("invalid token"))
+	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token", mock.Anything).Return(nil, errors.New("invalid token"))
 
 	app.Get("/dashboard", middlewares.DashboardUser, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "success"})
@@ -246,7 +246,7 @@ func TestMiddlewares_GetUser_Success(t *testing.T) {
 	_, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
 	testUser := createTestUser()
-	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
+	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token", mock.Anything).Return(testUser, nil)
 
 	// Test GetUser indirectly through middleware since direct testing requires internal context
 	app := fiber.New()
@@ -333,7 +333,7 @@ func TestMiddlewares_GetUser_InvalidAuthHeader(t *testing.T) {
 func TestMiddlewares_GetUser_AuthServiceError(t *testing.T) {
 	_, mockAuthSvc, mockClientSvc, middlewares := setupTestAppWithAuthClient()
 
-	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token").Return(nil, errors.New("token expired"))
+	mockAuthSvc.On("GetIdentity", mock.Anything, "invalid-token", mock.Anything).Return(nil, errors.New("token expired"))
 
 	app := fiber.New()
 	app.Get("/test", func(c *fiber.Ctx) error {
@@ -396,7 +396,7 @@ func BenchmarkMiddlewares_GetUser(b *testing.B) {
 	_, mockAuthSvc, _, middlewares := setupTestAppWithAuthClient()
 
 	testUser := createTestUser()
-	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
+	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token", mock.Anything).Return(testUser, nil)
 
 	app := fiber.New()
 	app.Get("/test", func(c *fiber.Ctx) error {
@@ -423,7 +423,7 @@ func BenchmarkMiddlewares_User(b *testing.B) {
 	app, mockAuthSvc, _, middlewares := setupTestAppWithAuthClient()
 
 	testUser := createTestUser()
-	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token").Return(testUser, nil)
+	mockAuthSvc.On("GetIdentity", mock.Anything, "valid-token", mock.Anything).Return(testUser, nil)
 
 	app.Get("/test", middlewares.User, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "success"})
