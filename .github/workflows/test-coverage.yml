@@ -16,7 +16,7 @@ jobs:
         image: mongo:noble
         ports:
           - 27017:27017
-        options: --no-healthcheck
+
 
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +43,10 @@ jobs:
             mongo --host mongo --eval "db.adminCommand('ping')" && break
             echo "Waiting for MongoDB..."
             sleep 2
+              if [ $i -eq 30 ]; then
+              echo "MongoDB did not start in time"
+              exit 1
+            fi
           done
 
       - name: Run tests with coverage
