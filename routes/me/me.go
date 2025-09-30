@@ -24,6 +24,14 @@ func MeRoute(router fiber.Router, basePath string) {
 			Description: "User fetched successfully",
 			Content:     new(sdk.UserResponse),
 		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "force_fetch",
+				In:          "query",
+				Description: "Force fetch user information",
+				Required:    false,
+			},
+		},
 		Tags:                 routeTags,
 		ProjectIDNotRequired: true,
 	})
@@ -66,6 +74,14 @@ func DashboardMeRoute(router fiber.Router, basePath string, prv *providers.Provi
 			Description: "User fetched successfully",
 			Content:     new(sdk.DashboardUserResponse),
 		},
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "force_fetch",
+				In:          "query",
+				Description: "Force fetch user information",
+				Required:    false,
+			},
+		},
 		Tags:                 routeTags,
 		ProjectIDNotRequired: true,
 	})
@@ -81,6 +97,7 @@ func DashboardMe(c *fiber.Ctx) error {
 	// get access token from auth bearer token
 	user := middlewares.GetUser(c.Context())
 	log.Debug("user fetched successfully")
+	res.Success = true
 	res.Message = "User fetched successfully"
 	res.Data.Setup.ClientAdded = true
 	res.Data.User = user

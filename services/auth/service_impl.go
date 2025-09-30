@@ -168,7 +168,7 @@ func (s service) ClientCallback(ctx context.Context, code, codeChallenge, client
 
 }
 
-func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User, error) {
+func (s service) GetIdentity(ctx context.Context, accessToken string, forceFetch bool) (*sdk.User, error) {
 	/*
 	 * get id from jwt access token
 	 * get the access token from cache
@@ -183,10 +183,13 @@ func (s service) GetIdentity(ctx context.Context, accessToken string) (*sdk.User
 		return nil, fmt.Errorf("error getting the access token id from claims")
 	}
 
-	usr, err := s.getUserFromCache(ctx, accessToken)
-	if err == nil && usr != nil {
-		log.Debugf("fetched user records from cache - %s", usr.Id)
-		return usr, nil
+	var usr *sdk.User
+	if !forceFetch {
+		usr, err = s.getUserFromCache(ctx, accessToken)
+		if err == nil && usr != nil {
+			log.Debugf("fetched user records from cache - %s", usr.Id)
+			return usr, nil
+		}
 	}
 
 	token, err := s.getAccessTokenFromCache(ctx, accessTokenId)

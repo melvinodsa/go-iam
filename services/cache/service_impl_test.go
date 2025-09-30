@@ -21,6 +21,43 @@ func TestNewRedisService(t *testing.T) {
 	assert.NotNil(t, redisService.client)
 }
 
+func TestRedisService_Methods(t *testing.T) {
+	host := "localhost:6379"
+	password := sdk.MaskedBytes("")
+	service := NewRedisService(host, password)
+
+	ctx := context.Background()
+	key := "test-redis-key"
+	value := "test-redis-value"
+	ttl := time.Hour
+
+	t.Run("Set_method", func(t *testing.T) {
+		err := service.Set(ctx, key, value, ttl)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Get_method", func(t *testing.T) {
+		result, err := service.Get(ctx, key)
+		assert.NoError(t, err)
+		assert.Equal(t, value, result)
+	})
+
+	t.Run("Delete_method", func(t *testing.T) {
+		err := service.Delete(ctx, key)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Expire_method", func(t *testing.T) {
+		// Set first
+		err := service.Set(ctx, key, value, ttl)
+		assert.NoError(t, err)
+
+		// Then expire
+		err = service.Expire(ctx, key, ttl)
+		assert.NoError(t, err)
+	})
+}
+
 func TestRedisService_WithMockService(t *testing.T) {
 	// Use the existing mock service for comprehensive testing
 	mockService := NewMockService()
