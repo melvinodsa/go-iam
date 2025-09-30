@@ -42,7 +42,7 @@ jobs:
           for i in {1..30}; do
             mongosh --host 127.0.0.1 --port 27017 --eval "db.adminCommand('ping')" && break
             echo "Waiting for MongoDB..."
-            sleep 2
+            sleep 5
             if [ $i -eq 30 ]; then
               echo "MongoDB did not start in time"
               exit 1
