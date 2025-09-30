@@ -16,9 +16,6 @@ jobs:
         image: mongo:6.0
         ports:
           - 27017:27017
-        env:
-          MONGO_INITDB_ROOT_USERNAME: test
-          MONGO_INITDB_ROOT_PASSWORD: test
 
 
     steps:
@@ -45,8 +42,8 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          export DB_HOST=mongodb://test:test@mongo:27017
-          export MONGODB_URL=mongodb://test:test@mongo:27017
+          export DB_HOST=mongodb://127.0.0.1:27017
+          export MONGODB_URL=mongodb://127.0.0.1:27017
           PROD_PACKAGES=$(go list ./... | grep -v 'utils/test')
           go test -v -race -coverpkg=$PROD_PACKAGES -coverprofile=coverage.out -covermode=atomic ./...
 
