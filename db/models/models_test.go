@@ -125,6 +125,19 @@ func TestMigrationModel(t *testing.T) {
 	})
 }
 
+func TestRoleMapModel(t *testing.T) {
+	t.Run("Name returns correct collection name", func(t *testing.T) {
+		m := GetRoleMap()
+		assert.Equal(t, "roleMap", m.Name())
+	})
+
+	t.Run("GetRoleMap returns correct field keys", func(t *testing.T) {
+		m := GetRoleMap()
+		assert.Equal(t, "role_id", m.RoleIdKey)
+		assert.Equal(t, "user_id", m.UserIdKey)
+	})
+}
+
 func TestAllModelsDbName(t *testing.T) {
 	t.Run("All models return correct database name", func(t *testing.T) {
 		models := []interface{ DbName() string }{
