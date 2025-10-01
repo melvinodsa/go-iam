@@ -3,6 +3,7 @@ package providers
 import (
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/services/auth"
+	"github.com/melvinodsa/go-iam/services/auth/syncuser"
 	"github.com/melvinodsa/go-iam/services/authprovider"
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/services/client"
@@ -24,6 +25,7 @@ type Service struct {
 	Projects      project.Service      // Project management service
 	Clients       client.Service       // OAuth2/OIDC client management service
 	AuthProviders authprovider.Service // Authentication provider management service
+	AuthSync      syncuser.Service     // User synchronization service
 	Auth          auth.Service         // Authentication and token validation service
 	Resources     resource.Service     // Resource management service
 	User          user.Service         // User management and authorization service
@@ -76,6 +78,7 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 	apSvc := authprovider.NewService(apStr, psvc)
 	csvc := client.NewService(cstr, psvc, apSvc, userSvc)
 	authSvc := auth.NewService(apSvc, csvc, cache, jwtSvc, enc, userSvc, tokenTTL, refetchTTL)
+	authSyncSvc := syncuser.NewService(authSvc)
 	polstr := policy.NewStore()
 	polSvc := policy.NewService(polstr)
 
@@ -88,5 +91,6 @@ func NewServices(db db.DB, cache cache.Service, enc encrypt.Service, jwtSvc jwt.
 		Resources:     rsvc,
 		Role:          roleSvc,
 		Policy:        polSvc,
+		AuthSync:      authSyncSvc,
 	}
 }

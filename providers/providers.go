@@ -93,6 +93,9 @@ func InjectDefaultProviders(cnf config.AppConfig) (*Provider, error) {
 		AuthClient: authClient,
 	}
 
+	// subscribe to user update events
+	svcs.User.Subscribe(goiamuniverse.EventUserUpdated, svcs.AuthSync)
+
 	// subscribe to client events for checking auth client
 	svcs.Clients.Subscribe(goiamuniverse.EventClientCreated, pvd)
 	svcs.Clients.Subscribe(goiamuniverse.EventClientUpdated, pvd)

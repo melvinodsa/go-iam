@@ -7,6 +7,7 @@ const (
 	EventResourceDeleted = Event(Resource) + ":" + Deleted
 
 	EventUserCreated = Event(User) + ":" + Created
+	EventUserUpdated = Event(User) + ":" + Updated
 
 	EventClientCreated = Event(Client) + ":" + Created
 	EventClientUpdated = Event(Client) + ":" + Updated
