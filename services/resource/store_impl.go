@@ -102,6 +102,7 @@ func (s store) Create(ctx context.Context, resource *sdk.Resource) (string, erro
 	resource.ID = id
 	t := time.Now()
 	resource.CreatedAt = &t
+	resource.Enabled = true
 	d := fromSdkToModel(*resource)
 	md := models.GetResourceModel()
 	_, err := s.db.InsertOne(ctx, md, d)
