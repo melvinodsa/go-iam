@@ -47,6 +47,7 @@ func (s *service) fetchAndUpdateUsersWithRole(ctx context.Context, role sdk.Role
 		if err := s.updateUsersWithRole(ctx, role, users.Users); err != nil {
 			return err
 		}
+		log.Infow("successfully updated users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
 		page++
 	}
 	return nil
