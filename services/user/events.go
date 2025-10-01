@@ -40,11 +40,15 @@ func (s *service) fetchAndUpdateUsersWithRole(ctx context.Context, role sdk.Role
 			Skip:  int64((page - 1) * limit),
 			Limit: int64(limit),
 		})
-		log.Infow("fetched users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
+		if users == nil || len(users.Users) == 0 {
+			log.Infow("fetched users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", 0, "page", page, "limit", limit)
+		} else if len(users.Users) > 0 {
+			log.Infow("fetched users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
+		}
 		if err != nil {
 			return err
 		}
-		if len(users.Users) == 0 {
+		if users == nil || len(users.Users) == 0 {
 			break
 		}
 		if err := s.updateUsersWithRole(ctx, role, users.Users); err != nil {
