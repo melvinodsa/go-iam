@@ -20,6 +20,7 @@ func (s *service) HandleEvent(e utils.Event[sdk.Role]) {
 }
 
 func (s *service) handleRoleUpdate(e utils.Event[sdk.Role]) {
+	log.Info("handling role update event for users")
 	err := s.fetchAndUpdateUsersWithRole(e.Context(), e.Payload())
 	if err != nil {
 		log.Errorw("error fetching and updating users with role", "error", err)
@@ -36,6 +37,7 @@ func (s *service) fetchAndUpdateUsersWithRole(ctx context.Context, role sdk.Role
 			Skip:   int64((page - 1) * limit),
 			Limit:  int64(limit),
 		})
+		log.Infow("fetched users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
 		if err != nil {
 			return err
 		}
@@ -45,6 +47,7 @@ func (s *service) fetchAndUpdateUsersWithRole(ctx context.Context, role sdk.Role
 		if err := s.updateUsersWithRole(ctx, role, users.Users); err != nil {
 			return err
 		}
+		log.Infow("successfully updated users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
 		page++
 	}
 	return nil
