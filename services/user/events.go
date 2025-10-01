@@ -34,8 +34,11 @@ func (s *service) fetchAndUpdateUsersWithRole(ctx context.Context, role sdk.Role
 	for {
 		users, err := s.store.GetAll(ctx, sdk.UserQuery{
 			RoleId: role.Id,
-			Skip:   int64((page - 1) * limit),
-			Limit:  int64(limit),
+			ProjectIds: []string{
+				role.ProjectId,
+			},
+			Skip:  int64((page - 1) * limit),
+			Limit: int64(limit),
 		})
 		log.Infow("fetched users with role", "role_id", role.Id, "role_name", role.Name, "no_of_users", len(users.Users), "page", page, "limit", limit)
 		if err != nil {
