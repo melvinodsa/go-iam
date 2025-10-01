@@ -1,20 +1,15 @@
 package server
 
 import (
-	"os"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/melvinodsa/go-iam/config"
 	"github.com/melvinodsa/go-iam/providers"
 	"github.com/melvinodsa/go-iam/routes"
-	"github.com/stretchr/testify/require"
 )
 
 func SetupServer(app *fiber.App) *config.AppConfig {
-	err := os.Setenv("JWT_SECRET", "abcd")
-	require.NoError(nil, err)
 	cnf := config.NewAppConfig()
 	log.Infow("Loaded Configurations",
 		"host", cnf.Server.Host,
