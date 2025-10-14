@@ -16,6 +16,10 @@ jobs:
         image: mongo:7.0
         ports:
           - 27017:27017
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v4
@@ -39,8 +43,9 @@ jobs:
       - name: Run tests with coverage
         run: |
           export DB_HOST=mongodb://mongo:27017
-          PROD_PACKAGES=$(go list ./... | grep -v 'utils/test')
-          go test -v -race -coverpkg=$PROD_PACKAGES -coverprofile=coverage.out -covermode=atomic ./...
+          export MONGODB_URL=mongodb://mongo:27017
+          CP=$(go list ./... | grep -v 'utils/test' | paste -sd, -)
+          go test -v -race -coverpkg="$CP" -coverprofile=coverage.out -covermode=atomic ./...
 
 
       - name: Generate coverage report
@@ -50,11 +55,11 @@ jobs:
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Current coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "❌ Coverage ${COVERAGE}% is below the required 80% threshold"
+          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below the required 90% threshold"
             exit 1
           else
-            echo "✅ Coverage ${COVERAGE}% meets the required 80% threshold"
+            echo "✅ Coverage ${COVERAGE}% meets the required 90% threshold"
           fi
 
       - name: Upload coverage reports to Codecov
