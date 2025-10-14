@@ -562,7 +562,7 @@ func TestGetIdentity_APIError(t *testing.T) {
 	// Create a mock server that returns an error status
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"message": "Internal Server Error"}`))
+		_, _ = w.Write([]byte(`{"message": "Internal Server Error"}`))
 	}))
 	defer mockServer.Close()
 
@@ -623,7 +623,7 @@ func TestGetIdentity_InvalidJSON(t *testing.T) {
 	// Create a mock server that returns invalid JSON
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`invalid json`))
+		_, _ = w.Write([]byte(`invalid json`))
 	}))
 	defer mockServer.Close()
 

@@ -51,7 +51,7 @@ func TestInjectDefaultProviders(t *testing.T) {
 
 		// Clean up
 		if provider.D != nil {
-			provider.D.Disconnect(context.Background())
+			_ = provider.D.Disconnect(context.Background())
 		}
 	})
 }

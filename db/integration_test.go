@@ -60,7 +60,7 @@ func TestMongoConnection_DatabaseOperations(t *testing.T) {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		conn.Disconnect(ctx)
+		_ = conn.Disconnect(ctx)
 	}()
 
 	ctx := context.Background()
