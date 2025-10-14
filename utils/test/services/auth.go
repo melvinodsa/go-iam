@@ -42,6 +42,11 @@ func (m *MockAuthService) GetIdentity(ctx context.Context, token string, forceFe
 	return args.Get(0).(*sdk.User), args.Error(1)
 }
 
+func (m *MockAuthService) SynchronizeIdentity(ctx context.Context, userId string) error {
+	args := m.Called(ctx, userId)
+	return args.Error(0)
+}
+
 func (m *MockAuthService) HandleEvent(event utils.Event[sdk.Client]) {
 	m.Called(event)
 }

@@ -142,5 +142,10 @@ func (m *Middlewares) GetUser(c *fiber.Ctx) (*sdk.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch identity: %w", err)
 	}
+	projectIdsCsv := c.Get("X-Project-Ids")
+	if len(projectIdsCsv) == 0 {
+		c.Context().SetUserValue(sdk.ProjectsTypeVal, []string{user.ProjectId})
+		return user, nil
+	}
 	return user, nil
 }
