@@ -11,16 +11,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mongo:
-        image: mongo:7.0
-        ports:
-          - 27017:27017
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-
     steps:
       - uses: actions/checkout@v4
 
@@ -40,26 +30,10 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Wait for MongoDB
-        run: |
-          for i in {1..60}; do
-            (echo > /dev/tcp/127.0.0.1/27017) >/dev/null 2>&1 && echo "MongoDB is up" && break
-            echo "Waiting for MongoDB..."
-            sleep 1
-          done
 
-      - name: Wait for Redis
-        run: |
-          for i in {1..60}; do
-            (echo > /dev/tcp/127.0.0.1/6379) >/dev/null 2>&1 && echo "Redis is up" && break
-            echo "Waiting for Redis..."
-            sleep 1
-          done
 
       - name: Run tests with coverage
         run: |
-          export DB_HOST=mongodb://127.0.0.1:27017
-          export MONGODB_URL=mongodb://127.0.0.1:27017
           CP=$(go list ./... | grep -v 'utils/test' | paste -sd, -)
           go test -v -race -coverpkg="$CP" -coverprofile=coverage.out -covermode=atomic ./...
 
