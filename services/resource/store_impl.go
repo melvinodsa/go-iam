@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/melvinodsa/go-iam/db"
 	"github.com/melvinodsa/go-iam/db/models"
+	"github.com/melvinodsa/go-iam/middlewares"
 	"github.com/melvinodsa/go-iam/sdk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -102,6 +103,11 @@ func (s store) Create(ctx context.Context, resource *sdk.Resource) (string, erro
 	resource.ID = id
 	t := time.Now()
 	resource.CreatedAt = &t
+	resource.Enabled = true
+	projectIds := middlewares.GetProjects(ctx)
+	if resource.ProjectId == "" && len(projectIds) > 0 {
+		resource.ProjectId = projectIds[0]
+	}
 	d := fromSdkToModel(*resource)
 	md := models.GetResourceModel()
 	_, err := s.db.InsertOne(ctx, md, d)

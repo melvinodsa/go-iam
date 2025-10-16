@@ -117,6 +117,18 @@ func (s service) Redirect(ctx context.Context, code, state string) (*sdk.AuthRed
 	return &sdk.AuthRedirectResponse{RedirectUrl: redirectUrl}, nil
 }
 
+func (s service) SynchronizeIdentity(ctx context.Context, userId string) error {
+	accessToken, err := s.getAccessTokenForUserId(ctx, userId)
+	if err != nil {
+		return fmt.Errorf("error fetching access token for user %w", err)
+	}
+	_, err = s.GetIdentity(ctx, accessToken, true)
+	if err != nil {
+		return fmt.Errorf("error fetching identity for user %w", err)
+	}
+	return nil
+}
+
 func (s service) ClientCallback(ctx context.Context, code, codeChallenge, clientId, clientSecret string) (*sdk.AuthVerifyCodeResponse, error) {
 	/*
 	 * get the code from the cache
@@ -321,6 +333,7 @@ func (s service) cacheUserDetails(ctx context.Context, accessToken string, user 
 	 * encode the user to json
 	 * generate a new user id
 	 * save the user in cache
+	 * add a reverse mapping for user id against access token
 	 */
 	b := bytes.NewBuffer([]byte{})
 	err := json.NewEncoder(b).Encode(user)
@@ -335,7 +348,22 @@ func (s service) cacheUserDetails(ctx context.Context, accessToken string, user 
 	if err != nil {
 		return fmt.Errorf("error saving the user %w", err)
 	}
+	err = s.cacheSvc.Set(ctx, fmt.Sprintf("user-token-%s", user.Id), accessToken, time.Minute*time.Duration(s.refetchTTL))
+	if err != nil {
+		return fmt.Errorf("error saving the user reverse mapping %w", err)
+	}
 	return nil
+}
+
+func (s service) getAccessTokenForUserId(ctx context.Context, userId string) (string, error) {
+	/*
+	 * get the value from cache
+	 */
+	val, err := s.cacheSvc.Get(ctx, fmt.Sprintf("user-token-%s", userId))
+	if err != nil {
+		return "", fmt.Errorf("error fetching the value from cache %w", err)
+	}
+	return val, nil
 }
 
 func (s service) getUserFromCache(ctx context.Context, accessToken string) (*sdk.User, error) {

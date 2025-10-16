@@ -1546,6 +1546,7 @@ func TestGetIdentity(t *testing.T) {
 				// Cache user details
 				mockEncrypt.On("Encrypt", mock.Anything).Return("encrypted-user-data", nil)
 				mockCache.On("Set", ctx, "token-valid-token-full-flow", "encrypted-user-data", mock.Anything).Return(nil)
+				mockCache.On("Set", ctx, "user-token-user-123", "valid-token-full-flow", mock.Anything).Return(nil)
 			},
 			expectedUser: &sdk.User{
 				Id:        "user-123",
@@ -1644,6 +1645,7 @@ func TestGetIdentity(t *testing.T) {
 				// Cache user details
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-user-data", nil)
 				mockCache.On("Set", ctx, "token-valid-token-cache-decrypt-fail", "encrypted-user-data", mock.Anything).Return(nil)
+				mockCache.On("Set", ctx, "user-token-existing-user-456", "valid-token-cache-decrypt-fail", mock.Anything).Return(nil)
 			},
 			expectedUser: &sdk.User{
 				Id:        "existing-user-456",
@@ -1717,6 +1719,7 @@ func TestGetIdentity(t *testing.T) {
 				// Cache user details
 				mockEncrypt.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-user-data", nil)
 				mockCache.On("Set", ctx, "token-valid-token-cache-json-fail", "encrypted-user-data", mock.Anything).Return(nil)
+				mockCache.On("Set", ctx, "user-token-recovery-user-789", "valid-token-cache-json-fail", mock.Anything).Return(nil)
 			},
 			expectedUser: &sdk.User{
 				Id:        "recovery-user-789",

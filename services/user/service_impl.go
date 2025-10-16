@@ -37,7 +37,12 @@ func (s *service) Create(ctx context.Context, user *sdk.User) error {
 }
 
 func (s *service) Update(ctx context.Context, user *sdk.User) error {
-	return s.store.Update(ctx, user)
+	err := s.store.Update(ctx, user)
+	if err != nil {
+		return err
+	}
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *user, middlewares.GetMetadata(ctx)))
+	return nil
 }
 
 func (s *service) GetByEmail(ctx context.Context, email string, projectId string) (*sdk.User, error) {
@@ -84,6 +89,7 @@ func (s *service) AddRoleToUser(ctx context.Context, userId, roleId string) erro
 		return fmt.Errorf("failed to add role to user: %w", err)
 	}
 
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *user, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -117,6 +123,7 @@ func (s *service) RemoveRoleFromUser(ctx context.Context, userId, roleId string)
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *user, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -133,6 +140,8 @@ func (s *service) AddResourceToUser(ctx context.Context, userId string, request 
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
+
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *usr, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -149,6 +158,8 @@ func (s *service) AddPolicyToUser(ctx context.Context, userId string, policies m
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
+
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *usr, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -165,6 +176,7 @@ func (s *service) RemovePolicyFromUser(ctx context.Context, userId string, polic
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *usr, middlewares.GetMetadata(ctx)))
 	return nil
 }
 
@@ -219,6 +231,7 @@ func (s *service) TransferOwnership(ctx context.Context, userId, newOwnerId stri
 	if err != nil {
 		return fmt.Errorf("failed to update new owner: %w", err)
 	}
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *newOwner, middlewares.GetMetadata(ctx)))
 
 	// remove all roles, resources, policies from old user
 	user.Roles = make(map[string]sdk.UserRole)
@@ -230,6 +243,8 @@ func (s *service) TransferOwnership(ctx context.Context, userId, newOwnerId stri
 	if err != nil {
 		return fmt.Errorf("failed to update old user: %w", err)
 	}
+
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *user, middlewares.GetMetadata(ctx)))
 
 	return nil
 }

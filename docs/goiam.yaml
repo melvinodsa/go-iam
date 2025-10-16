@@ -985,6 +985,10 @@ paths:
     /me/v1/:
         get:
             description: Get current user information
+            parameters:
+                - description: Force fetch user information
+                  in: query
+                  name: force_fetch
             responses:
                 default:
                     content:
@@ -1084,6 +1088,10 @@ paths:
     /me/v1/dashboard:
         get:
             description: Get current user information for dashboard
+            parameters:
+                - description: Force fetch user information
+                  in: query
+                  name: force_fetch
             responses:
                 default:
                     content:
