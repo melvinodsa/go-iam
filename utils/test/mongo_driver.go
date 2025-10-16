@@ -203,6 +203,9 @@ func (m *MockMongoCollection) UpdateMany(ctx context.Context, filter interface{}
 
 func (m *MockMongoCollection) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult {
 	args := m.Called(ctx, filter, opts)
+	if args.Get(0) == nil {
+		return nil
+	}
 	return args.Get(0).(*mongo.SingleResult)
 }
 

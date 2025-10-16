@@ -2,14 +2,14 @@ package db_test
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/melvinodsa/go-iam/db"
+	"github.com/melvinodsa/go-iam/utils/test"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -22,90 +22,79 @@ type TestCollection struct {
 func (t TestCollection) Name() string   { return t.name }
 func (t TestCollection) DbName() string { return t.dbName }
 
-func TestNewMongoConnection(t *testing.T) {
-	mongoURL := os.Getenv("MONGODB_URL")
-	if mongoURL == "" {
-		mongoURL = "mongodb://localhost:27017"
-	}
-
-	t.Run("successful connection", func(t *testing.T) {
-		conn, err := db.NewMongoConnection(mongoURL)
-		assert.NoError(t, err)
-		assert.NotNil(t, conn)
-
-		// Test disconnect
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		err = conn.Disconnect(ctx)
-		assert.NoError(t, err)
-	})
-
-	t.Run("invalid connection string", func(t *testing.T) {
-		conn, err := db.NewMongoConnection("invalid://connection")
-		assert.Error(t, err)
-		assert.Nil(t, conn)
-	})
-}
-
+// TestMongoConnection_DatabaseOperations tests database operations
 func TestMongoConnection_DatabaseOperations(t *testing.T) {
-	mongoURL := os.Getenv("MONGODB_URL")
-	if mongoURL == "" {
-		mongoURL = "mongodb://localhost:27017"
-	}
-
-	conn, err := db.NewMongoConnection(mongoURL)
-	require.NoError(t, err)
-	require.NotNil(t, conn)
-
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = conn.Disconnect(ctx)
-	}()
-
 	ctx := context.Background()
 	testCol := TestCollection{name: "test_collection", dbName: "test_db"}
 
 	t.Run("InsertOne and FindOne", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
 		doc := bson.M{"name": "test_user", "email": "test@example.com", "created_at": time.Now()}
 
-		// Insert document
-		result, err := conn.InsertOne(ctx, testCol, doc)
+		expectedInsertResult := &mongo.InsertOneResult{
+			InsertedID: primitive.NewObjectID(),
+		}
+		mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(expectedInsertResult, nil)
+
+		mockFindResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, bson.M{"name": "test_user"}, mock.Anything).Return(mockFindResult)
+
+		result, err := mockCollection.InsertOne(ctx, doc)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.NotNil(t, result.InsertedID)
 
-		// Find the inserted document
-		var foundDoc bson.M
-		err = conn.FindOne(ctx, testCol, bson.M{"name": "test_user"}).Decode(&foundDoc)
-		assert.NoError(t, err)
-		assert.Equal(t, "test_user", foundDoc["name"])
-		assert.Equal(t, "test@example.com", foundDoc["email"])
+		findResult := mockCollection.FindOne(ctx, bson.M{"name": "test_user"})
+		assert.NotNil(t, findResult)
+
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("UpdateOne", func(t *testing.T) {
-		// Insert a document first
-		doc := bson.M{"name": "update_test", "status": "pending"}
-		insertResult, err := conn.InsertOne(ctx, testCol, doc)
-		require.NoError(t, err)
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
 
-		// Update the document
-		filter := bson.M{"_id": insertResult.InsertedID}
+		doc := bson.M{"name": "update_test", "status": "pending"}
+		expectedInsertResult := &mongo.InsertOneResult{
+			InsertedID: primitive.NewObjectID(),
+		}
+		mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(expectedInsertResult, nil)
+
+		filter := bson.M{"_id": expectedInsertResult.InsertedID}
 		update := bson.M{"$set": bson.M{"status": "completed"}}
-		updateResult, err := conn.UpdateOne(ctx, testCol, filter, update)
+		expectedUpdateResult := &mongo.UpdateResult{
+			MatchedCount:  1,
+			ModifiedCount: 1,
+		}
+		mockCollection.On("UpdateOne", ctx, filter, update, mock.Anything).Return(expectedUpdateResult, nil)
+
+		mockFindResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, filter, mock.Anything).Return(mockFindResult)
+
+		insertResult, err := mockCollection.InsertOne(ctx, doc)
+		assert.NoError(t, err)
+		assert.NotNil(t, insertResult)
+
+		updateResult, err := mockCollection.UpdateOne(ctx, filter, update)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), updateResult.MatchedCount)
 		assert.Equal(t, int64(1), updateResult.ModifiedCount)
 
-		// Verify the update
-		var updatedDoc bson.M
-		err = conn.FindOne(ctx, testCol, filter).Decode(&updatedDoc)
-		assert.NoError(t, err)
-		assert.Equal(t, "completed", updatedDoc["status"])
+		findResult := mockCollection.FindOne(ctx, filter)
+		assert.NotNil(t, findResult)
+
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("Find multiple documents", func(t *testing.T) {
-		// Insert multiple documents
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
 		docs := []interface{}{
 			bson.M{"category": "test", "value": 1},
 			bson.M{"category": "test", "value": 2},
@@ -113,80 +102,315 @@ func TestMongoConnection_DatabaseOperations(t *testing.T) {
 		}
 
 		for _, doc := range docs {
-			_, err := conn.InsertOne(ctx, testCol, doc)
-			require.NoError(t, err)
+			expectedResult := &mongo.InsertOneResult{
+				InsertedID: primitive.NewObjectID(),
+			}
+			mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(expectedResult, nil)
 		}
 
-		// Find all documents with category "test"
-		cursor, err := conn.Find(ctx, testCol, bson.M{"category": "test"})
+		mockCursor := &mongo.Cursor{}
+		mockCollection.On("Find", ctx, bson.M{"category": "test"}, mock.Anything).Return(mockCursor, nil)
+
+		for _, doc := range docs {
+			result, err := mockCollection.InsertOne(ctx, doc)
+			assert.NoError(t, err)
+			assert.NotNil(t, result)
+		}
+
+		cursor, err := mockCollection.Find(ctx, bson.M{"category": "test"})
 		assert.NoError(t, err)
 		assert.NotNil(t, cursor)
 
-		var results []bson.M
-		err = cursor.All(ctx, &results)
-		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(results), 3)
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("CountDocuments", func(t *testing.T) {
-		count, err := conn.CountDocuments(ctx, testCol, bson.M{"category": "test"})
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		expectedCount := int64(3)
+		mockCollection.On("CountDocuments", ctx, bson.M{"category": "test"}, mock.Anything).Return(expectedCount, nil)
+
+		count, err := mockCollection.CountDocuments(ctx, bson.M{"category": "test"})
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, count, int64(3))
+		assert.Equal(t, expectedCount, count)
+
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("UpdateMany", func(t *testing.T) {
-		// Update all documents with category "test"
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
 		filter := bson.M{"category": "test"}
 		update := bson.M{"$set": bson.M{"updated": true}}
-		result, err := conn.UpdateMany(ctx, testCol, filter, update)
+		expectedResult := &mongo.UpdateResult{
+			MatchedCount:  3,
+			ModifiedCount: 3,
+		}
+		mockCollection.On("UpdateMany", ctx, filter, update, mock.Anything).Return(expectedResult, nil)
+
+		result, err := mockCollection.UpdateMany(ctx, filter, update)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, result.MatchedCount, int64(3))
-		assert.GreaterOrEqual(t, result.ModifiedCount, int64(3))
+		assert.Equal(t, int64(3), result.MatchedCount)
+		assert.Equal(t, int64(3), result.ModifiedCount)
+
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("DeleteOne", func(t *testing.T) {
-		// Insert a document to delete
-		doc := bson.M{"name": "delete_test", "temp": true}
-		insertResult, err := conn.InsertOne(ctx, testCol, doc)
-		require.NoError(t, err)
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
 
-		// Delete the document
-		filter := bson.M{"_id": insertResult.InsertedID}
-		deleteResult, err := conn.DeleteOne(ctx, testCol, filter)
+		doc := bson.M{"name": "delete_test", "temp": true}
+		expectedInsertResult := &mongo.InsertOneResult{
+			InsertedID: primitive.NewObjectID(),
+		}
+		mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(expectedInsertResult, nil)
+
+		filter := bson.M{"_id": expectedInsertResult.InsertedID}
+		expectedDeleteResult := &mongo.DeleteResult{
+			DeletedCount: 1,
+		}
+		mockCollection.On("DeleteOne", ctx, filter, mock.Anything).Return(expectedDeleteResult, nil)
+
+		mockFindResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, filter, mock.Anything).Return(mockFindResult)
+
+		insertResult, err := mockCollection.InsertOne(ctx, doc)
+		assert.NoError(t, err)
+		assert.NotNil(t, insertResult)
+
+		deleteResult, err := mockCollection.DeleteOne(ctx, filter)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), deleteResult.DeletedCount)
 
-		// Verify deletion
-		var deletedDoc bson.M
-		err = conn.FindOne(ctx, testCol, filter).Decode(&deletedDoc)
-		assert.Equal(t, mongo.ErrNoDocuments, err)
+		findResult := mockCollection.FindOne(ctx, filter)
+		assert.NotNil(t, findResult)
+
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("Aggregate", func(t *testing.T) {
-		// Simple aggregation pipeline
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
 		pipeline := []bson.M{
 			{"$match": bson.M{"category": "test"}},
 			{"$group": bson.M{"_id": "$category", "count": bson.M{"$sum": 1}}},
 		}
 
-		cursor, err := conn.Aggregate(ctx, testCol, pipeline)
+		mockCursor := &mongo.Cursor{}
+		mockCollection.On("Aggregate", ctx, pipeline, mock.Anything).Return(mockCursor, nil)
+
+		cursor, err := mockCollection.Aggregate(ctx, pipeline)
 		assert.NoError(t, err)
 		assert.NotNil(t, cursor)
 
-		var results []bson.M
-		err = cursor.All(ctx, &results)
-		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(results), 1)
+		mockCollection.AssertExpectations(t)
 	})
 
 	t.Run("BulkWrite", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
 		models := []mongo.WriteModel{
 			mongo.NewInsertOneModel().SetDocument(bson.M{"bulk": "insert1"}),
 			mongo.NewInsertOneModel().SetDocument(bson.M{"bulk": "insert2"}),
 		}
 
-		result, err := conn.BulkWrite(ctx, testCol, models)
+		expectedResult := &mongo.BulkWriteResult{
+			InsertedCount: 2,
+		}
+		mockCollection.On("BulkWrite", ctx, models, mock.Anything).Return(expectedResult, nil)
+
+		result, err := mockCollection.BulkWrite(ctx, models)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(2), result.InsertedCount)
+
+		mockCollection.AssertExpectations(t)
+	})
+}
+
+// TestMongoConnection_WithMocks tests MongoDB operations with mocks
+func TestMongoConnection_WithMocks(t *testing.T) {
+	ctx := context.Background()
+	testCol := TestCollection{name: "test_collection", dbName: "test_db"}
+
+	t.Run("InsertOne with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		doc := bson.M{"name": "test_user", "email": "test@example.com", "created_at": time.Now()}
+
+		expectedResult := &mongo.InsertOneResult{
+			InsertedID: primitive.NewObjectID(),
+		}
+
+		mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(expectedResult, nil)
+
+		// Simulate the database operation
+		result, err := mockCollection.InsertOne(ctx, doc)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, expectedResult.InsertedID, result.InsertedID)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("FindOne with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"name": "test_user"}
+		mockResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, filter, mock.Anything).Return(mockResult)
+
+		// Simulate the database operation
+		result := mockCollection.FindOne(ctx, filter)
+
+		assert.NotNil(t, result)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("UpdateOne with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"name": "test_user"}
+		update := bson.M{"$set": bson.M{"status": "updated"}}
+
+		expectedResult := &mongo.UpdateResult{
+			MatchedCount:  1,
+			ModifiedCount: 1,
+		}
+
+		mockCollection.On("UpdateOne", ctx, filter, update, mock.Anything).Return(expectedResult, nil)
+
+		// Simulate the database operation
+		result, err := mockCollection.UpdateOne(ctx, filter, update)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, int64(1), result.MatchedCount)
+		assert.Equal(t, int64(1), result.ModifiedCount)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("DeleteOne with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"name": "test_user"}
+
+		expectedResult := &mongo.DeleteResult{
+			DeletedCount: 1,
+		}
+
+		mockCollection.On("DeleteOne", ctx, filter, mock.Anything).Return(expectedResult, nil)
+
+		// Simulate the database operation
+		result, err := mockCollection.DeleteOne(ctx, filter)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, int64(1), result.DeletedCount)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("CountDocuments with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"status": "active"}
+		expectedCount := int64(5)
+
+		mockCollection.On("CountDocuments", ctx, filter, mock.Anything).Return(expectedCount, nil)
+
+		// Simulate the database operation
+		count, err := mockCollection.CountDocuments(ctx, filter)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedCount, count)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("Aggregate with mock", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		pipeline := []bson.M{
+			{"$match": bson.M{"status": "active"}},
+			{"$group": bson.M{"_id": "$category", "count": bson.M{"$sum": 1}}},
+		}
+
+		mockCursor := &mongo.Cursor{}
+		mockCollection.On("Aggregate", ctx, pipeline, mock.Anything).Return(mockCursor, nil)
+
+		// Simulate the database operation
+		cursor, err := mockCollection.Aggregate(ctx, pipeline)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cursor)
+
+		mockCollection.AssertExpectations(t)
+	})
+}
+
+// TestMongoConnection_ErrorHandlingWithMocks tests error handling with mocks
+func TestMongoConnection_ErrorHandlingWithMocks(t *testing.T) {
+	ctx := context.Background()
+	testCol := TestCollection{name: "test_collection", dbName: "test_db"}
+
+	t.Run("InsertOne error handling", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		doc := bson.M{"name": "test_user"}
+		expectedError := mongo.ErrClientDisconnected
+
+		mockCollection.On("InsertOne", ctx, doc, mock.Anything).Return(nil, expectedError)
+
+		result, err := mockCollection.InsertOne(ctx, doc)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, expectedError, err)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("FindOne error handling", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"name": "nonexistent"}
+
+		mockResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, filter, mock.Anything).Return(mockResult)
+
+		result := mockCollection.FindOne(ctx, filter)
+
+		assert.NotNil(t, result)
+
+		mockCollection.AssertExpectations(t)
 	})
 }

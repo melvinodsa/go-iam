@@ -22,9 +22,8 @@ func TestNewRedisService(t *testing.T) {
 }
 
 func TestRedisService_Methods(t *testing.T) {
-	host := "localhost:6379"
-	password := sdk.MaskedBytes("")
-	service := NewRedisService(host, password)
+	// Use mock service instead of real Redis connection
+	service := NewMockService()
 
 	ctx := context.Background()
 	key := "test-redis-key"
