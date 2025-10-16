@@ -35,3 +35,42 @@ func (m *MockAuthProviderService) GetProvider(ctx context.Context, v sdk.AuthPro
 	args := m.Called(ctx, v)
 	return args.Get(0).(sdk.ServiceProvider), args.Error(1)
 }
+
+// MockServiceProvider implements sdk.ServiceProvider interface for testing
+type MockServiceProvider struct {
+	mock.Mock
+}
+
+func (m *MockServiceProvider) HasRefreshTokenFlow() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
+func (m *MockServiceProvider) GetAuthCodeUrl(state string) string {
+	args := m.Called(state)
+	return args.String(0)
+}
+
+func (m *MockServiceProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
+	args := m.Called(ctx, code)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sdk.AuthToken), args.Error(1)
+}
+
+func (m *MockServiceProvider) RefreshToken(refreshToken string) (*sdk.AuthToken, error) {
+	args := m.Called(refreshToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sdk.AuthToken), args.Error(1)
+}
+
+func (m *MockServiceProvider) GetIdentity(token string) ([]sdk.AuthIdentity, error) {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]sdk.AuthIdentity), args.Error(1)
+}
