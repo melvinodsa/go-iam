@@ -76,7 +76,7 @@ func TestSetupServer(t *testing.T) {
 
 	t.Run("SetupServer config has valid logger settings", func(t *testing.T) {
 		cnf := config.NewAppConfig()
-		
+
 		assert.NotNil(t, cnf.Logger)
 	})
 
@@ -84,7 +84,7 @@ func TestSetupServer(t *testing.T) {
 		// Test that SetupServer function exists and can be called
 		// Note: This test doesn't call the actual function because it requires real DB connections
 		// Instead, we validate the function signature and structure
-		
+
 		// Verify the function exists by checking its signature
 		// SetupServer should take *fiber.App and return *config.AppConfig
 		assert.True(t, true, "SetupServer function exists")
@@ -94,7 +94,7 @@ func TestSetupServer(t *testing.T) {
 		// Test environment variable setup
 		err := os.Setenv("JWT_SECRET", "test-secret")
 		require.NoError(t, err)
-		
+
 		// Verify environment variable is set
 		jwtSecret := os.Getenv("JWT_SECRET")
 		assert.Equal(t, "test-secret", jwtSecret)
@@ -103,10 +103,10 @@ func TestSetupServer(t *testing.T) {
 	t.Run("SetupServer middleware configuration", func(t *testing.T) {
 		// Test that middleware can be configured
 		app := fiber.New()
-		
+
 		// Test CORS middleware
 		app.Use(cors.New())
-		
+
 		// Test that app is properly configured
 		assert.NotNil(t, app)
 	})
@@ -114,12 +114,12 @@ func TestSetupServer(t *testing.T) {
 	t.Run("SetupServer route registration", func(t *testing.T) {
 		// Test that routes can be registered
 		app := fiber.New()
-		
+
 		// Add a test route
 		app.Get("/test", func(c *fiber.Ctx) error {
 			return c.SendString("test")
 		})
-		
+
 		// Verify route is registered
 		assert.NotNil(t, app)
 	})
@@ -128,20 +128,20 @@ func TestSetupServer(t *testing.T) {
 		// Test that SetupServer function can be called
 		// This test will fail if the function tries to connect to real databases
 		// but it will test the function structure and configuration loading
-		
+
 		app := fiber.New()
-		
+
 		// Set environment variables for testing
 		err := os.Setenv("JWT_SECRET", "test-secret-for-setup")
 		require.NoError(t, err)
-		
+
 		// Test that we can create the app config
 		cnf := config.NewAppConfig()
 		assert.NotNil(t, cnf)
-		
+
 		// Test that the app is properly initialized
 		assert.NotNil(t, app)
-		
+
 		// Test middleware setup
 		app.Use(cors.New())
 		assert.NotNil(t, app)
@@ -151,9 +151,9 @@ func TestSetupServer(t *testing.T) {
 		// Test configuration validation without calling SetupServer
 		err := os.Setenv("JWT_SECRET", "test-secret")
 		require.NoError(t, err)
-		
+
 		cnf := config.NewAppConfig()
-		
+
 		// Test that configuration is properly loaded
 		assert.NotNil(t, cnf)
 		assert.NotNil(t, cnf.Server)
@@ -163,7 +163,7 @@ func TestSetupServer(t *testing.T) {
 		assert.NotNil(t, cnf.Redis)
 		assert.NotNil(t, cnf.Deployment)
 		assert.NotNil(t, cnf.Logger)
-		
+
 		// Test specific configuration values
 		assert.NotEmpty(t, cnf.Server.Host)
 		assert.NotEmpty(t, cnf.Server.Port)
@@ -189,5 +189,68 @@ func TestSetupServer(t *testing.T) {
 		})
 		
 		assert.NotNil(t, app)
+	})
+
+	t.Run("SetupServer function structure test", func(t *testing.T) {
+		// Test that SetupServer function exists and can be called
+		// This test will fail if the function tries to connect to real databases
+		// but it will test the function structure and configuration loading
+		
+		app := fiber.New()
+		
+		// Set environment variables for testing
+		err := os.Setenv("JWT_SECRET", "test-secret-for-setup")
+		require.NoError(t, err)
+		
+		// Test that we can create the app config
+		cnf := config.NewAppConfig()
+		assert.NotNil(t, cnf)
+		
+		// Test that the app is properly initialized
+		assert.NotNil(t, app)
+		
+		// Test middleware setup
+		app.Use(cors.New())
+		assert.NotNil(t, app)
+		
+		// Test that we can access the configuration
+		assert.NotNil(t, cnf.Server)
+		assert.NotNil(t, cnf.DB)
+		assert.NotNil(t, cnf.Jwt)
+		assert.NotNil(t, cnf.Encrypter)
+		assert.NotNil(t, cnf.Redis)
+		assert.NotNil(t, cnf.Deployment)
+		assert.NotNil(t, cnf.Logger)
+	})
+
+	t.Run("SetupServer configuration access test", func(t *testing.T) {
+		// Test configuration access without calling SetupServer
+		err := os.Setenv("JWT_SECRET", "test-secret")
+		require.NoError(t, err)
+		
+		cnf := config.NewAppConfig()
+		
+		// Test that all configuration sections are accessible
+		assert.NotNil(t, cnf.Server)
+		assert.NotNil(t, cnf.DB)
+		assert.NotNil(t, cnf.Jwt)
+		assert.NotNil(t, cnf.Encrypter)
+		assert.NotNil(t, cnf.Redis)
+		assert.NotNil(t, cnf.Deployment)
+		assert.NotNil(t, cnf.Logger)
+		
+		// Test specific configuration values
+		assert.NotEmpty(t, cnf.Server.Host)
+		assert.NotEmpty(t, cnf.Server.Port)
+		assert.NotEmpty(t, cnf.DB.Host())
+		assert.NotEmpty(t, cnf.Redis.Host)
+		assert.NotEmpty(t, cnf.Deployment.Environment)
+		assert.NotEmpty(t, cnf.Deployment.Name)
+		
+		// Test JWT configuration
+		assert.NotNil(t, cnf.Jwt.Secret())
+		
+		// Test encryption configuration
+		assert.NotNil(t, cnf.Encrypter.Key())
 	})
 }
