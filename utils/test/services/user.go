@@ -30,6 +30,9 @@ func (m *MockUserService) GetByEmail(ctx context.Context, email string, projectI
 
 func (m *MockUserService) GetById(ctx context.Context, id string) (*sdk.User, error) {
 	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*sdk.User), args.Error(1)
 }
 

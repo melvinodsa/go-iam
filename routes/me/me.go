@@ -97,6 +97,7 @@ func DashboardMe(c *fiber.Ctx) error {
 	// get access token from auth bearer token
 	user := middlewares.GetUser(c.Context())
 	log.Debug("user fetched successfully")
+	res.Success = true
 	res.Message = "User fetched successfully"
 	res.Data.Setup.ClientAdded = true
 	res.Data.User = user
