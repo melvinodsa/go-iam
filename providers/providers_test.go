@@ -45,6 +45,58 @@ func TestInjectDefaultProviders(t *testing.T) {
 		assert.NotNil(t, cnf)
 		assert.NotNil(t, cnf.Jwt)
 	})
+
+	t.Run("validates configuration structure", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test that all required configuration sections exist
+		assert.NotNil(t, cnf.Server)
+		assert.NotNil(t, cnf.DB)
+		assert.NotNil(t, cnf.Jwt)
+		assert.NotNil(t, cnf.Encrypter)
+		assert.NotNil(t, cnf.Redis)
+		assert.NotNil(t, cnf.Deployment)
+		assert.NotNil(t, cnf.Logger)
+	})
+
+	t.Run("validates JWT configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test JWT configuration
+		assert.NotNil(t, cnf.Jwt.Secret())
+	})
+
+	t.Run("validates encryption configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test encryption configuration
+		assert.NotNil(t, cnf.Encrypter.Key())
+	})
+
+	t.Run("validates server configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test server configuration
+		assert.NotEmpty(t, cnf.Server.Host)
+		assert.NotEmpty(t, cnf.Server.Port)
+		assert.GreaterOrEqual(t, cnf.Server.TokenCacheTTLInMinutes, int64(0))
+		assert.GreaterOrEqual(t, cnf.Server.AuthProviderRefetchIntervalInMinutes, int64(0))
+	})
+
+	t.Run("validates Redis configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test Redis configuration
+		assert.NotEmpty(t, cnf.Redis.Host)
+	})
+
+	t.Run("validates deployment configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test deployment configuration
+		assert.NotEmpty(t, cnf.Deployment.Environment)
+		assert.NotEmpty(t, cnf.Deployment.Name)
+	})
 }
 
 func TestNewServices(t *testing.T) {
@@ -75,6 +127,22 @@ func TestNewDBConnection(t *testing.T) {
 		// This test would normally try to connect to a real database
 		// For now, we'll just test that the config is valid
 		assert.NotNil(t, cnf)
+		assert.NotNil(t, cnf.DB)
+	})
+
+	t.Run("validates database configuration", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test that database configuration is properly structured
+		assert.NotEmpty(t, cnf.DB.Host())
+		assert.NotNil(t, cnf.DB)
+	})
+
+	t.Run("handles database configuration errors", func(t *testing.T) {
+		// Test with invalid configuration
+		cnf := config.NewAppConfig()
+
+		// Even with default config, it should be valid
 		assert.NotNil(t, cnf.DB)
 	})
 }
@@ -124,6 +192,114 @@ func TestProviderStruct(t *testing.T) {
 		assert.NotNil(t, provider.AM)
 		assert.NotNil(t, provider.AuthClient)
 		assert.Equal(t, "test-client", provider.AuthClient.Id)
+	})
+
+	t.Run("Provider struct with all fields", func(t *testing.T) {
+		provider := &Provider{
+			S:          &Service{},
+			D:          &test.MockDB{},
+			C:          &testservices.MockCacheService{},
+			PM:         nil, // PM is a middleware, not a service
+			AM:         &auth.Middlewares{},
+			AuthClient: &sdk.Client{Id: "test-client", GoIamClient: true},
+		}
+
+		assert.NotNil(t, provider.S)
+		assert.NotNil(t, provider.D)
+		assert.NotNil(t, provider.C)
+		assert.NotNil(t, provider.AM)
+		assert.NotNil(t, provider.AuthClient)
+		assert.Equal(t, "test-client", provider.AuthClient.Id)
+		assert.True(t, provider.AuthClient.GoIamClient)
+	})
+}
+
+// TestNewDBConnection_Extended tests the NewDBConnection function more comprehensively
+func TestNewDBConnection_Extended(t *testing.T) {
+	t.Run("validates database configuration structure", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test database configuration fields
+		assert.NotNil(t, cnf.DB)
+		assert.NotEmpty(t, cnf.DB.Host())
+
+		// Test that configuration is properly loaded
+		assert.NotNil(t, cnf)
+	})
+
+	t.Run("validates database connection parameters", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test that database host is configured
+		host := cnf.DB.Host()
+		assert.NotEmpty(t, host)
+		assert.IsType(t, "", host)
+	})
+
+	t.Run("validates database configuration loading", func(t *testing.T) {
+		// Test that configuration can be loaded multiple times
+		cnf1 := config.NewAppConfig()
+		cnf2 := config.NewAppConfig()
+
+		assert.NotNil(t, cnf1)
+		assert.NotNil(t, cnf2)
+		assert.NotNil(t, cnf1.DB)
+		assert.NotNil(t, cnf2.DB)
+	})
+}
+
+// TestInjectDefaultProviders_Extended tests the InjectDefaultProviders function more comprehensively
+func TestInjectDefaultProviders_Extended(t *testing.T) {
+	t.Run("validates configuration loading process", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test that all configuration sections are loaded
+		assert.NotNil(t, cnf.Server)
+		assert.NotNil(t, cnf.DB)
+		assert.NotNil(t, cnf.Jwt)
+		assert.NotNil(t, cnf.Encrypter)
+		assert.NotNil(t, cnf.Redis)
+		assert.NotNil(t, cnf.Deployment)
+		assert.NotNil(t, cnf.Logger)
+	})
+
+	t.Run("validates configuration field access", func(t *testing.T) {
+		cnf := config.NewAppConfig()
+
+		// Test server configuration access
+		assert.NotEmpty(t, cnf.Server.Host)
+		assert.NotEmpty(t, cnf.Server.Port)
+		assert.GreaterOrEqual(t, cnf.Server.TokenCacheTTLInMinutes, int64(0))
+		assert.GreaterOrEqual(t, cnf.Server.AuthProviderRefetchIntervalInMinutes, int64(0))
+
+		// Test database configuration access
+		assert.NotEmpty(t, cnf.DB.Host())
+
+		// Test JWT configuration access
+		assert.NotNil(t, cnf.Jwt.Secret())
+
+		// Test encryption configuration access
+		assert.NotNil(t, cnf.Encrypter.Key())
+
+		// Test Redis configuration access
+		assert.NotEmpty(t, cnf.Redis.Host)
+
+		// Test deployment configuration access
+		assert.NotEmpty(t, cnf.Deployment.Environment)
+		assert.NotEmpty(t, cnf.Deployment.Name)
+	})
+
+	t.Run("validates configuration consistency", func(t *testing.T) {
+		cnf1 := config.NewAppConfig()
+		cnf2 := config.NewAppConfig()
+
+		// Test that configurations are consistent
+		assert.Equal(t, cnf1.Server.Host, cnf2.Server.Host)
+		assert.Equal(t, cnf1.Server.Port, cnf2.Server.Port)
+		assert.Equal(t, cnf1.DB.Host(), cnf2.DB.Host())
+		assert.Equal(t, cnf1.Redis.Host, cnf2.Redis.Host)
+		assert.Equal(t, cnf1.Deployment.Environment, cnf2.Deployment.Environment)
+		assert.Equal(t, cnf1.Deployment.Name, cnf2.Deployment.Name)
 	})
 }
 

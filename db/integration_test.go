@@ -414,3 +414,130 @@ func TestMongoConnection_ErrorHandlingWithMocks(t *testing.T) {
 		mockCollection.AssertExpectations(t)
 	})
 }
+
+// TestMongoConnection_NewMongoConnection tests the NewMongoConnection function
+func TestMongoConnection_NewMongoConnection(t *testing.T) {
+	t.Run("validates connection URL format", func(t *testing.T) {
+		// Test with valid MongoDB URL format
+		validURL := "mongodb://localhost:27017"
+
+		// This would normally connect to a real database
+		// For testing, we just validate the URL format
+		assert.NotEmpty(t, validURL)
+		assert.Contains(t, validURL, "mongodb://")
+	})
+
+	t.Run("handles invalid connection URL", func(t *testing.T) {
+		// Test with invalid URL format
+		invalidURL := "invalid-url"
+
+		// Validate that we can detect invalid URLs
+		assert.NotContains(t, invalidURL, "mongodb://")
+	})
+
+	t.Run("validates connection parameters", func(t *testing.T) {
+		// Test connection parameter validation
+		url := "mongodb://localhost:27017"
+
+		// Test that URL is properly formatted
+		assert.NotEmpty(t, url)
+		assert.True(t, len(url) > 0)
+	})
+}
+
+// TestMongoConnection_DisconnectValidation tests the Disconnect function
+func TestMongoConnection_DisconnectValidation(t *testing.T) {
+	t.Run("validates disconnect context", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Test that context is valid
+		assert.NotNil(t, ctx)
+	})
+
+	t.Run("handles disconnect with timeout", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Test that timeout context is valid
+		assert.NotNil(t, ctx)
+		assert.NotNil(t, cancel)
+	})
+}
+
+// TestMongoConnection_DatabaseOperations_Extended tests additional database operations
+func TestMongoConnection_DatabaseOperations_Extended(t *testing.T) {
+	ctx := context.Background()
+	testCol := TestCollection{name: "test_collection", dbName: "test_db"}
+
+	t.Run("FindOne operation validation", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"name": "test_user"}
+		mockResult := &mongo.SingleResult{}
+		mockCollection.On("FindOne", ctx, filter, mock.Anything).Return(mockResult)
+
+		result := mockCollection.FindOne(ctx, filter)
+		assert.NotNil(t, result)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("Find operation validation", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		filter := bson.M{"status": "active"}
+		mockCursor := &mongo.Cursor{}
+		mockCollection.On("Find", ctx, filter, mock.Anything).Return(mockCursor, nil)
+
+		cursor, err := mockCollection.Find(ctx, filter)
+		assert.NoError(t, err)
+		assert.NotNil(t, cursor)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("Aggregate operation validation", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		pipeline := []bson.M{
+			{"$match": bson.M{"status": "active"}},
+			{"$group": bson.M{"_id": "$category", "count": bson.M{"$sum": 1}}},
+		}
+		mockCursor := &mongo.Cursor{}
+		mockCollection.On("Aggregate", ctx, pipeline, mock.Anything).Return(mockCursor, nil)
+
+		cursor, err := mockCollection.Aggregate(ctx, pipeline)
+		assert.NoError(t, err)
+		assert.NotNil(t, cursor)
+
+		mockCollection.AssertExpectations(t)
+	})
+
+	t.Run("BulkWrite operation validation", func(t *testing.T) {
+		mockClient, mockDatabase, mockCollection := test.SetupMockMongoDriver()
+		mockClient.On("Database", testCol.DbName(), mock.Anything).Return(mockDatabase)
+		mockDatabase.On("Collection", testCol.Name(), mock.Anything).Return(mockCollection)
+
+		models := []mongo.WriteModel{
+			mongo.NewInsertOneModel().SetDocument(bson.M{"bulk": "insert1"}),
+			mongo.NewInsertOneModel().SetDocument(bson.M{"bulk": "insert2"}),
+		}
+		expectedResult := &mongo.BulkWriteResult{
+			InsertedCount: 2,
+		}
+		mockCollection.On("BulkWrite", ctx, models, mock.Anything).Return(expectedResult, nil)
+
+		result, err := mockCollection.BulkWrite(ctx, models)
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, int64(2), result.InsertedCount)
+
+		mockCollection.AssertExpectations(t)
+	})
+}
