@@ -1,6 +1,7 @@
 package docs
 
 const intoDescription = `# Documentation for Go IAM APIs
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 **go-iam** is a lightweight, multi-tenant Identity and Access Management (IAM) server built in **Golang**.
 It provides robust authentication and fine-grained authorization for modern applications. With support for custom roles, third-party auth providers, and multi-client setups, *go-iam* gives you full control over access management in a scalable and modular way.
 
