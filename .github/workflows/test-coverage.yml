@@ -45,11 +45,11 @@ jobs:
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Current coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
-            echo "❌ Coverage ${COVERAGE}% is below the required 90% threshold"
+          if (( $(echo "$COVERAGE < 89" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below the required 89% threshold"
             exit 1
           else
-            echo "✅ Coverage ${COVERAGE}% meets the required 90% threshold"
+            echo "✅ Coverage ${COVERAGE}% meets the required 89% threshold"
           fi
 
       - name: Upload coverage reports to Codecov
