@@ -418,16 +418,6 @@ func (m *MockRedisCmd) Err() error {
 	return args.Error(0)
 }
 
-func (m *MockRedisCmd) readReply(rd interface{}) error {
-	args := m.Called(rd)
-	return args.Error(0)
-}
-
-func (m *MockRedisCmd) readTimeout() *time.Duration {
-	args := m.Called()
-	return args.Get(0).(*time.Duration)
-}
-
 func (m *MockRedisCmd) SetFirstKeyPos(keyPos int8) {
 	m.Called(keyPos)
 }
