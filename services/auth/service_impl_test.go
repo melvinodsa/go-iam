@@ -2342,7 +2342,7 @@ func TestGetServiceAccountUser(t *testing.T) {
 		ctx := context.Background()
 
 		assert.Panics(t, func() {
-			svc.getServiceAccountUser(ctx, nil)
+			_, _ = svc.getServiceAccountUser(ctx, nil)
 		})
 	})
 
