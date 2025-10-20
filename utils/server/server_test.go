@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/melvinodsa/go-iam/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
