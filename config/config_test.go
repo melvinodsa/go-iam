@@ -708,12 +708,24 @@ func TestAppConfig_LoadServiceAccountConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean all service account env vars before each test
-			os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
-			os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+			err := os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
+			if err != nil {
+				log.Error(err)
+			}
+			err = os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+			if err != nil {
+				log.Error(err)
+			}
 			setEnvVars(tt.envVars)
 			defer func() {
-				os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
-				os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+				err := os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
+				if err != nil {
+					log.Error(err)
+				}
+				err = os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+				if err != nil {
+					log.Error(err)
+				}
 			}()
 
 			config := &AppConfig{}
