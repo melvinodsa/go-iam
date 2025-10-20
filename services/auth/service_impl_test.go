@@ -2241,3 +2241,705 @@ func (m *MockEvent) Context() context.Context {
 	}
 	return m.context
 }
+
+// TestGetServiceAccountUser tests the getServiceAccountUser function
+func TestGetServiceAccountUser(t *testing.T) {
+	t.Run("successful service account user retrieval", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		serviceAccountUserId := "service-account-user-id"
+		token := &sdk.AuthToken{
+			ServiceAccountUserId: serviceAccountUserId,
+		}
+
+		expectedUser := &sdk.User{
+			Id:    serviceAccountUserId,
+			Name:  "Service Account User",
+			Email: "service@example.com",
+		}
+
+		mockUserService.On("GetById", ctx, serviceAccountUserId).Return(expectedUser, nil)
+
+		user, err := svc.getServiceAccountUser(ctx, token)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, expectedUser.Id, user.Id)
+		assert.Equal(t, expectedUser.Name, user.Name)
+		assert.Equal(t, expectedUser.Email, user.Email)
+
+		mockUserService.AssertExpectations(t)
+	})
+
+	t.Run("error when user service fails", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		serviceAccountUserId := "non-existent-user-id"
+		token := &sdk.AuthToken{
+			ServiceAccountUserId: serviceAccountUserId,
+		}
+
+		expectedError := errors.New("user not found")
+		mockUserService.On("GetById", ctx, serviceAccountUserId).Return(nil, expectedError)
+
+		user, err := svc.getServiceAccountUser(ctx, token)
+
+		assert.Error(t, err)
+		assert.Nil(t, user)
+		assert.Contains(t, err.Error(), "error fetching service account user")
+		assert.Contains(t, err.Error(), "user not found")
+
+		mockUserService.AssertExpectations(t)
+	})
+
+	t.Run("nil token", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+
+		assert.Panics(t, func() {
+			_, _ = svc.getServiceAccountUser(ctx, nil)
+		})
+	})
+
+	t.Run("empty service account user id", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		token := &sdk.AuthToken{
+			ServiceAccountUserId: "",
+		}
+
+		expectedError := errors.New("user not found")
+		mockUserService.On("GetById", ctx, "").Return(nil, expectedError)
+
+		user, err := svc.getServiceAccountUser(ctx, token)
+
+		assert.Error(t, err)
+		assert.Nil(t, user)
+		assert.Contains(t, err.Error(), "error fetching service account user")
+
+		mockUserService.AssertExpectations(t)
+	})
+}
+
+// TestRefreshAuthToken tests the refreshAuthToken function
+func TestRefreshAuthToken(t *testing.T) {
+	t.Run("successful token refresh", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+		mockEncryptService := &services.MockEncryptService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     mockEncryptService,
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		accessToken := "current-access-token"
+		refreshToken := "refresh-token"
+		token := sdk.AuthToken{
+			RefreshToken: refreshToken,
+		}
+
+		// Mock service provider
+		mockServiceProvider := &services.MockServiceProvider{}
+		newToken := &sdk.AuthToken{
+			AccessToken:  "new-access-token",
+			RefreshToken: "new-refresh-token",
+			ExpiresAt:    time.Now().Add(time.Hour),
+		}
+
+		mockServiceProvider.On("RefreshToken", refreshToken).Return(newToken, nil)
+		mockEncryptService.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-token", nil)
+		mockCacheService.On("Set", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(nil)
+
+		refreshedToken, err := svc.refreshAuthToken(ctx, accessToken, token, mockServiceProvider)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, refreshedToken)
+		assert.Equal(t, newToken.AccessToken, refreshedToken.AccessToken)
+		assert.Equal(t, newToken.RefreshToken, refreshedToken.RefreshToken)
+
+		mockServiceProvider.AssertExpectations(t)
+		mockEncryptService.AssertExpectations(t)
+		mockCacheService.AssertExpectations(t)
+	})
+
+	t.Run("error when service provider refresh fails", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		accessToken := "current-access-token"
+		refreshToken := "invalid-refresh-token"
+		token := sdk.AuthToken{
+			RefreshToken: refreshToken,
+		}
+
+		// Mock service provider
+		mockServiceProvider := &services.MockServiceProvider{}
+		expectedError := errors.New("invalid refresh token")
+		mockServiceProvider.On("RefreshToken", refreshToken).Return(nil, expectedError)
+
+		refreshedToken, err := svc.refreshAuthToken(ctx, accessToken, token, mockServiceProvider)
+
+		assert.Error(t, err)
+		assert.Nil(t, refreshedToken)
+		assert.Contains(t, err.Error(), "error refreshing the token with servivce provider")
+		assert.Contains(t, err.Error(), "invalid refresh token")
+
+		mockServiceProvider.AssertExpectations(t)
+	})
+
+	t.Run("error when caching fails", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+		mockEncryptService := &services.MockEncryptService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     mockEncryptService,
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		accessToken := "current-access-token"
+		refreshToken := "refresh-token"
+		token := sdk.AuthToken{
+			RefreshToken: refreshToken,
+		}
+
+		// Mock service provider
+		mockServiceProvider := &services.MockServiceProvider{}
+		newToken := &sdk.AuthToken{
+			AccessToken:  "new-access-token",
+			RefreshToken: "new-refresh-token",
+			ExpiresAt:    time.Now().Add(time.Hour),
+		}
+
+		mockServiceProvider.On("RefreshToken", refreshToken).Return(newToken, nil)
+		mockEncryptService.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-token", nil)
+		cacheError := errors.New("cache error")
+		mockCacheService.On("Set", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(cacheError)
+
+		refreshedToken, err := svc.refreshAuthToken(ctx, accessToken, token, mockServiceProvider)
+
+		assert.Error(t, err)
+		assert.Nil(t, refreshedToken)
+		assert.Contains(t, err.Error(), "error caching the access token")
+		assert.Contains(t, err.Error(), "cache error")
+
+		mockServiceProvider.AssertExpectations(t)
+		mockEncryptService.AssertExpectations(t)
+		mockCacheService.AssertExpectations(t)
+	})
+
+	t.Run("empty refresh token", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		accessToken := "current-access-token"
+		token := sdk.AuthToken{
+			RefreshToken: "",
+		}
+
+		// Mock service provider
+		mockServiceProvider := &services.MockServiceProvider{}
+		expectedError := errors.New("empty refresh token")
+		mockServiceProvider.On("RefreshToken", "").Return(nil, expectedError)
+
+		refreshedToken, err := svc.refreshAuthToken(ctx, accessToken, token, mockServiceProvider)
+
+		assert.Error(t, err)
+		assert.Nil(t, refreshedToken)
+		assert.Contains(t, err.Error(), "error refreshing the token with servivce provider")
+
+		mockServiceProvider.AssertExpectations(t)
+	})
+}
+
+// TestClientCredentials tests the ClientCredentials function
+func TestClientCredentials(t *testing.T) {
+	t.Run("successful client credentials flow", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+		mockEncryptService := &services.MockEncryptService{}
+		mockJWTService := &services.MockJWTService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     mockEncryptService,
+			jwtSvc:     mockJWTService,
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := "test-client-secret"
+		linkedUserId := "linked-user-id"
+
+		// Mock client
+		mockClient := &sdk.Client{
+			Id:                    clientId,
+			Enabled:               true,
+			Secret:                "hashed-secret",
+			LinkedUserId:          linkedUserId,
+			DefaultAuthProviderId: "", // Empty for service accounts
+		}
+
+		// Mock user
+		mockUser := &sdk.User{
+			Id:      linkedUserId,
+			Name:    "Service User",
+			Email:   "service@example.com",
+			Enabled: true,
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(nil)
+		mockUserService.On("GetById", ctx, linkedUserId).Return(mockUser, nil)
+
+		// Mock encrypt and JWT operations
+		mockEncryptService.On("Encrypt", mock.AnythingOfType("string")).Return("encrypted-token", nil)
+		mockJWTService.On("GenerateToken", mock.AnythingOfType("map[string]interface {}"), mock.AnythingOfType("int64")).Return("jwt-token", nil)
+		mockCacheService.On("Set", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("time.Duration")).Return(nil)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.NotEmpty(t, response.AccessToken)
+
+		mockClientService.AssertExpectations(t)
+		mockUserService.AssertExpectations(t)
+		mockAuthProviderService.AssertExpectations(t)
+		mockCacheService.AssertExpectations(t)
+	})
+
+	t.Run("invalid client id", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "invalid-client-id"
+		clientSecret := "test-client-secret"
+
+		expectedError := errors.New("client not found")
+		mockClientService.On("Get", ctx, clientId, true).Return(nil, expectedError)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "invalid client_id")
+		assert.Contains(t, err.Error(), "client not found")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("disabled client", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "disabled-client-id"
+		clientSecret := "test-client-secret"
+
+		// Mock disabled client
+		mockClient := &sdk.Client{
+			Id:      clientId,
+			Enabled: false,
+			Secret:  "hashed-secret",
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "client is disabled")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("authentication failed", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := "wrong-client-secret"
+
+		// Mock client
+		mockClient := &sdk.Client{
+			Id:      clientId,
+			Enabled: true,
+			Secret:  "hashed-secret",
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		expectedError := errors.New("invalid secret")
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(expectedError)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "authentication failed")
+		assert.Contains(t, err.Error(), "invalid secret")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("client does not support service account flow", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := "test-client-secret"
+
+		// Mock client that is not a service account
+		mockClient := &sdk.Client{
+			Id:                    clientId,
+			Enabled:               true,
+			Secret:                "hashed-secret",
+			DefaultAuthProviderId: "regular-provider",
+			LinkedUserId:          "", // No linked user
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(nil)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "client does not support service account flow")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("client does not have linked user", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := "test-client-secret"
+
+		// Mock client without linked user
+		mockClient := &sdk.Client{
+			Id:                    clientId,
+			Enabled:               true,
+			Secret:                "hashed-secret",
+			DefaultAuthProviderId: "", // Empty for service accounts
+			LinkedUserId:          "", // No linked user
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(nil)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "client does not support service account flow")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("error fetching linked user", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := "test-client-secret"
+		linkedUserId := "non-existent-user-id"
+
+		// Mock client
+		mockClient := &sdk.Client{
+			Id:                    clientId,
+			Enabled:               true,
+			Secret:                "hashed-secret",
+			DefaultAuthProviderId: "", // Empty for service accounts
+			LinkedUserId:          linkedUserId,
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(nil)
+		expectedError := errors.New("user not found")
+		mockUserService.On("GetById", ctx, linkedUserId).Return(nil, expectedError)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "linked user not found")
+		assert.Contains(t, err.Error(), "user not found")
+
+		mockClientService.AssertExpectations(t)
+		mockUserService.AssertExpectations(t)
+	})
+
+	t.Run("empty client id", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := ""
+		clientSecret := "test-client-secret"
+
+		expectedError := errors.New("client not found")
+		mockClientService.On("Get", ctx, clientId, true).Return(nil, expectedError)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "invalid client_id")
+
+		mockClientService.AssertExpectations(t)
+	})
+
+	t.Run("empty client secret", func(t *testing.T) {
+		mockUserService := &services.MockUserService{}
+		mockCacheService := &MockCacheService{}
+		mockClientService := &services.MockClientService{}
+		mockAuthProviderService := &MockAuthProviderService{}
+
+		svc := service{
+			usrSvc:     mockUserService,
+			cacheSvc:   mockCacheService,
+			clientSvc:  mockClientService,
+			authP:      mockAuthProviderService,
+			encSvc:     &services.MockEncryptService{},
+			jwtSvc:     &services.MockJWTService{},
+			tokenTTL:   60,
+			refetchTTL: 30,
+		}
+
+		ctx := context.Background()
+		clientId := "test-client-id"
+		clientSecret := ""
+
+		// Mock client
+		mockClient := &sdk.Client{
+			Id:      clientId,
+			Enabled: true,
+			Secret:  "hashed-secret",
+		}
+
+		mockClientService.On("Get", ctx, clientId, true).Return(mockClient, nil)
+		expectedError := errors.New("invalid secret")
+		mockClientService.On("VerifySecret", clientSecret, mockClient.Secret).Return(expectedError)
+
+		response, err := svc.ClientCredentials(ctx, clientId, clientSecret)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "authentication failed")
+
+		mockClientService.AssertExpectations(t)
+	})
+}

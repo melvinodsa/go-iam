@@ -637,3 +637,101 @@ func setEnvVars(envVars map[string]string) {
 		}
 	}
 }
+
+func TestAppConfig_LoadServiceAccountConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		envVars  map[string]string
+		expected ServiceAccount
+	}{
+		{
+			name:    "Default values",
+			envVars: map[string]string{},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 60,
+				RefreshTokenTTLInDays:   30,
+			},
+		},
+		{
+			name: "Custom access token TTL",
+			envVars: map[string]string{
+				"SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES": "120",
+			},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 120,
+				RefreshTokenTTLInDays:   30,
+			},
+		},
+		{
+			name: "Custom refresh token TTL",
+			envVars: map[string]string{
+				"SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS": "90",
+			},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 60,
+				RefreshTokenTTLInDays:   90,
+			},
+		},
+		{
+			name: "Both custom values",
+			envVars: map[string]string{
+				"SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES": "180",
+				"SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS":   "60",
+			},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 180,
+				RefreshTokenTTLInDays:   60,
+			},
+		},
+		{
+			name: "Invalid access token TTL falls back to default",
+			envVars: map[string]string{
+				"SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES": "invalid",
+			},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 60,
+				RefreshTokenTTLInDays:   30,
+			},
+		},
+		{
+			name: "Invalid refresh token TTL falls back to default",
+			envVars: map[string]string{
+				"SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS": "invalid",
+			},
+			expected: ServiceAccount{
+				AccessTokenTTLInMinutes: 60,
+				RefreshTokenTTLInDays:   30,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean all service account env vars before each test
+			err := os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
+			if err != nil {
+				log.Error(err)
+			}
+			err = os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+			if err != nil {
+				log.Error(err)
+			}
+			setEnvVars(tt.envVars)
+			defer func() {
+				err := os.Unsetenv("SERVICE_ACCOUNT_ACCESS_TOKEN_TTL_MINUTES")
+				if err != nil {
+					log.Error(err)
+				}
+				err = os.Unsetenv("SERVICE_ACCOUNT_REFRESH_TOKEN_TTL_DAYS")
+				if err != nil {
+					log.Error(err)
+				}
+			}()
+
+			config := &AppConfig{}
+			config.LoadServiceAccountConfig()
+
+			assert.Equal(t, tt.expected, config.ServiceAccount)
+		})
+	}
+}

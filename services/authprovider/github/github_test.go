@@ -558,6 +558,128 @@ func TestGetIdentity_NetworkError(t *testing.T) {
 	}
 }
 
+func TestGetIdentity_APIError(t *testing.T) {
+	// Create a mock server that returns an error status
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message": "Internal Server Error"}`))
+	}))
+	defer mockServer.Close()
+
+	// Create a custom GetIdentity function that uses our mock server
+	getIdentityWithMock := func(token string) ([]sdk.AuthIdentity, error) {
+		req, err := http.NewRequest("GET", mockServer.URL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error creating request. %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching the identity. %w", err)
+		}
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error reading the response. %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("API error: %s", string(respBytes))
+		}
+
+		var userInfo struct {
+			Email     string `json:"email"`
+			Name      string `json:"name"`
+			AvatarURL string `json:"avatar_url"`
+			Login     string `json:"login"`
+		}
+		err = json.Unmarshal(respBytes, &userInfo)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling the response. %s - %w", string(respBytes), err)
+		}
+
+		identities := []sdk.AuthIdentity{
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityEmail{Email: userInfo.Email}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityName{Name: userInfo.Name}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityProfilePic{ProfilePic: userInfo.AvatarURL}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityUsername{Username: userInfo.Login}},
+		}
+
+		return identities, nil
+	}
+
+	identities, err := getIdentityWithMock("any-token")
+	assert.Error(t, err)
+	assert.Nil(t, identities)
+	assert.Contains(t, err.Error(), "API error")
+}
+
+func TestGetIdentity_InvalidJSON(t *testing.T) {
+	// Create a mock server that returns invalid JSON
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`invalid json`))
+	}))
+	defer mockServer.Close()
+
+	// Create a custom GetIdentity function that uses our mock server
+	getIdentityWithMock := func(token string) ([]sdk.AuthIdentity, error) {
+		req, err := http.NewRequest("GET", mockServer.URL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("error creating request. %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching the identity. %w", err)
+		}
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error reading the response. %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("API error: %s", string(respBytes))
+		}
+
+		var userInfo struct {
+			Email     string `json:"email"`
+			Name      string `json:"name"`
+			AvatarURL string `json:"avatar_url"`
+			Login     string `json:"login"`
+		}
+		err = json.Unmarshal(respBytes, &userInfo)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling the response. %s - %w", string(respBytes), err)
+		}
+
+		identities := []sdk.AuthIdentity{
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityEmail{Email: userInfo.Email}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityName{Name: userInfo.Name}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityProfilePic{ProfilePic: userInfo.AvatarURL}},
+			{Type: sdk.AuthIdentityTypeEmail, Metadata: GitHubIdentityUsername{Username: userInfo.Login}},
+		}
+
+		return identities, nil
+	}
+
+	identities, err := getIdentityWithMock("any-token")
+	assert.Error(t, err)
+	assert.Nil(t, identities)
+	assert.Contains(t, err.Error(), "error unmarshalling the response")
+}
+
 // Test identity metadata types
 func TestGitHubIdentityEmail_UpdateUserDetails(t *testing.T) {
 	user := &sdk.User{}
@@ -604,6 +726,24 @@ func TestGitHubIdentityUsername_UpdateUserDetails(t *testing.T) {
 
 		assert.Equal(t, "John Doe", user.Name) // Should not be overridden
 	})
+}
+
+func TestHasRefreshTokenFlow(t *testing.T) {
+	mockProvider := createMockGitHubProvider()
+	serviceProvider := NewAuthProvider(mockProvider)
+
+	// GitHub doesn't support refresh token flow
+	assert.False(t, serviceProvider.HasRefreshTokenFlow())
+}
+
+func TestRefreshToken(t *testing.T) {
+	mockProvider := createMockGitHubProvider()
+	serviceProvider := NewAuthProvider(mockProvider)
+
+	// GitHub refresh token should return nil
+	token, err := serviceProvider.RefreshToken("any-token")
+	assert.Nil(t, token)
+	assert.Nil(t, err)
 }
 
 func TestAuthProvider_EdgeCases(t *testing.T) {

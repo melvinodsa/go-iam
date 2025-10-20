@@ -425,3 +425,50 @@ func BenchmarkIsMigrationApplied(b *testing.B) {
 		assert.True(b, ok, "expected migration to be applied")
 	}
 }
+
+func TestGetMigrations(t *testing.T) {
+	// Save original state
+	originalMigrations := db.GetMigrations()
+	defer func() {
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
+	}()
+
+	// Reset migrations for test
+	db.ResetMigrations()
+
+	// Register some test migrations
+	migration1 := createTestMigration("001", "first", false)
+	migration2 := createTestMigration("002", "second", false)
+	db.RegisterMigration(migration1)
+	db.RegisterMigration(migration2)
+
+	// Get migrations
+	migrations := db.GetMigrations()
+
+	// Assert
+	assert.Len(t, migrations, 2)
+	assert.Equal(t, "001", migrations[0].Version)
+	assert.Equal(t, "002", migrations[1].Version)
+}
+
+func TestResetMigrations(t *testing.T) {
+	// Save original state
+	originalMigrations := db.GetMigrations()
+	defer func() {
+		db.ResetMigrations()
+		for _, migration := range originalMigrations {
+			db.RegisterMigration(migration)
+		}
+	}()
+
+	// Register a migration
+	db.RegisterMigration(createTestMigration("001", "test", false))
+	assert.Len(t, db.GetMigrations(), len(originalMigrations)+1)
+
+	// Reset
+	db.ResetMigrations()
+	assert.Len(t, db.GetMigrations(), 0)
+}
