@@ -1055,6 +1055,71 @@ func TestTransferOwnership(t *testing.T) {
 			},
 		},
 		{
+			name:       "success - transfer ownership when new owner already has same role",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Roles = map[string]sdk.UserRole{
+					"role-1": {
+						Name: "role-1",
+					},
+				}
+				newUsr := createTestUser()
+				newUsr.Roles = map[string]sdk.UserRole{
+					"role-1": { // Same role already exists
+						Name: "role-1",
+					},
+				}
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newUsr, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership when users have overlapping resources",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Resources = map[string]sdk.UserResource{
+					"resource-1": {
+						Name:      "resource-1",
+						PolicyIds: map[string]bool{"policy-1": true},
+					},
+					"resource-2": {
+						Name:      "resource-2",
+						PolicyIds: map[string]bool{"policy-2": true},
+					},
+				}
+				newUsr := createTestUser()
+				newUsr.Resources = map[string]sdk.UserResource{
+					"resource-1": { // Overlapping resource
+						Name:      "resource-1",
+						PolicyIds: map[string]bool{"policy-3": true}, // Different policies
+					},
+				}
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newUsr, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
+			name:       "success - transfer ownership with empty resources and roles",
+			oldOwnerId: "user-123",
+			newOwnerId: "user-456",
+			setupMocks: func() {
+				usr := createTestUser()
+				usr.Roles = make(map[string]sdk.UserRole)
+				usr.Resources = make(map[string]sdk.UserResource)
+				usr.Policies = make(map[string]sdk.UserPolicy)
+
+				mockStore.On("GetById", ctx, "user-123").Return(usr, nil)
+				mockStore.On("GetById", ctx, "user-456").Return(newOwner, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+		},
+		{
 			name:       "error - old owner not found",
 			oldOwnerId: "user-999",
 			newOwnerId: "user-456",
@@ -1126,6 +1191,222 @@ func TestTransferOwnership(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.expectedError)
 			} else {
 				require.NoError(t, err)
+			}
+
+			mockStore.AssertExpectations(t)
+		})
+	}
+}
+
+// TestCopyUserResources tests the CopyUserResources method
+func TestCopyUserResources(t *testing.T) {
+	ctx := createContextWithMetadata()
+	svc, mockStore, _ := setupUserService()
+
+	sourceUser := createTestUser()
+	sourceUser.Id = "source-user-123"
+	sourceUser.Email = "source@example.com"
+	sourceUser.Resources = map[string]sdk.UserResource{
+		"resource-1": {
+			Key:       "resource-1",
+			Name:      "Resource One",
+			PolicyIds: map[string]bool{"policy-1": true, "policy-2": true},
+			RoleIds:   map[string]bool{"role-1": true},
+		},
+		"resource-2": {
+			Key:       "resource-2",
+			Name:      "Resource Two",
+			PolicyIds: map[string]bool{"policy-3": true},
+			RoleIds:   map[string]bool{},
+		},
+	}
+
+	targetUser := createTestUser()
+	targetUser.Id = "target-user-456"
+	targetUser.Email = "target@example.com"
+	targetUser.Resources = map[string]sdk.UserResource{
+		"existing-resource": {
+			Key:       "existing-resource",
+			Name:      "Existing Resource",
+			PolicyIds: map[string]bool{"existing-policy": true},
+			RoleIds:   map[string]bool{"existing-role": true},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		sourceUserId   string
+		targetUserId   string
+		setupMocks     func()
+		expectedError  string
+		validateResult func(t *testing.T)
+	}{
+		{
+			name:         "success - copy resources from source to target",
+			sourceUserId: "source-user-123",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUser, nil)
+				mockStore.On("GetById", ctx, "target-user-456").Return(targetUser, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+			validateResult: func(t *testing.T) {
+				// Verify the Update call was made with correct user
+				calls := mockStore.Calls
+				updateCall := calls[len(calls)-1] // Last call should be Update
+				assert.Equal(t, "Update", updateCall.Method)
+
+				updatedUser := updateCall.Arguments[1].(*sdk.User)
+				assert.Equal(t, "target-user-456", updatedUser.Id)
+
+				// Verify original existing resource is still there
+				assert.Contains(t, updatedUser.Resources, "existing-resource")
+
+				// Verify copied resources are added
+				assert.Contains(t, updatedUser.Resources, "resource-1")
+				assert.Contains(t, updatedUser.Resources, "resource-2")
+
+				// Verify resource details are copied correctly
+				resource1 := updatedUser.Resources["resource-1"]
+				assert.Equal(t, "resource-1", resource1.Key)
+				assert.Equal(t, "Resource One", resource1.Name)
+				assert.Equal(t, map[string]bool{"policy-1": true, "policy-2": true}, resource1.PolicyIds)
+				assert.Equal(t, map[string]bool{"role-1": true}, resource1.RoleIds)
+
+				resource2 := updatedUser.Resources["resource-2"]
+				assert.Equal(t, "resource-2", resource2.Key)
+				assert.Equal(t, "Resource Two", resource2.Name)
+				assert.Equal(t, map[string]bool{"policy-3": true}, resource2.PolicyIds)
+			},
+		},
+		{
+			name:         "success - copy resources when target has no existing resources",
+			sourceUserId: "source-user-123",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				targetUserEmpty := createTestUser()
+				targetUserEmpty.Id = "target-user-456"
+				targetUserEmpty.Resources = make(map[string]sdk.UserResource)
+
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUser, nil)
+				mockStore.On("GetById", ctx, "target-user-456").Return(targetUserEmpty, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+			validateResult: func(t *testing.T) {
+				calls := mockStore.Calls
+				updateCall := calls[len(calls)-1]
+				updatedUser := updateCall.Arguments[1].(*sdk.User)
+
+				// Should have exactly the copied resources
+				assert.Len(t, updatedUser.Resources, 2)
+				assert.Contains(t, updatedUser.Resources, "resource-1")
+				assert.Contains(t, updatedUser.Resources, "resource-2")
+			},
+		},
+		{
+			name:         "success - copy resources overwrites existing resources with same key",
+			sourceUserId: "source-user-123",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				targetUserWithConflict := createTestUser()
+				targetUserWithConflict.Id = "target-user-456"
+				targetUserWithConflict.Resources = map[string]sdk.UserResource{
+					"resource-1": {
+						Key:       "resource-1",
+						Name:      "Old Resource One",
+						PolicyIds: map[string]bool{"old-policy": true},
+						RoleIds:   map[string]bool{"old-role": true},
+					},
+				}
+
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUser, nil)
+				mockStore.On("GetById", ctx, "target-user-456").Return(targetUserWithConflict, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+			validateResult: func(t *testing.T) {
+				calls := mockStore.Calls
+				updateCall := calls[len(calls)-1]
+				updatedUser := updateCall.Arguments[1].(*sdk.User)
+
+				// Should have the new resource-1 data, not the old one
+				resource1 := updatedUser.Resources["resource-1"]
+				assert.Equal(t, "Resource One", resource1.Name) // New name
+				assert.Equal(t, map[string]bool{"policy-1": true, "policy-2": true}, resource1.PolicyIds)
+				assert.NotContains(t, resource1.PolicyIds, "old-policy")
+			},
+		},
+		{
+			name:         "success - copy from user with no resources",
+			sourceUserId: "source-user-123",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				sourceUserEmpty := createTestUser()
+				sourceUserEmpty.Id = "source-user-123"
+				sourceUserEmpty.Resources = make(map[string]sdk.UserResource)
+
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUserEmpty, nil)
+				mockStore.On("GetById", ctx, "target-user-456").Return(targetUser, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
+			},
+			validateResult: func(t *testing.T) {
+				calls := mockStore.Calls
+				updateCall := calls[len(calls)-1]
+				updatedUser := updateCall.Arguments[1].(*sdk.User)
+
+				// Should still have original existing resource
+				assert.Len(t, updatedUser.Resources, 3)
+				assert.Contains(t, updatedUser.Resources, "existing-resource")
+			},
+		},
+		{
+			name:         "error - source user not found",
+			sourceUserId: "nonexistent-source",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "nonexistent-source").Return((*sdk.User)(nil), ErrorUserNotFound)
+			},
+			expectedError: "user not found",
+		},
+		{
+			name:         "error - target user not found",
+			sourceUserId: "source-user-123",
+			targetUserId: "nonexistent-target",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUser, nil)
+				mockStore.On("GetById", ctx, "nonexistent-target").Return((*sdk.User)(nil), ErrorUserNotFound)
+			},
+			expectedError: "user not found",
+		},
+		{
+			name:         "error - database update fails",
+			sourceUserId: "source-user-123",
+			targetUserId: "target-user-456",
+			setupMocks: func() {
+				mockStore.On("GetById", ctx, "source-user-123").Return(sourceUser, nil)
+				mockStore.On("GetById", ctx, "target-user-456").Return(targetUser, nil)
+				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(errors.New("database error"))
+			},
+			expectedError: "failed to update target user",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset mocks
+			mockStore.ExpectedCalls = nil
+
+			tt.setupMocks()
+
+			err := svc.CopyUserResources(ctx, tt.sourceUserId, tt.targetUserId)
+
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+				if tt.validateResult != nil {
+					tt.validateResult(t)
+				}
 			}
 
 			mockStore.AssertExpectations(t)

@@ -1154,3 +1154,129 @@ func TestUpdatePolicies(t *testing.T) {
 		assert.NotNil(t, resp)
 	})
 }
+
+func TestCopyResources(t *testing.T) {
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
+	cnf := config.NewAppConfig()
+	log.Infow("Loaded Configurations",
+		"host", cnf.Server.Host,
+		"port", cnf.Server.Port,
+		"env", cnf.Deployment.Environment,
+		"app_name", cnf.Deployment.Name,
+	)
+
+	t.Run("copy resources successfully", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("CopyUserResources", mock.Anything, "source-user-001", "target-user-002").Return(nil).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/source-user-001/copy-resources/target-user-002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 200, res.StatusCode, "Expected status code 200")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+		assert.True(t, resp.Success)
+		assert.Contains(t, resp.Message, "User resources copied")
+	})
+
+	t.Run("copy resources user not found", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("CopyUserResources", mock.Anything, "nonexistent-source", "target-user-002").Return(sdk.ErrUserNotFound).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/nonexistent-source/copy-resources/target-user-002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 400, res.StatusCode, "Expected status code 400")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+		assert.False(t, resp.Success)
+		assert.Contains(t, resp.Message, "not found")
+	})
+
+	t.Run("copy resources service error", func(t *testing.T) {
+
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+		// user mock
+
+		mockUserSvc := services.MockUserService{}
+		mockUserSvc.On("CopyUserResources", mock.Anything, "source-user-001", "target-user-002").Return(errors.New("service error")).Once()
+
+		svcs.User = &mockUserSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+
+		app.Use(providers.Handle(prv))
+
+		RegisterRoutes(app, "/user")
+
+		req, _ := http.NewRequest("PUT", "/user/v1/source-user-001/copy-resources/target-user-002", nil)
+		res, err := app.Test(req, -1)
+		assert.Equalf(t, 500, res.StatusCode, "Expected status code 500")
+		assert.Nil(t, err)
+		var resp sdk.UserResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.NotNil(t, resp)
+		assert.False(t, resp.Success)
+		assert.Contains(t, resp.Message, "failed to copy resources")
+	})
+}
