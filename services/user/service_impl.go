@@ -253,6 +253,36 @@ func (s *service) RemoveResourceFromAll(ctx context.Context, resourceKey string)
 	return s.store.RemoveResourceFromAll(ctx, resourceKey)
 }
 
+func (s *service) TransferUserResources(ctx context.Context, sourceUserId, targetUserId string) error {
+	sourceUser, err := s.GetById(ctx, sourceUserId)
+	if err != nil {
+		return err
+	}
+
+	targetUser, err := s.GetById(ctx, targetUserId)
+	if err != nil {
+		return err
+	}
+
+	// Copy resources
+	for resourceKey, resource := range sourceUser.Resources {
+		targetUser.Resources[resourceKey] = resource
+	}
+
+	// Update target user in the database
+	err = s.store.Update(ctx, targetUser)
+	if err != nil {
+		return fmt.Errorf("failed to update target user: %w", err)
+	}
+
+	metadata := middlewares.GetMetadata(ctx)
+	metadata.User = targetUser
+	metadata.ProjectIds = []string{targetUser.ProjectId}
+
+	s.Emit(newEvent(ctx, goiamuniverse.EventUserUpdated, *targetUser, metadata))
+	return nil
+}
+
 func (s service) Emit(event utils.Event[sdk.User]) {
 	if event == nil {
 		return

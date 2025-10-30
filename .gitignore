@@ -12,3 +12,7 @@ bin
 
 go-iam
 test.out
+
+
+mongo-data/
+redis-data/

@@ -505,3 +505,65 @@ func TransferOwnership(c *fiber.Ctx) error {
 		Message: "User ownership transferred successfully",
 	})
 }
+
+func TransferResourcesRoute(router fiber.Router, basePath string) {
+	routePath := "/:sourceId/transfer-resources/:targetId"
+	path := basePath + routePath
+	router.Put(routePath, TransferResources)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Transfer User Resources",
+		Description: "Transfer resources from one user to another",
+		Response: &docs.ApiResponse{
+			Description: "User resources transferred successfully",
+			Content:     new(sdk.UserResponse),
+		},
+		// Parameters for the source user ID and target user ID in the path
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "sourceId",
+				In:          "path",
+				Description: "The ID of the source user",
+				Required:    true,
+			},
+			{
+				Name:        "targetId",
+				In:          "path",
+				Description: "The ID of the target user",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func TransferResources(c *fiber.Ctx) error {
+	log.Debug("received transfer user resources request")
+	sourceId := c.Params("sourceId")
+	targetId := c.Params("targetId")
+
+	pr := providers.GetProviders(c)
+	err := pr.S.User.TransferUserResources(c.Context(), sourceId, targetId)
+	if err != nil {
+		if errors.Is(err, sdk.ErrUserNotFound) {
+			return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+				Success: false,
+				Message: "Source or target user not found",
+			})
+		}
+
+		message := fmt.Sprintf("failed to transfer resources from user %s to user %s. %v", sourceId, targetId, err)
+		log.Errorw("failed to transfer resources", "error", message)
+		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("user resources transferred successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User resources transferred successfully",
+	})
+}

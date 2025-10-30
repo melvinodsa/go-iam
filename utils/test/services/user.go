@@ -92,3 +92,8 @@ func (m *MockUserService) Emit(event utils.Event[sdk.User]) {
 func (m *MockUserService) Subscribe(eventName goiamuniverse.Event, subscriber utils.Subscriber[utils.Event[sdk.User], sdk.User]) {
 	m.Called(eventName, subscriber)
 }
+
+func (m *MockUserService) CopyUserResources(ctx context.Context, sourceUserId, targetUserId string) error {
+	args := m.Called(ctx, sourceUserId, targetUserId)
+	return args.Error(0)
+}
