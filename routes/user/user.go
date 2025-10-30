@@ -505,3 +505,65 @@ func TransferOwnership(c *fiber.Ctx) error {
 		Message: "User ownership transferred successfully",
 	})
 }
+
+func CopyResourcesRoute(router fiber.Router, basePath string) {
+	routePath := "/:sourceId/copy-resources/:targetId"
+	path := basePath + routePath
+	router.Put(routePath, CopyResources)
+	docs.RegisterApi(docs.ApiWrapper{
+		Path:        path,
+		Method:      http.MethodPut,
+		Name:        "Copy User Resources",
+		Description: "Copy resources from one user to another",
+		Response: &docs.ApiResponse{
+			Description: "User resources copied successfully",
+			Content:     new(sdk.UserResponse),
+		},
+		// Parameters for the source user ID and target user ID in the path
+		Parameters: []docs.ApiParameter{
+			{
+				Name:        "sourceId",
+				In:          "path",
+				Description: "The ID of the source user",
+				Required:    true,
+			},
+			{
+				Name:        "targetId",
+				In:          "path",
+				Description: "The ID of the target user",
+				Required:    true,
+			},
+		},
+		Tags: routeTags,
+	})
+}
+
+func CopyResources(c *fiber.Ctx) error {
+	log.Debug("received copy user resources request")
+	sourceId := c.Params("sourceId")
+	targetId := c.Params("targetId")
+
+	pr := providers.GetProviders(c)
+	err := pr.S.User.CopyUserResources(c.Context(), sourceId, targetId)
+	if err != nil {
+		if errors.Is(err, sdk.ErrUserNotFound) {
+			return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
+				Success: false,
+				Message: "Source or target user not found",
+			})
+		}
+
+		message := fmt.Sprintf("failed to copy resources from user %s to user %s. %v", sourceId, targetId, err)
+		log.Errorw("failed to copy resources", "error", message)
+		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
+			Success: false,
+			Message: message,
+		})
+	}
+
+	log.Debug("user resources copied successfully")
+	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
+		Success: true,
+		Message: "User resources copied` successfully",
+	})
+}
