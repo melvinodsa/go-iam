@@ -253,7 +253,7 @@ func (s *service) RemoveResourceFromAll(ctx context.Context, resourceKey string)
 	return s.store.RemoveResourceFromAll(ctx, resourceKey)
 }
 
-func (s *service) TransferUserResources(ctx context.Context, sourceUserId, targetUserId string) error {
+func (s *service) CopyUserResources(ctx context.Context, sourceUserId, targetUserId string) error {
 	sourceUser, err := s.GetById(ctx, sourceUserId)
 	if err != nil {
 		return err

@@ -506,17 +506,17 @@ func TransferOwnership(c *fiber.Ctx) error {
 	})
 }
 
-func TransferResourcesRoute(router fiber.Router, basePath string) {
-	routePath := "/:sourceId/transfer-resources/:targetId"
+func CopyResourcesRoute(router fiber.Router, basePath string) {
+	routePath := "/:sourceId/copy-resources/:targetId"
 	path := basePath + routePath
-	router.Put(routePath, TransferResources)
+	router.Put(routePath, CopyResources)
 	docs.RegisterApi(docs.ApiWrapper{
 		Path:        path,
 		Method:      http.MethodPut,
-		Name:        "Transfer User Resources",
-		Description: "Transfer resources from one user to another",
+		Name:        "Copy User Resources",
+		Description: "Copy resources from one user to another",
 		Response: &docs.ApiResponse{
-			Description: "User resources transferred successfully",
+			Description: "User resources copied successfully",
 			Content:     new(sdk.UserResponse),
 		},
 		// Parameters for the source user ID and target user ID in the path
@@ -538,13 +538,13 @@ func TransferResourcesRoute(router fiber.Router, basePath string) {
 	})
 }
 
-func TransferResources(c *fiber.Ctx) error {
-	log.Debug("received transfer user resources request")
+func CopyResources(c *fiber.Ctx) error {
+	log.Debug("received copy user resources request")
 	sourceId := c.Params("sourceId")
 	targetId := c.Params("targetId")
 
 	pr := providers.GetProviders(c)
-	err := pr.S.User.TransferUserResources(c.Context(), sourceId, targetId)
+	err := pr.S.User.CopyUserResources(c.Context(), sourceId, targetId)
 	if err != nil {
 		if errors.Is(err, sdk.ErrUserNotFound) {
 			return c.Status(http.StatusBadRequest).JSON(sdk.UserResponse{
@@ -553,17 +553,17 @@ func TransferResources(c *fiber.Ctx) error {
 			})
 		}
 
-		message := fmt.Sprintf("failed to transfer resources from user %s to user %s. %v", sourceId, targetId, err)
-		log.Errorw("failed to transfer resources", "error", message)
+		message := fmt.Sprintf("failed to copy resources from user %s to user %s. %v", sourceId, targetId, err)
+		log.Errorw("failed to copy resources", "error", message)
 		return c.Status(http.StatusInternalServerError).JSON(sdk.UserResponse{
 			Success: false,
 			Message: message,
 		})
 	}
 
-	log.Debug("user resources transferred successfully")
+	log.Debug("user resources copied successfully")
 	return c.Status(http.StatusOK).JSON(sdk.UserResponse{
 		Success: true,
-		Message: "User resources transferred successfully",
+		Message: "User resources copied` successfully",
 	})
 }

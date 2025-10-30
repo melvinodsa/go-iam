@@ -3249,9 +3249,9 @@ paths:
             summary: Transfer User Ownership
             tags:
                 - User
-    /user/v1/{sourceId}/transfer-resources/{targetId}:
+    /user/v1/{sourceId}/copy-resources/{targetId}:
         put:
-            description: Transfer resources from one user to another
+            description: Copy resources from one user to another
             parameters:
                 - description: The ID of the source user
                   in: path
@@ -3357,9 +3357,9 @@ paths:
                                     success:
                                         type: boolean
                                 type: object
-                    description: User resources transferred successfully
+                    description: User resources copied successfully
             security:
                 - BearerAuth: []
-            summary: Transfer User Resources
+            summary: Copy User Resources
             tags:
                 - User
