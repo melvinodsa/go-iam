@@ -688,10 +688,10 @@ func TestAddResourceToUser(t *testing.T) {
 	ctx := createContextWithMetadata()
 	svc, mockStore, _ := setupUserService()
 
-	testUser := createTestUser()
 	resourceRequest := sdk.AddUserResourceRequest{
-		Key:  "resource-key",
-		Name: "Resource Name",
+		PolicyId: "policy-1",
+		Key:      "resource-key",
+		Name:     "Resource Name",
 	}
 
 	tests := []struct {
@@ -706,7 +706,7 @@ func TestAddResourceToUser(t *testing.T) {
 			userId:  "user-123",
 			request: resourceRequest,
 			setupMocks: func() {
-				mockStore.On("GetById", ctx, "user-123").Return(testUser, nil)
+				mockStore.On("GetById", ctx, "user-123").Return(createTestUser(), nil)
 				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(nil)
 			},
 		},
@@ -724,10 +724,25 @@ func TestAddResourceToUser(t *testing.T) {
 			userId:  "user-123",
 			request: resourceRequest,
 			setupMocks: func() {
-				mockStore.On("GetById", ctx, "user-123").Return(testUser, nil)
+				mockStore.On("GetById", ctx, "user-123").Return(createTestUser(), nil)
 				mockStore.On("Update", ctx, mock.AnythingOfType("*sdk.User")).Return(errors.New("database error"))
 			},
 			expectedError: "failed to update user",
+		},
+		{
+			name:    "skip - resource already present with same policy",
+			userId:  "user-123",
+			request: resourceRequest,
+			setupMocks: func() {
+				userWithResource := createTestUser()
+				userWithResource.Resources["resource-key"] = sdk.UserResource{
+					Key:       "resource-key",
+					Name:      "Resource Name",
+					PolicyIds: map[string]bool{"policy-1": true},
+				}
+				mockStore.On("GetById", ctx, "user-123").Return(userWithResource, nil)
+				// Update must NOT be called
+			},
 		},
 	}
 

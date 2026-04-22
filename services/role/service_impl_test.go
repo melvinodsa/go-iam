@@ -504,6 +504,50 @@ func TestService_AddResource(t *testing.T) {
 		assert.Contains(t, err.Error(), "update failed")
 		mockStore.AssertExpectations(t)
 	})
+
+	t.Run("no-op_when_resource_already_present", func(t *testing.T) {
+		mockStore := &MockStore{}
+		service := NewService(mockStore)
+		ctx := context.Background()
+
+		resource := sdk.Resources{
+			Id:   "resource1",
+			Key:  "users",
+			Name: "Users Resource",
+		}
+
+		existingRole := &sdk.Role{
+			Id:        "role1",
+			Name:      "Test Role",
+			ProjectId: "project1",
+			Enabled:   true,
+			Resources: map[string]sdk.Resources{
+				"users": resource,
+			},
+		}
+
+		// subscribe to assert no EventRoleUpdated emission
+		sub := &roleEventRecorder{}
+		service.Subscribe(goiamuniverse.EventRoleUpdated, sub)
+
+		mockStore.On("GetById", ctx, "role1").Return(existingRole, nil)
+		// Update must NOT be called - no mock registered
+
+		err := service.AddResource(ctx, "role1", resource)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 0, sub.calls, "expected no EventRoleUpdated when resource is already present")
+		mockStore.AssertExpectations(t)
+	})
+}
+
+// roleEventRecorder counts EventRoleUpdated emissions for assertion in tests.
+type roleEventRecorder struct {
+	calls int
+}
+
+func (r *roleEventRecorder) HandleEvent(event utils.Event[sdk.Role]) {
+	r.calls++
 }
 
 func TestService_Emit(t *testing.T) {

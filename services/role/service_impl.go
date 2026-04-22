@@ -48,6 +48,12 @@ func (s *service) AddResource(ctx context.Context, roleId string, resource sdk.R
 	if err != nil {
 		return err
 	}
+	// no-op if the role already has an identical entry for this resource
+	// key; this prevents spurious EventRoleUpdated emissions that fan out
+	// to every user with the role
+	if existing, ok := role.Resources[resource.Key]; ok && existing == resource {
+		return nil
+	}
 	if len(role.Resources) == 0 {
 		role.Resources = map[string]sdk.Resources{}
 	}

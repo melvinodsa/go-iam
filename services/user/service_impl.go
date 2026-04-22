@@ -133,6 +133,14 @@ func (s *service) AddResourceToUser(ctx context.Context, userId string, request 
 		return err
 	}
 
+	// no-op if the resource is already present on the user with this
+	// policy id; this prevents spurious EventUserUpdated emissions and
+	// breaks the cascade triggered by the add_resources_to_* system
+	// policies when a resource is created
+	if existing, ok := usr.Resources[request.Key]; ok && existing.PolicyIds[request.PolicyId] {
+		return nil
+	}
+
 	addResourceToUserObj(usr, request)
 
 	// Update user in the database
