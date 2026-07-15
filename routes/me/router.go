@@ -9,6 +9,7 @@ func RegisterRoutes(router fiber.Router, path string) {
 	v1Path := path + "/v1"
 	v1 := router.Group(v1Path)
 	MeRoute(v1, v1Path)
+	ResetPasswordRoute(v1, v1Path)
 }
 
 func RegisterOpenRoutes(router fiber.Router, path string, prv *providers.Provider) {

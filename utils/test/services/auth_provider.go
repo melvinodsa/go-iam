@@ -51,6 +51,11 @@ func (m *MockServiceProvider) GetAuthCodeUrl(state string) string {
 	return args.String(0)
 }
 
+func (m *MockServiceProvider) GetResetPasswordUrl() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *MockServiceProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	args := m.Called(ctx, code)
 	if args.Get(0) == nil {

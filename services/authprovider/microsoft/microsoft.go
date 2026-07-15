@@ -40,6 +40,10 @@ func (m authProvider) GetAuthCodeUrl(state string) string {
 	return m.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
+func (m authProvider) GetResetPasswordUrl() string {
+	return "https://passwordreset.microsoftonline.com/"
+}
+
 func (m authProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	token, err := m.cnf.Exchange(ctx, code)
 	if err != nil {

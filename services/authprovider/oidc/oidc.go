@@ -20,6 +20,7 @@ type authProvider struct {
 	userInfoURL  string
 	issuer       string
 	providerName string
+	resetURL     string
 }
 
 // NewAuthProvider creates a new generic OIDC provider instance
@@ -39,6 +40,7 @@ func NewAuthProvider(p sdk.AuthProvider) sdk.ServiceProvider {
 	authURL := p.GetParam("@OIDC/AUTHORIZATION_URL")
 	tokenURL := p.GetParam("@OIDC/TOKEN_URL")
 	userInfoURL := p.GetParam("@OIDC/USERINFO_URL")
+	resetURL := p.GetParam("@OIDC/RESET_PASSWORD_URL")
 
 	// Default scopes if not specified
 	scopes := []string{"openid", "profile", "email"}
@@ -58,6 +60,7 @@ func NewAuthProvider(p sdk.AuthProvider) sdk.ServiceProvider {
 		cnf:          oauthConfig,
 		userInfoURL:  userInfoURL,
 		providerName: p.Name,
+		resetURL:     resetURL,
 	}
 }
 
@@ -69,6 +72,10 @@ func (o authProvider) HasRefreshTokenFlow() bool {
 // GetAuthCodeUrl returns the authorization URL where users should be redirected for authentication
 func (o authProvider) GetAuthCodeUrl(state string) string {
 	return o.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+}
+
+func (o authProvider) GetResetPasswordUrl() string {
+	return o.resetURL
 }
 
 // VerifyCode exchanges an authorization code for access and refresh tokens

@@ -9,6 +9,7 @@ import (
 
 type Service interface {
 	GetLoginUrl(ctx context.Context, clientId, authProviderId, state, redirectUrl, codeChallengeMethod, codeChallenge string) (string, error)
+	GetResetPasswordUrl(ctx context.Context, authProviderId string) (string, error)
 	Redirect(ctx context.Context, code, state string) (*sdk.AuthRedirectResponse, error)
 	ClientCallback(ctx context.Context, code, codeChallenge, clientId, clietSecret string) (*sdk.AuthVerifyCodeResponse, error)
 	GetIdentity(ctx context.Context, accessToken string, forceFetch bool, emailDomains []string) (*sdk.User, error)

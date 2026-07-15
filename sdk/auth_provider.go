@@ -127,6 +127,9 @@ type ServiceProvider interface {
 	// GetAuthCodeUrl returns the authorization URL where users should be redirected for authentication.
 	GetAuthCodeUrl(state string) string
 
+	// GetResetPasswordUrl returns the provider-hosted URL where an authenticated user can reset their password.
+	GetResetPasswordUrl() string
+
 	// VerifyCode exchanges an authorization code for access and refresh tokens.
 	VerifyCode(ctx context.Context, code string) (*AuthToken, error)
 

@@ -38,6 +38,10 @@ func (g authProvider) GetAuthCodeUrl(state string) string {
 	return g.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
+func (g authProvider) GetResetPasswordUrl() string {
+	return "https://github.com/password_reset"
+}
+
 func (g authProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	token, err := g.cnf.Exchange(ctx, code)
 	if err != nil {

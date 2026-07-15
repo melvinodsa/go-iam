@@ -22,6 +22,7 @@ When creating an OIDC auth provider in the Go IAM system, you need to configure 
 - `@OIDC/AUTHORIZATION_URL`: The authorization endpoint of your OIDC provider
 - `@OIDC/TOKEN_URL`: The token endpoint of your OIDC provider
 - `@OIDC/USERINFO_URL`: The UserInfo endpoint of your OIDC provider
+- `@OIDC/RESET_PASSWORD_URL`: Optional provider-hosted password reset URL for authenticated self-service reset flows
 
 ## Usage Examples
 

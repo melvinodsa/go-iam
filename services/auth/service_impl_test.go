@@ -94,6 +94,11 @@ func (m *MockServiceProvider) GetAuthCodeUrl(state string) string {
 	return args.String(0)
 }
 
+func (m *MockServiceProvider) GetResetPasswordUrl() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *MockServiceProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	args := m.Called(ctx, code)
 	if args.Get(0) == nil {
@@ -120,6 +125,79 @@ func (m *MockServiceProvider) GetIdentity(token string) ([]sdk.AuthIdentity, err
 
 func (m *MockServiceProvider) HasRefreshTokenFlow() bool {
 	return true
+}
+
+func TestGetResetPasswordUrl(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("success", func(t *testing.T) {
+		mockAuthProvider := &MockAuthProviderService{}
+		mockServiceProvider := &MockServiceProvider{}
+
+		provider := &sdk.AuthProvider{Id: "provider-1", Provider: sdk.AuthProviderTypeOIDC}
+		mockAuthProvider.On("Get", ctx, "provider-1", true).Return(provider, nil).Once()
+		mockAuthProvider.On("GetProvider", ctx, *provider).Return(mockServiceProvider, nil).Once()
+		mockServiceProvider.On("GetResetPasswordUrl").Return("https://idp.example.com/reset").Once()
+
+		svc := &service{authP: mockAuthProvider}
+
+		url, err := svc.GetResetPasswordUrl(ctx, "provider-1")
+		require.NoError(t, err)
+		assert.Equal(t, "https://idp.example.com/reset", url)
+		mockAuthProvider.AssertExpectations(t)
+		mockServiceProvider.AssertExpectations(t)
+	})
+
+	t.Run("provider id required", func(t *testing.T) {
+		svc := &service{}
+
+		url, err := svc.GetResetPasswordUrl(ctx, "")
+		require.Error(t, err)
+		assert.Empty(t, url)
+		assert.Contains(t, err.Error(), "auth provider id is required")
+	})
+
+	t.Run("provider lookup error", func(t *testing.T) {
+		mockAuthProvider := &MockAuthProviderService{}
+		mockAuthProvider.On("Get", ctx, "provider-1", true).Return((*sdk.AuthProvider)(nil), errors.New("provider not found")).Once()
+
+		svc := &service{authP: mockAuthProvider}
+
+		url, err := svc.GetResetPasswordUrl(ctx, "provider-1")
+		require.Error(t, err)
+		assert.Empty(t, url)
+		assert.Contains(t, err.Error(), "error fetching auth provider details")
+	})
+
+	t.Run("service provider factory error", func(t *testing.T) {
+		mockAuthProvider := &MockAuthProviderService{}
+		provider := &sdk.AuthProvider{Id: "provider-1", Provider: sdk.AuthProviderTypeOIDC}
+		mockAuthProvider.On("Get", ctx, "provider-1", true).Return(provider, nil).Once()
+		mockAuthProvider.On("GetProvider", ctx, *provider).Return((*MockServiceProvider)(nil), errors.New("factory failed")).Once()
+
+		svc := &service{authP: mockAuthProvider}
+
+		url, err := svc.GetResetPasswordUrl(ctx, "provider-1")
+		require.Error(t, err)
+		assert.Empty(t, url)
+		assert.Contains(t, err.Error(), "error getting service provider")
+	})
+
+	t.Run("reset url not configured", func(t *testing.T) {
+		mockAuthProvider := &MockAuthProviderService{}
+		mockServiceProvider := &MockServiceProvider{}
+		provider := &sdk.AuthProvider{Id: "provider-1", Provider: sdk.AuthProviderTypeOIDC}
+		mockAuthProvider.On("Get", ctx, "provider-1", true).Return(provider, nil).Once()
+		mockAuthProvider.On("GetProvider", ctx, *provider).Return(mockServiceProvider, nil).Once()
+		mockServiceProvider.On("GetResetPasswordUrl").Return("").Once()
+
+		svc := &service{authP: mockAuthProvider}
+
+		url, err := svc.GetResetPasswordUrl(ctx, "provider-1")
+		require.Error(t, err)
+		assert.Empty(t, url)
+		assert.Contains(t, err.Error(), "password reset is not configured")
+	})
 }
 
 type MockJWTService struct {

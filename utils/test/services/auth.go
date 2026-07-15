@@ -18,6 +18,11 @@ func (m *MockAuthService) GetLoginUrl(ctx context.Context, clientId, authProvide
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockAuthService) GetResetPasswordUrl(ctx context.Context, authProviderId string) (string, error) {
+	args := m.Called(ctx, authProviderId)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockAuthService) Redirect(ctx context.Context, code, state string) (*sdk.AuthRedirectResponse, error) {
 	args := m.Called(ctx, code, state)
 	if args.Get(0) == nil {

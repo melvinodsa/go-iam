@@ -298,6 +298,10 @@ func (m mockAuthProvider) GetAuthCodeUrl(state string) string {
 	return m.cnf.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
 
+func (m mockAuthProvider) GetResetPasswordUrl() string {
+	return "https://accounts.google.com/signin/v2/usernamerecovery"
+}
+
 func (m mockAuthProvider) VerifyCode(ctx context.Context, code string) (*sdk.AuthToken, error) {
 	token, err := m.cnf.Exchange(ctx, code)
 	if err != nil {

@@ -74,6 +74,29 @@ func (s service) GetLoginUrl(ctx context.Context, clientId, authProviderId, stat
 	}
 	return sp.GetAuthCodeUrl(newState), nil
 }
+
+func (s service) GetResetPasswordUrl(ctx context.Context, authProviderId string) (string, error) {
+	if authProviderId == "" {
+		return "", errors.New("auth provider id is required")
+	}
+
+	p, err := s.authP.Get(ctx, authProviderId, true)
+	if err != nil {
+		return "", fmt.Errorf("error fetching auth provider details %w", err)
+	}
+	sp, err := s.authP.GetProvider(ctx, *p)
+	if err != nil {
+		return "", fmt.Errorf("error getting service provider %w", err)
+	}
+
+	resetURL := sp.GetResetPasswordUrl()
+	if resetURL == "" {
+		return "", errors.New("password reset is not configured for this auth provider")
+	}
+
+	return resetURL, nil
+}
+
 func (s service) Redirect(ctx context.Context, code, state string) (*sdk.AuthRedirectResponse, error) {
 	/*
 	 * get the state, authprovider id and client id from the state

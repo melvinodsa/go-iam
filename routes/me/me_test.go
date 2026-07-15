@@ -15,7 +15,9 @@ import (
 	"github.com/melvinodsa/go-iam/services/cache"
 	"github.com/melvinodsa/go-iam/utils/test"
 	"github.com/melvinodsa/go-iam/utils/test/server"
+	"github.com/melvinodsa/go-iam/utils/test/services"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,6 +76,159 @@ func TestMe(t *testing.T) {
 		assert.True(t, resp.Success)
 		assert.Equal(t, "User fetched successfully", resp.Message)
 		assert.Equal(t, testUser, resp.Data)
+	})
+
+	t.Run("unauthorized when user missing", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		app.Use(providers.Handle(prv))
+		app.Get("/me/v1/", Me)
+
+		req, _ := http.NewRequest("GET", "/me/v1/", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
+}
+
+func TestResetPassword(t *testing.T) {
+	err := os.Setenv("JWT_SECRET", "abcd")
+	require.NoError(t, err)
+	cnf := config.NewAppConfig()
+
+	t.Run("success - returns password reset url in postback mode", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("GetResetPasswordUrl", mock.Anything, "provider-1").Return("https://idp.example.com/reset", nil).Once()
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		prv.AuthClient = &sdk.Client{
+			Id:                    "go-iam-client",
+			DefaultAuthProviderId: "provider-1",
+		}
+
+		app.Use(providers.Handle(prv))
+		app.Use(func(c *fiber.Ctx) error {
+			c.Context().SetUserValue(sdk.UserTypeVal, &sdk.User{Id: "user-123"})
+			return c.Next()
+		})
+		app.Get("/me/v1/password-reset", ResetPassword)
+
+		req, _ := http.NewRequest("GET", "/me/v1/password-reset?postback=true", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+
+		var resp sdk.AuthRedirectResponse
+		err = json.NewDecoder(res.Body).Decode(&resp)
+		assert.Nil(t, err)
+		assert.Equal(t, "https://idp.example.com/reset", resp.RedirectUrl)
+		mockAuthSvc.AssertExpectations(t)
+	})
+
+	t.Run("success - redirects to password reset url", func(t *testing.T) {
+		app := fiber.New(fiber.Config{
+			ReadBufferSize: 8192,
+		})
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		if err != nil {
+			t.Errorf("error getting services: %s", err)
+			return
+		}
+
+		mockAuthSvc := services.MockAuthService{}
+		mockAuthSvc.On("GetResetPasswordUrl", mock.Anything, "provider-1").Return("https://idp.example.com/reset", nil).Once()
+		svcs.Auth = &mockAuthSvc
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		prv.AuthClient = &sdk.Client{
+			Id:                    "go-iam-client",
+			DefaultAuthProviderId: "provider-1",
+		}
+
+		app.Use(providers.Handle(prv))
+		app.Use(func(c *fiber.Ctx) error {
+			c.Context().SetUserValue(sdk.UserTypeVal, &sdk.User{Id: "user-123"})
+			return c.Next()
+		})
+		app.Get("/me/v1/password-reset", ResetPassword)
+
+		req, _ := http.NewRequest("GET", "/me/v1/password-reset", nil)
+		res, err := app.Test(req, -1)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
+		assert.Equal(t, "https://idp.example.com/reset", res.Header.Get("Location"))
+	})
+
+	t.Run("unauthorized when user missing", func(t *testing.T) {
+		app := fiber.New()
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		require.NoError(t, err)
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		prv.AuthClient = &sdk.Client{
+			Id:                    "go-iam-client",
+			DefaultAuthProviderId: "provider-1",
+		}
+		app.Use(providers.Handle(prv))
+		app.Get("/me/v1/password-reset", ResetPassword)
+
+		req := httptest.NewRequest(http.MethodGet, "/me/v1/password-reset", nil)
+		res, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
+
+	t.Run("bad request when auth client is not configured", func(t *testing.T) {
+		app := fiber.New()
+
+		d := test.SetupMockDB()
+		cs := cache.NewMockService()
+		svcs, err := server.GetServices(*cnf, cs, d)
+		require.NoError(t, err)
+
+		prv := server.SetupTestServer(app, cnf, svcs, cs, d)
+		prv.AuthClient = nil
+		app.Use(providers.Handle(prv))
+		app.Use(func(c *fiber.Ctx) error {
+			c.Context().SetUserValue(sdk.UserTypeVal, &sdk.User{Id: "user-123"})
+			return c.Next()
+		})
+		app.Get("/me/v1/password-reset", ResetPassword)
+
+		req := httptest.NewRequest(http.MethodGet, "/me/v1/password-reset", nil)
+		res, err := app.Test(req)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 }
 
@@ -165,14 +320,18 @@ func TestRegisterRoutes(t *testing.T) {
 
 	// Check if routes are registered
 	routes := app.GetRoutes()
-	routeFound := false
+	meRouteFound := false
+	resetRouteFound := false
 	for _, route := range routes {
 		if route.Path == "/api/v1/" && route.Method == "GET" {
-			routeFound = true
-			break
+			meRouteFound = true
+		}
+		if route.Path == "/api/v1/password-reset" && route.Method == "GET" {
+			resetRouteFound = true
 		}
 	}
-	assert.True(t, routeFound, "Me route should be registered")
+	assert.True(t, meRouteFound, "Me route should be registered")
+	assert.True(t, resetRouteFound, "Reset password route should be registered")
 }
 
 func TestRegisterOpenRoutes(t *testing.T) {
