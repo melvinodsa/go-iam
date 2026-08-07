@@ -38,7 +38,7 @@ type Client struct {
 // IsServiceAccount returns true if this client represents a service account.
 // A service account is a Go-IAM client that has an associated user account.
 func (c Client) IsServiceAccount() bool {
-	return c.HasGoIamAuthProvider() && c.LinkedUserId != ""
+	return c.LinkedUserId != ""
 }
 
 // HasGoIamAuthProvider returns true if this client uses Go-IAM's internal authentication.
